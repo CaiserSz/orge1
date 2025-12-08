@@ -13,11 +13,12 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from fastapi import FastAPI, HTTPException, status
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 from datetime import datetime
+from pathlib import Path
 from esp32.bridge import get_esp32_bridge
 from api.station_info import save_station_info, get_station_info
 
@@ -87,8 +88,22 @@ async def root():
         "name": "AC Charger API",
         "version": "1.0.0",
         "status": "running",
-        "docs": "/docs"
+        "docs": "/docs",
+        "form": "/form"
     }
+
+
+@app.get("/form", tags=["Form"], response_class=HTMLResponse)
+async def station_form():
+    """Şarj istasyonu bilgileri formu"""
+    form_path = Path(__file__).parent.parent / "station_form.html"
+    if form_path.exists():
+        return FileResponse(form_path)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Form dosyası bulunamadı"
+        )
 
 
 @app.get("/api/health", tags=["Health"])
