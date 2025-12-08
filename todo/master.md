@@ -12,10 +12,15 @@ Bu klasör proje yönetimi için kullanılan todo sistemini içerir.
 
 ### Dosya Yapısı
 
+- **START_HERE.md** - ⚡ Projeye devam etmek için başlangıç noktası (ÖNCE BUNU OKU!)
 - **master.md** (bu dosya) - Genel bilgiler, kurallar ve info noktaları
+- **checkpoint.md** - Nerede kaldık? Hızlı durum kontrolü
+- **project_state.md** - Detaylı proje durumu ve ilerleme takibi
+- **ai_workflow.md** - AI asistanları için çalışma akışı ve kurallar
 - **master_next.md** - Sonraki yapılacaklar listesi
 - **master_live.md** - Şu anda aktif olarak yapılan işler
 - **master_done.md** - Tamamlanan işler (tarih ve detaylarla)
+- **expert_recommendations.md** - Kıdemli uzman önerileri ve best practices
 
 ### Kullanım Kuralları
 
