@@ -38,26 +38,39 @@ cat todo/project_state.md
 ```
 /home/basar/charger/
 ├── api/                    # REST API (FastAPI)
-│   └── main.py
+│   ├── main.py            # Ana API uygulaması
+│   └── station_info.py    # İstasyon bilgileri yönetimi
 ├── esp32/                  # ESP32 Bridge ve Protokol
-│   ├── bridge.py
-│   ├── protocol.json
-│   └── Commercial_08122025.ino
+│   ├── bridge.py           # ESP32 seri iletişim modülü
+│   ├── protocol.json       # Protokol tanımları
+│   └── Commercial_08122025.ino  # ESP32 firmware
 ├── ocpp/                   # OCPP Implementasyonu (gelecek)
+│   ├── main.py
+│   ├── handlers.py
+│   └── states.py
 ├── meter/                  # Meter Okuma Modülü (gelecek)
+│   └── read_meter.py
+├── data/                   # Veri dosyaları
+│   └── station_info.json   # İstasyon bilgileri
+├── logs/                   # Log dosyaları
+│   ├── meter.log
+│   └── system.log
 ├── todo/                   # Proje Yönetimi ve Todo Sistemi
 │   ├── START_HERE.md      # ⚡ BAŞLANGIÇ NOKTASI
 │   ├── checkpoint.md       # Nerede kaldık?
 │   ├── project_state.md   # Detaylı durum
 │   ├── ai_workflow.md     # AI çalışma akışı
+│   ├── master.md          # Genel bilgiler ve kurallar
 │   ├── master_next.md     # Bekleyen görevler
 │   ├── master_live.md     # Aktif görevler
 │   ├── master_done.md     # Tamamlanan görevler
 │   └── expert_recommendations.md  # Best practices
-├── logs/                   # Log dosyaları
-├── env/                    # Python virtual environment
-├── project_info_20251208_145614.md  # Proje bilgileri
+├── env/                    # Python virtual environment (gitignore)
+├── project_info_20251208_145614.md  # Ana proje dokümantasyonu
+├── API_EXAMPLES.md         # API kullanım örnekleri
+├── station_form.html       # İstasyon bilgileri formu
 ├── .cursorrules            # Cursor AI kuralları
+├── .env                    # Ortam değişkenleri (gitignore)
 ├── requirements.txt        # Python bağımlılıkları
 └── ngrok.yml              # Ngrok yapılandırması
 ```
@@ -117,17 +130,32 @@ uvicorn api.main:app --host 0.0.0.0 --port 8000
 ### API Endpoints
 - **Base URL:** `https://lixhium.ngrok.app`
 - **Docs:** `https://lixhium.ngrok.app/docs`
+- **Form:** `https://lixhium.ngrok.app/form`
 - **Health:** `https://lixhium.ngrok.app/api/health`
 - **Status:** `https://lixhium.ngrok.app/api/status`
+- **Station Info:** `https://lixhium.ngrok.app/api/station/info`
+
+Detaylı API örnekleri için `API_EXAMPLES.md` dosyasına bakınız.
 
 ---
 
 ## 📚 Dokümantasyon
 
-- **Proje Bilgileri:** `project_info_20251208_145614.md`
-- **Todo Sistemi:** `todo/START_HERE.md`
-- **AI Çalışma Akışı:** `todo/ai_workflow.md`
-- **Uzman Önerileri:** `todo/expert_recommendations.md`
+### Ana Dokümantasyon
+- **Proje Bilgileri:** `project_info_20251208_145614.md` - Tüm teknik detaylar, protokol bilgileri, önemli notlar
+- **API Örnekleri:** `API_EXAMPLES.md` - Tüm API endpoint'leri için curl örnekleri
+
+### Proje Yönetimi
+- **Başlangıç:** `todo/START_HERE.md` - AI asistanları için başlangıç noktası
+- **Checkpoint:** `todo/checkpoint.md` - Projenin mevcut durumu
+- **Detaylı Durum:** `todo/project_state.md` - Detaylı proje durumu
+- **AI Çalışma Akışı:** `todo/ai_workflow.md` - AI asistanları için çalışma kuralları
+- **Uzman Önerileri:** `todo/expert_recommendations.md` - Best practices ve öneriler
+
+### Todo Sistemi
+- **Bekleyen Görevler:** `todo/master_next.md` - Öncelikli görevler
+- **Aktif Görevler:** `todo/master_live.md` - Şu anda çalışılan görevler
+- **Tamamlanan Görevler:** `todo/master_done.md` - Tamamlanan görevler geçmişi
 
 ---
 
@@ -158,5 +186,5 @@ Bu proje özel bir projedir.
 
 ---
 
-**Son Güncelleme:** 2025-12-08 18:40:00
+**Son Güncelleme:** 2025-12-08 19:00:00
 
