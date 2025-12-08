@@ -1,5 +1,6 @@
 version: "3"
-authtoken: 2xYWWrxjDomFPud62jaNKUYN5xn_81CM4iCKRifmPC7Zvcn8g
+agent:
+  authtoken: 2xYWWrxjDomFPud62jaNKUYN5xn_81CM4iCKRifmPC7Zvcn8g
 
 tunnels:
   # HTTP/HTTPS tunnel with custom domain
