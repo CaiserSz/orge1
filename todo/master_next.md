@@ -25,12 +25,20 @@
 
 ## Faz 2: API Katmanı - Devam Ediyor
 
+### 🔄 Test Altyapısı Kurulumu (Kritik) - Aktif Görev
+- [x] **Aktif:** `master_live.md`'ye taşındı
+- [ ] **Görev:** Test altyapısı kurulumu
+  - Açıklama: pytest kurulumu, test yapısı oluşturma, ilk testler
+  - Öncelik: Kritik
+  - Tahmini Süre: 2-3 saat
+  - Durum: 🔄 Devam Ediyor (master_live.md'de)
+
 ### 🔄 API Test ve İyileştirme
 - [ ] **Görev:** API endpoint'lerini test et
   - Açıklama: Tüm API endpoint'lerini gerçek ESP32 ile test et
   - Öncelik: Yüksek
   - Tahmini Süre: 1-2 saat
-  - Bağımlılıklar: ESP32 bağlantısı
+  - Bağımlılıklar: ESP32 bağlantısı, Test altyapısı kurulumu
   - Notlar: ESP32'nin `/dev/ttyUSB0` portunda olduğundan emin ol
 
 ### 🔄 API Hata Yönetimi İyileştirme
