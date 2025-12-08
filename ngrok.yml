@@ -18,4 +18,5 @@ tunnels:
   tcp:
     proto: tcp
     addr: 29229
+    remote_addr: 9.tcp.eu.ngrok.io:29229
     inspect: false
