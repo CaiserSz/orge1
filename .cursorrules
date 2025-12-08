@@ -34,4 +34,6 @@ GitHub repository (https://github.com/CaiserSz/orge1.git) ile sync gidilmesi ve 
 Agent terminal süreç çakışmalarını otomatik tespit edip çözecektir.
 Agent script kitlenme ve timeout durumlarını proaktif yönetecektir.
 Agent sistem sağlık kontrollerini düzenli yapacaktır.
+Varsayımlarla değil gerçek verilerle hareket edilecektir.
+Sistemde birşey yapılması gerektiğinde erişilemez veya SSH gerekli gibi varsayılmayacaktır. Direkt terminalden herşey yapılabilir durumdadır.
 
