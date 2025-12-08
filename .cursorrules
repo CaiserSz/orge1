@@ -28,6 +28,9 @@ Kod standardı tüm workspace ve projede korunacaktır.
 Agent projede ilgili adım ve işlemlerde her seferinde otonom olarak o konuda veya veya başka konuya geçtiğine diğer konuda kıdemli uzman olacaktır. ve gerekli işlemleri kıdemli uzman olarak yerine getirecektir.
 Agent çalışmaları esnasında ne yapıyorsa o konuda kıdemli uzman dır.  Çalışmaları dosya ve klasörleri en doğru zamanda githuba yükleyeceğini projeye etkisi ve ilerleme durumunda göre optimum noktalarda gerekli döküman kod, açıklama, rpor vb tüm ilgili verileri githuba aktaravcak veya githubı güncellleyecektir.
 ESP32 yükleme ve yönetimi için Arduino CLI kullanılacak.
+ESP32 ile RPi arasındaki USB bağlantı baudrate'i 115200'dür.
+ESP32-RPi protokolü: Binary Hex Protokolü, format: 41 [KOMUT] 2C [DEĞER] 10 (5 byte paket).
+Sadece belirtilen hex komutlar RPi'den ESP32'ye gönderilebilir. Detaylar için project_info_20251208_145614.md dosyasına bakılmalıdır.
 git ve github sürekli aktif olarak commmitl enecektir.
 GitHub repository (https://github.com/CaiserSz/orge1.git) ile sync gidilmesi ve local'in commit/push edilmesi için özen gösterilecektir.
 
