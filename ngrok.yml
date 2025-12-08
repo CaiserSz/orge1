@@ -1,0 +1,20 @@
+version: "3"
+authtoken: 2xYWWrxjDomFPud62jaNKUYN5xn_81CM4iCKRifmPC7Zvcn8g
+
+tunnels:
+  # HTTP/HTTPS tunnel with custom domain
+  # Domain: lixhium.ngrok.app
+  web:
+    proto: http
+    addr: 8000
+    domain: lixhium.ngrok.app
+    inspect: false
+  
+  # TCP tunnel for direct TCP connections
+  # Reserved TCP address ID: ra_31mBecHpZPIZvsRNAoX3PPOnyWr
+  # Remote address: 9.tcp.eu.ngrok.io:29229
+  # Note: Reserved TCP addresses require API usage for tunnel creation
+  tcp:
+    proto: tcp
+    addr: 29229
+    inspect: false
