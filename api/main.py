@@ -184,11 +184,16 @@ async def start_charge(request: ChargeStartRequest):
     current_status = esp32_bridge.get_status()
     if current_status:
         state = current_status.get('STATE', 0)
-        # Eğer zaten şarj ediliyorsa hata döndür
-        if state > 0:  # State > 0 genellikle aktif şarj anlamına gelir
+        # STATE=1: IDLE (boşta, şarj başlatılabilir)
+        # STATE=2: CABLE_DETECT (kablo algılandı, şarj başlatılabilir)
+        # STATE=3: EV_CONNECTED (araç bağlı, şarj başlatılabilir)
+        # STATE=4: SARJA_HAZIR (şarja hazır, şarj başlatılabilir)
+        # STATE=5+: Aktif şarj veya hata durumları (şarj başlatılamaz)
+        # Eğer şarj zaten aktifse veya hata durumundaysa (STATE >= 5) hata döndür
+        if state >= 5:  # STATE >= 5 aktif şarj veya hata durumu
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Şarj zaten aktif (State: {state})"
+                detail=f"Şarj başlatılamaz (State: {state}). Şarj zaten aktif veya hata durumunda."
             )
     
     # Authorization komutu gönder
@@ -262,8 +267,13 @@ async def set_current(request: CurrentSetRequest):
     current_status = esp32_bridge.get_status()
     if current_status:
         state = current_status.get('STATE', 0)
-        # Eğer şarj aktifse hata döndür
-        if state > 0:  # State > 0 genellikle aktif şarj anlamına gelir
+        # STATE=1: IDLE (akım ayarlanabilir)
+        # STATE=2: CABLE_DETECT (kablo algılandı, akım ayarlanabilir)
+        # STATE=3: EV_CONNECTED (araç bağlı, akım ayarlanabilir)
+        # STATE=4: SARJA_HAZIR (şarja hazır, akım ayarlanabilir)
+        # STATE=5+: Aktif şarj veya hata durumları (akım değiştirilemez)
+        # Eğer şarj aktifse veya hata durumundaysa (STATE >= 5) hata döndür
+        if state >= 5:  # STATE >= 5 aktif şarj veya hata durumu
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Şarj aktifken akım değiştirilemez (State: {state})"
