@@ -1,0 +1,13 @@
+# AC Charger Project Requirements
+# Created: 2025-12-08
+# Last Modified: 2025-12-08
+# Version: 1.0.0
+
+# ESP32 Communication
+pyserial>=3.5
+
+# REST API Framework
+fastapi>=0.124.0
+uvicorn>=0.38.0
+pydantic>=2.12.5
+

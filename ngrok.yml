@@ -15,7 +15,9 @@ tunnels:
   
   # SSH tunnel for remote SSH access
   # Maps to SSH service on port 22
+  # Uses static reserved TCP address: 10.tcp.eu.ngrok.io:23953
   ssh:
     proto: tcp
     addr: 22
+    remote_addr: 10.tcp.eu.ngrok.io:23953
     inspect: false
