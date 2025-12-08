@@ -21,6 +21,9 @@ Her değişiklik sonrası testler çalıştırılacaktır.
 Tüm önemli değişiklikler dokümante edilecektir.
 Tüm kod dosyalarına oluşturulma tarihi, revizyon tarihleri(saat ve dakika dahil) ve kısa açıklama eklenecektir.
 Tüm dosya isimleri her zaman İngilizce olacaktır.
+Çalışma dizini: /home/basar/charger
+Dosya, klasör, alt klasör, ikilik (binary) yaratacak durumlara izin verilmeyecektir.
+Kod standardı tüm workspace ve projede korunacaktır.
 /home/basar/charger/project_info_20251208_145614.md ve /home/basar/charger/.cursorrules dosyaları her zaman güncel tutulacaktır.
 Agent projede ilgili adım ve işlemlerde her seferinde otonom olarak o konuda veya veya başka konuya geçtiğine diğer konuda kıdemli uzman olacaktır. ve gerekli işlemleri kıdemli uzman olarak yerine getirecektir.
 Agent çalışmaları esnasında ne yapıyorsa o konuda kıdemli uzman dır.  Çalışmaları dosya ve klasörleri en doğru zamanda githuba yükleyeceğini projeye etkisi ve ilerleme durumunda göre optimum noktalarda gerekli döküman kod, açıklama, rpor vb tüm ilgili verileri githuba aktaravcak veya githubı güncellleyecektir.
