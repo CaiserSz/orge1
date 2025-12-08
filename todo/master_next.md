@@ -121,10 +121,54 @@
 
 ---
 
+## Faz 6: Loglama ve Session Yönetimi (Yeni - 2025-12-09)
+
+### 📋 Temel Loglama Sistemi (Yüksek Öncelik)
+- [ ] **Görev:** Logging modülü oluştur (`api/logging.py`)
+  - Açıklama: Structured logging (JSON format), log rotation, thread-safe
+  - Öncelik: Yüksek
+  - Tahmini Süre: 1-2 gün
+  - Notlar: ESP32 mesajlarını ve API isteklerini logla
+
+### 📋 Event Detection (Yüksek Öncelik)
+- [ ] **Görev:** Event detector oluştur (`api/event_detector.py`)
+  - Açıklama: State transition detection, event type classification
+  - Öncelik: Yüksek
+  - Tahmini Süre: 2-3 gün
+  - Bağımlılıklar: Logging modülü
+  - Notlar: Kablo takılma, araç bağlantı, şarj başlatma/durdurma event'leri
+
+### 📋 Session Management (Orta Öncelik)
+- [ ] **Görev:** Session manager oluştur (`api/session_manager.py`)
+  - Açıklama: Session oluşturma, event tracking, session storage
+  - Öncelik: Orta
+  - Tahmini Süre: 3-4 gün
+  - Bağımlılıklar: Event detector, Logging modülü
+  - Notlar: Session ID (UUID), başlangıç/bitiş zamanları, event tracking
+
+### 📋 Session Summary Generation (Orta Öncelik)
+- [ ] **Görev:** Session summary generator oluştur
+  - Açıklama: Session özeti hesaplama, istatistikler, rapor oluşturma
+  - Öncelik: Orta
+  - Tahmini Süre: 2-3 gün
+  - Bağımlılıklar: Session manager
+  - Notlar: Enerji, akım, süre, state duration'ları
+
+### 📋 API Endpoint'leri (Orta Öncelik)
+- [ ] **Görev:** Session API endpoint'leri ekle
+  - Açıklama: `GET /api/sessions`, `GET /api/sessions/{id}`, `GET /api/sessions/current`, `GET /api/sessions/{id}/summary`
+  - Öncelik: Orta
+  - Tahmini Süre: 1-2 gün
+  - Bağımlılıklar: Session manager
+  - Notlar: RESTful API tasarımı
+
+---
+
 ## Genel Notlar
 
 - Görevler öncelik sırasına göre sıralanmıştır
 - Her görev tamamlandığında `master_done.md`'ye taşınacak
 - Aktif görevler `master_live.md`'ye taşınacak
 - Görevler proje planlamasına göre fazlara ayrılmıştır
+- **Yeni:** Loglama ve Session Yönetimi fazı eklendi (2025-12-09)
 
