@@ -15,7 +15,7 @@
   - ESP32 protokol tanımları JSON formatında eklendi (`esp32/protocol.json`)
   - ESP32-RPi bridge modülü geliştirildi (`esp32/bridge.py`)
   - FastAPI uygulaması oluşturuldu (`api/main.py`)
-  - API endpoint'leri: `/api/status`, `/api/charge/start`, `/api/charge/stop`, `/api/current/set`, `/api/current/available`, `/api/health`
+  - API endpoint'leri: `/api/status`, `/api/charge/start`, `/api/charge/stop`, `/api/maxcurrent`, `/api/current/available`, `/api/health`
   - ESP32 otomatik durum izleme mekanizması eklendi
   - API dokümantasyonu eklendi (Swagger UI ve ReDoc)
   - Requirements.txt dosyası oluşturuldu

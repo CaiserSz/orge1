@@ -221,10 +221,10 @@ async def stop_charge(request: ChargeStopRequest):
     )
 
 
-@app.post("/api/current/set", tags=["Current Control"])
+@app.post("/api/maxcurrent", tags=["Current Control"])
 async def set_current(request: CurrentSetRequest):
     """
-    Akım ayarlama
+    Maksimum akım ayarlama
     
     ESP32'ye maksimum akım değerini ayarlar.
     
