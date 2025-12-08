@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Şarj İstasyonu Bilgileri</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2em;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 600px) {
+            .row { grid-template-columns: 1fr; }
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 Şarj İstasyonu Bilgileri</h1>
+        
+        <div id="message" class="message"></div>
+        
+        <form id="stationForm">
+            <div class="form-group">
+                <label for="station_id">İstasyon ID *</label>
+                <input type="text" id="station_id" name="station_id" required 
+                       placeholder="örn: STATION-001">
+            </div>
+            
+            <div class="form-group">
+                <label for="name">İstasyon Adı *</label>
+                <input type="text" id="name" name="name" required 
+                       placeholder="örn: Merkez Şarj İstasyonu">
+            </div>
+            
+            <div class="row">
+                <div class="form-group">
+                    <label for="location">Konum</label>
+                    <input type="text" id="location" name="location" 
+                           placeholder="örn: İstanbul">
+                </div>
+                
+                <div class="form-group">
+                    <label for="max_current_amp">Maksimum Akım (A)</label>
+                    <input type="number" id="max_current_amp" name="max_current_amp" 
+                           min="6" max="32" placeholder="6-32">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="address">Adres</label>
+                <textarea id="address" name="address" 
+                          placeholder="Tam adres bilgisi"></textarea>
+            </div>
+            
+            <div class="row">
+                <div class="form-group">
+                    <label for="max_power_kw">Maksimum Güç (kW)</label>
+                    <input type="number" id="max_power_kw" name="max_power_kw" 
+                           step="0.1" min="0" placeholder="örn: 22.0">
+                </div>
+                
+                <div class="form-group">
+                    <label for="connector_type">Bağlantı Tipi</label>
+                    <select id="connector_type" name="connector_type">
+                        <option value="">Seçiniz</option>
+                        <option value="Type2">Type 2</option>
+                        <option value="CCS">CCS</option>
+                        <option value="CHAdeMO">CHAdeMO</option>
+                        <option value="Tesla">Tesla</option>
+                        <option value="Schuko">Schuko</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="form-group">
+                    <label for="latitude">Enlem</label>
+                    <input type="number" id="latitude" name="latitude" 
+                           step="0.000001" placeholder="41.0082">
+                </div>
+                
+                <div class="form-group">
+                    <label for="longitude">Boylam</label>
+                    <input type="number" id="longitude" name="longitude" 
+                           step="0.000001" placeholder="28.9784">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="status">Durum</label>
+                <select id="status" name="status">
+                    <option value="active">Aktif</option>
+                    <option value="inactive">Pasif</option>
+                    <option value="maintenance">Bakımda</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="description">Açıklama</label>
+                <textarea id="description" name="description" 
+                          placeholder="İstasyon hakkında ek bilgiler"></textarea>
+            </div>
+            
+            <button type="submit">💾 Kaydet</button>
+        </form>
+    </div>
+    
+    <script>
+        const API_BASE = window.location.origin;
+        
+        function showMessage(text, type = 'success') {
+            const msgEl = document.getElementById('message');
+            msgEl.textContent = text;
+            msgEl.className = `message ${type}`;
+            msgEl.style.display = 'block';
+            setTimeout(() => {
+                msgEl.style.display = 'none';
+            }, 5000);
+        }
+        
+        document.getElementById('stationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = {};
+            
+            formData.forEach((value, key) => {
+                if (value) {
+                    // Sayısal alanları dönüştür
+                    if (['max_power_kw', 'max_current_amp', 'latitude', 'longitude'].includes(key)) {
+                        data[key] = parseFloat(value) || parseInt(value);
+                    } else {
+                        data[key] = value;
+                    }
+                }
+            });
+            
+            // API'ye kaydet
+            try {
+                const response = await fetch(`${API_BASE}/api/station/info`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('İstasyon bilgileri kaydedildi!', 'success');
+                } else {
+                    showMessage(result.message || 'Kayıt işlemi başarısız', 'error');
+                }
+            } catch (error) {
+                showMessage('Kayıt işlemi başarısız: ' + error.message, 'error');
+            }
+        });
+        
+        // Sayfa yüklendiğinde kayıtlı veriyi API'den yükle
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch(`${API_BASE}/api/station/info`);
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success && result.data) {
+                        const data = result.data;
+                        Object.keys(data).forEach(key => {
+                            const input = document.getElementById(key);
+                            if (input && data[key] !== null && data[key] !== undefined) {
+                                input.value = data[key];
+                            }
+                        });
+                    }
+                }
+            } catch (error) {
+                console.log('Kayıtlı veri yok veya yüklenemedi');
+            }
+        });
+    </script>
+</body>
+</html>
+

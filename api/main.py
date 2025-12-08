@@ -19,11 +19,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 from esp32.bridge import get_esp32_bridge
-from api.models import StationInfo, StationUpdate
-from api.stations import (
-    get_station, get_all_stations, create_station,
-    update_station, delete_station
-)
+from api.station_info import save_station_info, get_station_info
 
 # FastAPI uygulaması
 app = FastAPI(
@@ -296,13 +292,57 @@ async def get_available_currents():
     )
 
 
-# Hata yönetimi
 # Station Information Endpoints
 
-@app.get("/", tags=["Root"], response_class=HTMLResponse)
-async def root():
-    """Ana sayfa - Form"""
-    html_content = """
+@app.get("/api/station/info", tags=["Station"])
+async def get_station_info_endpoint():
+    """
+    Şarj istasyonu bilgilerini al
+    
+    Formdan girilen istasyon bilgilerini döndürür.
+    """
+    station_info = get_station_info()
+    
+    if not station_info:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="İstasyon bilgisi bulunamadı. Lütfen önce formu doldurun."
+        )
+    
+    return APIResponse(
+        success=True,
+        message="İstasyon bilgisi alındı",
+        data=station_info
+    )
+
+
+@app.post("/api/station/info", tags=["Station"])
+async def save_station_info_endpoint(station_data: Dict[str, Any]):
+    """
+    Şarj istasyonu bilgilerini kaydet
+    
+    Formdan girilen istasyon bilgilerini kaydeder.
+    """
+    if save_station_info(station_data):
+        return APIResponse(
+            success=True,
+            message="İstasyon bilgileri kaydedildi",
+            data=station_data
+        )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="İstasyon bilgileri kaydedilemedi"
+        )
+
+
+# Eski endpoint'leri kaldır - gereksiz karmaşıklık
+# Aşağıdaki endpoint'ler kaldırıldı:
+# - POST /api/stations
+# - GET /api/stations
+# - GET /api/stations/{station_id}
+# - PUT /api/stations/{station_id}
+# - DELETE /api/stations/{station_id}
     <!DOCTYPE html>
     <html lang="tr">
     <head>
@@ -692,109 +732,6 @@ async def root():
     return HTMLResponse(content=html_content)
 
 
-@app.post("/api/stations", tags=["Stations"])
-async def create_station_endpoint(station: StationInfo):
-    """
-    Yeni şarj istasyonu oluştur
-    
-    Form verilerini kullanarak yeni bir şarj istasyonu kaydı oluşturur.
-    """
-    station_data = station.model_dump()
-    
-    if create_station(station_data):
-        return APIResponse(
-            success=True,
-            message=f"İstasyon oluşturuldu: {station.station_id}",
-            data=station_data
-        )
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"İstasyon zaten mevcut veya geçersiz veri: {station.station_id}"
-        )
-
-
-@app.get("/api/stations", tags=["Stations"])
-async def get_all_stations_endpoint():
-    """
-    Tüm şarj istasyonlarını listele
-    
-    Kayıtlı tüm şarj istasyonlarının listesini döndürür.
-    """
-    stations = get_all_stations()
-    return APIResponse(
-        success=True,
-        message=f"{len(stations)} istasyon bulundu",
-        data=stations
-    )
-
-
-@app.get("/api/stations/{station_id}", tags=["Stations"])
-async def get_station_endpoint(station_id: str):
-    """
-    Belirli bir şarj istasyonu bilgisini al
-    
-    Args:
-        station_id: İstasyon ID
-    """
-    station = get_station(station_id)
-    
-    if not station:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"İstasyon bulunamadı: {station_id}"
-        )
-    
-    return APIResponse(
-        success=True,
-        message="İstasyon bilgisi alındı",
-        data=station
-    )
-
-
-@app.put("/api/stations/{station_id}", tags=["Stations"])
-async def update_station_endpoint(station_id: str, update: StationUpdate):
-    """
-    Şarj istasyonu bilgilerini güncelle
-    
-    Args:
-        station_id: İstasyon ID
-        update: Güncelleme verileri
-    """
-    update_data = update.model_dump(exclude_unset=True)
-    
-    if update_station(station_id, update_data):
-        updated_station = get_station(station_id)
-        return APIResponse(
-            success=True,
-            message=f"İstasyon güncellendi: {station_id}",
-            data=updated_station
-        )
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"İstasyon bulunamadı: {station_id}"
-        )
-
-
-@app.delete("/api/stations/{station_id}", tags=["Stations"])
-async def delete_station_endpoint(station_id: str):
-    """
-    Şarj istasyonu sil
-    
-    Args:
-        station_id: İstasyon ID
-    """
-    if delete_station(station_id):
-        return APIResponse(
-            success=True,
-            message=f"İstasyon silindi: {station_id}"
-        )
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"İstasyon bulunamadı: {station_id}"
-        )
 
 
 @app.exception_handler(Exception)
