@@ -4,21 +4,13 @@ agent:
   api_key: 32AHSFuAnr3dEqbISzXQj8LT2bT_89vhksjQHgjV3Z644eDk3
 
 tunnels:
-  # HTTP/HTTPS tunnel with custom domain
+  # HTTP/HTTPS tunnel for API and Web access
   # Domain: lixhium.ngrok.app
+  # Supports: REST API, Web UI, WebSocket (for OCPP/CSMS)
   web:
     proto: http
     addr: 8000
     domain: lixhium.ngrok.app
-    inspect: false
-  
-  # TCP tunnel for direct TCP connections
-  # Reserved TCP address ID: ra_31mBecHpZPIZvsRNAoX3PPOnyWr
-  # Remote address: 9.tcp.eu.ngrok.io:29229
-  tcp:
-    proto: tcp
-    addr: 29229
-    remote_addr: 9.tcp.eu.ngrok.io:29229
     inspect: false
   
   # SSH tunnel for remote SSH access
