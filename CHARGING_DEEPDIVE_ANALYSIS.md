@@ -181,15 +181,28 @@ POST /api/charge/start
 
 ## 🔍 FAZ 3: Şu Anki Durum - Devam Eden Şarj
 
-### Mevcut Durum
+### Mevcut Durum (Güncel - 02:16:00)
 ```
 STATE: 5 (SARJ_BASLADI)
 AUTH: 1 (Yetkilendirme VAR)
-CABLE: 63A (Şarj akımı - ANOMALI!)
+CABLE: 63A (Kablo akımı - KRİTİK ANOMALI!)
 MAX: 8A (Maksimum akım ayarı)
 CP: 2 (Control Pilot: CHARGING)
 PP: 1 (Proximity Pilot: Aktif)
+CPV: 1733mV (Control Pilot Voltaj - Düşük!)
+PPV: 395mV (Proximity Pilot Voltaj)
+RL: 1 (Relay: Açık)
+LOCK: 1 (Kilit: Kilitli)
+PWM: 33 (12.9% duty cycle)
+PB: 0 (Power Board: Hata Yok)
 ```
+
+**Güncel Detaylar:**
+- CPV: 1733mV (Normal: ~3900mV, Düşük voltaj - şarj aktif olduğunu gösteriyor)
+- PPV: 395mV (Normal: ~900mV, Düşük voltaj)
+- PWM: 33 (12.9% duty cycle) - MAX=8A için beklenen değer
+- RL: 1 (Relay açık - şarj aktif)
+- LOCK: 1 (Kilit kilitli - güvenlik için)
 
 ### ✅ Başarılı Noktalar
 
@@ -216,12 +229,41 @@ PP: 1 (Proximity Pilot: Aktif)
 - **Beklenen:** MAX=8A ile sınırlı olmalıydı
 - **Fark:** 63A vs 8A = 7.875x fark!
 
+**ESP32 Kod Analizi - CABLE Değeri:**
+
+ESP32 kodunda `cableCurrent` değişkeni tanımlı ve `sendStat()` fonksiyonunda gönderiliyor:
+```cpp
+uint8_t cableCurrent;  // Line 126
+SerialUSB.print(F(";CABLE="));
+SerialUSB.print(cableCurrent);  // Line 1077
+```
+
+**CABLE Değerinin Hesaplanması:**
+ESP32 kodunda `PPBAK()` fonksiyonu Proximity Pilot'u okuyor ve `cableCurrent` değerini hesaplıyor:
+- PP voltajına göre kablo kapasitesi belirleniyor
+- PP voltajı → Kablo kapasitesi mapping'i yapılıyor
+- `cableCurrent` değişkeni kablo kapasitesini gösteriyor, gerçek şarj akımını değil!
+
+**ÖNEMLİ BULGU:**
+- ✅ **CABLE=63A değeri KABLO KAPASİTESİ, şarj akımı değil!**
+- ✅ Gerçek şarj akımı PWM değerine göre kontrol ediliyor
+- ⚠️ **PWM=33 (12.9%) MAX=8A ile uyumlu DEĞİL!**
+- 🔴 **KRİTİK:** PWM=33 çok düşük, bu MAX=8A için beklenen değer değil
+- 🔴 **KRİTİK:** MAX current kontrolü çalışmıyor olabilir!
+
+**PWM ve MAX İlişkisi Analizi:**
+- PWM=33 → 12.9% duty cycle
+- MAX=8A ayarlanmış
+- Beklenen: PWM değeri MAX'a göre ayarlanmalı
+- Gerçek: PWM=33 çok düşük (MAX=8A için PWM≈80-100 olmalı)
+- **Sonuç:** MAX current kontrolü çalışmıyor olabilir!
+
 **Olası Açıklamalar:**
 
-1. **CABLE Değeri Farklı Bir Şey Olabilir:**
-   - CABLE değeri "kablo kapasitesi" olabilir, "şarj akımı" değil
-   - ESP32 kodunda `cableCurrent` değişkeni kablo kapasitesini gösteriyor olabilir
-   - Gerçek şarj akımı başka bir değerde olabilir
+1. **CABLE Değeri Kablo Kapasitesi:**
+   - ✅ CABLE=63A → Kablo kapasitesi (PP voltajından hesaplanan)
+   - ✅ Gerçek şarj akımı PWM ile kontrol ediliyor
+   - ✅ PWM=33 (12.9%) MAX=8A ile uyumlu olmalı
 
 2. **ESP32 Kodunda Bug:**
    - ESP32'de akım sınırlaması çalışmıyor olabilir
