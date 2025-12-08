@@ -13,11 +13,17 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from fastapi import FastAPI, HTTPException, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 from esp32.bridge import get_esp32_bridge
+from api.models import StationInfo, StationUpdate
+from api.stations import (
+    get_station, get_all_stations, create_station,
+    update_station, delete_station
+)
 
 # FastAPI uygulaması
 app = FastAPI(
@@ -72,7 +78,7 @@ class APIResponse(BaseModel):
     """Genel API yanıt modeli"""
     success: bool
     message: str
-    data: Optional[Dict[str, Any]] = None
+    data: Optional[Any] = None  # Dict, List veya başka herhangi bir tip olabilir
     timestamp: str = Field(default_factory=lambda: datetime.now().isoformat())
 
 
@@ -291,6 +297,506 @@ async def get_available_currents():
 
 
 # Hata yönetimi
+# Station Information Endpoints
+
+@app.get("/", tags=["Root"], response_class=HTMLResponse)
+async def root():
+    """Ana sayfa - Form"""
+    html_content = """
+    <!DOCTYPE html>
+    <html lang="tr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Şarj İstasyonu Yönetimi</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                padding: 20px;
+            }
+            .container {
+                max-width: 800px;
+                margin: 0 auto;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                padding: 40px;
+            }
+            h1 {
+                color: #333;
+                margin-bottom: 30px;
+                text-align: center;
+                font-size: 2em;
+            }
+            .form-group {
+                margin-bottom: 20px;
+            }
+            label {
+                display: block;
+                margin-bottom: 8px;
+                color: #555;
+                font-weight: 500;
+            }
+            input, select, textarea {
+                width: 100%;
+                padding: 12px;
+                border: 2px solid #e0e0e0;
+                border-radius: 6px;
+                font-size: 14px;
+                transition: border-color 0.3s;
+            }
+            input:focus, select:focus, textarea:focus {
+                outline: none;
+                border-color: #667eea;
+            }
+            textarea {
+                resize: vertical;
+                min-height: 80px;
+            }
+            .row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+            }
+            @media (max-width: 600px) {
+                .row { grid-template-columns: 1fr; }
+            }
+            button {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                padding: 14px 28px;
+                border-radius: 6px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                width: 100%;
+                margin-top: 10px;
+                transition: transform 0.2s, box-shadow 0.2s;
+            }
+            button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            }
+            button:active {
+                transform: translateY(0);
+            }
+            .message {
+                padding: 12px;
+                border-radius: 6px;
+                margin-bottom: 20px;
+                display: none;
+            }
+            .message.success {
+                background: #d4edda;
+                color: #155724;
+                border: 1px solid #c3e6cb;
+            }
+            .message.error {
+                background: #f8d7da;
+                color: #721c24;
+                border: 1px solid #f5c6cb;
+            }
+            .stations-list {
+                margin-top: 40px;
+                padding-top: 40px;
+                border-top: 2px solid #e0e0e0;
+            }
+            .station-card {
+                background: #f8f9fa;
+                padding: 20px;
+                border-radius: 8px;
+                margin-bottom: 15px;
+                border-left: 4px solid #667eea;
+            }
+            .station-card h3 {
+                color: #333;
+                margin-bottom: 10px;
+            }
+            .station-card p {
+                color: #666;
+                margin: 5px 0;
+            }
+            .btn-group {
+                display: flex;
+                gap: 10px;
+                margin-top: 15px;
+            }
+            .btn-group button {
+                flex: 1;
+                padding: 10px;
+                font-size: 14px;
+            }
+            .btn-edit {
+                background: #28a745;
+            }
+            .btn-delete {
+                background: #dc3545;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🔌 Şarj İstasyonu Yönetimi</h1>
+            
+            <div id="message" class="message"></div>
+            
+            <form id="stationForm">
+                <div class="form-group">
+                    <label for="station_id">İstasyon ID *</label>
+                    <input type="text" id="station_id" name="station_id" required 
+                           placeholder="örn: STATION-001">
+                </div>
+                
+                <div class="form-group">
+                    <label for="name">İstasyon Adı *</label>
+                    <input type="text" id="name" name="name" required 
+                           placeholder="örn: Merkez Şarj İstasyonu">
+                </div>
+                
+                <div class="row">
+                    <div class="form-group">
+                        <label for="location">Konum</label>
+                        <input type="text" id="location" name="location" 
+                               placeholder="örn: İstanbul">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="max_current_amp">Maksimum Akım (A)</label>
+                        <input type="number" id="max_current_amp" name="max_current_amp" 
+                               min="6" max="32" placeholder="6-32">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="address">Adres</label>
+                    <textarea id="address" name="address" 
+                              placeholder="Tam adres bilgisi"></textarea>
+                </div>
+                
+                <div class="row">
+                    <div class="form-group">
+                        <label for="max_power_kw">Maksimum Güç (kW)</label>
+                        <input type="number" id="max_power_kw" name="max_power_kw" 
+                               step="0.1" min="0" placeholder="örn: 22.0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="connector_type">Bağlantı Tipi</label>
+                        <select id="connector_type" name="connector_type">
+                            <option value="">Seçiniz</option>
+                            <option value="Type2">Type 2</option>
+                            <option value="CCS">CCS</option>
+                            <option value="CHAdeMO">CHAdeMO</option>
+                            <option value="Tesla">Tesla</option>
+                            <option value="Schuko">Schuko</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="form-group">
+                        <label for="latitude">Enlem</label>
+                        <input type="number" id="latitude" name="latitude" 
+                               step="0.000001" placeholder="41.0082">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="longitude">Boylam</label>
+                        <input type="number" id="longitude" name="longitude" 
+                               step="0.000001" placeholder="28.9784">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="status">Durum</label>
+                    <select id="status" name="status">
+                        <option value="active">Aktif</option>
+                        <option value="inactive">Pasif</option>
+                        <option value="maintenance">Bakımda</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Açıklama</label>
+                    <textarea id="description" name="description" 
+                              placeholder="İstasyon hakkında ek bilgiler"></textarea>
+                </div>
+                
+                <button type="submit">💾 Kaydet</button>
+            </form>
+            
+            <div class="stations-list">
+                <h2>Kayıtlı İstasyonlar</h2>
+                <div id="stationsContainer"></div>
+            </div>
+        </div>
+        
+        <script>
+            const API_BASE = window.location.origin;
+            
+            function showMessage(text, type = 'success') {
+                const msgEl = document.getElementById('message');
+                msgEl.textContent = text;
+                msgEl.className = `message ${type}`;
+                msgEl.style.display = 'block';
+                setTimeout(() => {
+                    msgEl.style.display = 'none';
+                }, 5000);
+            }
+            
+            async function loadStations() {
+                try {
+                    const response = await fetch(`${API_BASE}/api/stations`);
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        displayStations(result.data);
+                    }
+                } catch (error) {
+                    console.error('İstasyonlar yüklenemedi:', error);
+                }
+            }
+            
+            function displayStations(stations) {
+                const container = document.getElementById('stationsContainer');
+                
+                if (stations.length === 0) {
+                    container.innerHTML = '<p>Henüz kayıtlı istasyon yok.</p>';
+                    return;
+                }
+                
+                container.innerHTML = stations.map(station => `
+                    <div class="station-card">
+                        <h3>${station.name} (${station.station_id})</h3>
+                        <p><strong>Konum:</strong> ${station.location || 'Belirtilmemiş'}</p>
+                        <p><strong>Maksimum Akım:</strong> ${station.max_current_amp || 'N/A'}A</p>
+                        <p><strong>Maksimum Güç:</strong> ${station.max_power_kw || 'N/A'}kW</p>
+                        <p><strong>Bağlantı Tipi:</strong> ${station.connector_type || 'N/A'}</p>
+                        <p><strong>Durum:</strong> ${station.status || 'active'}</p>
+                        ${station.address ? `<p><strong>Adres:</strong> ${station.address}</p>` : ''}
+                        ${station.description ? `<p><strong>Açıklama:</strong> ${station.description}</p>` : ''}
+                        <div class="btn-group">
+                            <button class="btn-edit" onclick="editStation('${station.station_id}')">✏️ Düzenle</button>
+                            <button class="btn-delete" onclick="deleteStation('${station.station_id}')">🗑️ Sil</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            async function editStation(stationId) {
+                try {
+                    const response = await fetch(`${API_BASE}/api/stations/${stationId}`);
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        const station = result.data;
+                        // Formu doldur
+                        Object.keys(station).forEach(key => {
+                            const input = document.getElementById(key);
+                            if (input) {
+                                input.value = station[key] || '';
+                            }
+                        });
+                        showMessage('İstasyon bilgileri forma yüklendi. Güncellemek için Kaydet butonuna basın.', 'success');
+                    }
+                } catch (error) {
+                    showMessage('İstasyon bilgileri yüklenemedi', 'error');
+                }
+            }
+            
+            async function deleteStation(stationId) {
+                if (!confirm(`"${stationId}" istasyonunu silmek istediğinize emin misiniz?`)) {
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`${API_BASE}/api/stations/${stationId}`, {
+                        method: 'DELETE'
+                    });
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showMessage('İstasyon silindi', 'success');
+                        loadStations();
+                    } else {
+                        showMessage(result.message || 'Silme işlemi başarısız', 'error');
+                    }
+                } catch (error) {
+                    showMessage('Silme işlemi başarısız', 'error');
+                }
+            }
+            
+            document.getElementById('stationForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const formData = new FormData(e.target);
+                const data = {};
+                
+                formData.forEach((value, key) => {
+                    if (value) {
+                        // Sayısal alanları dönüştür
+                        if (['max_power_kw', 'max_current_amp', 'latitude', 'longitude'].includes(key)) {
+                            data[key] = parseFloat(value) || parseInt(value);
+                        } else {
+                            data[key] = value;
+                        }
+                    }
+                });
+                
+                try {
+                    // Önce mevcut istasyonu kontrol et
+                    const checkResponse = await fetch(`${API_BASE}/api/stations/${data.station_id}`);
+                    const checkResult = await checkResponse.json();
+                    
+                    let response;
+                    if (checkResult.success) {
+                        // Güncelle
+                        response = await fetch(`${API_BASE}/api/stations/${data.station_id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(data)
+                        });
+                    } else {
+                        // Yeni oluştur
+                        response = await fetch(`${API_BASE}/api/stations`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(data)
+                        });
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        showMessage('İstasyon bilgileri kaydedildi!', 'success');
+                        e.target.reset();
+                        loadStations();
+                    } else {
+                        showMessage(result.message || 'Kayıt işlemi başarısız', 'error');
+                    }
+                } catch (error) {
+                    showMessage('Kayıt işlemi başarısız: ' + error.message, 'error');
+                }
+            });
+            
+            // Sayfa yüklendiğinde istasyonları yükle
+            loadStations();
+        </script>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
+
+
+@app.post("/api/stations", tags=["Stations"])
+async def create_station_endpoint(station: StationInfo):
+    """
+    Yeni şarj istasyonu oluştur
+    
+    Form verilerini kullanarak yeni bir şarj istasyonu kaydı oluşturur.
+    """
+    station_data = station.model_dump()
+    
+    if create_station(station_data):
+        return APIResponse(
+            success=True,
+            message=f"İstasyon oluşturuldu: {station.station_id}",
+            data=station_data
+        )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"İstasyon zaten mevcut veya geçersiz veri: {station.station_id}"
+        )
+
+
+@app.get("/api/stations", tags=["Stations"])
+async def get_all_stations_endpoint():
+    """
+    Tüm şarj istasyonlarını listele
+    
+    Kayıtlı tüm şarj istasyonlarının listesini döndürür.
+    """
+    stations = get_all_stations()
+    return APIResponse(
+        success=True,
+        message=f"{len(stations)} istasyon bulundu",
+        data=stations
+    )
+
+
+@app.get("/api/stations/{station_id}", tags=["Stations"])
+async def get_station_endpoint(station_id: str):
+    """
+    Belirli bir şarj istasyonu bilgisini al
+    
+    Args:
+        station_id: İstasyon ID
+    """
+    station = get_station(station_id)
+    
+    if not station:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"İstasyon bulunamadı: {station_id}"
+        )
+    
+    return APIResponse(
+        success=True,
+        message="İstasyon bilgisi alındı",
+        data=station
+    )
+
+
+@app.put("/api/stations/{station_id}", tags=["Stations"])
+async def update_station_endpoint(station_id: str, update: StationUpdate):
+    """
+    Şarj istasyonu bilgilerini güncelle
+    
+    Args:
+        station_id: İstasyon ID
+        update: Güncelleme verileri
+    """
+    update_data = update.model_dump(exclude_unset=True)
+    
+    if update_station(station_id, update_data):
+        updated_station = get_station(station_id)
+        return APIResponse(
+            success=True,
+            message=f"İstasyon güncellendi: {station_id}",
+            data=updated_station
+        )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"İstasyon bulunamadı: {station_id}"
+        )
+
+
+@app.delete("/api/stations/{station_id}", tags=["Stations"])
+async def delete_station_endpoint(station_id: str):
+    """
+    Şarj istasyonu sil
+    
+    Args:
+        station_id: İstasyon ID
+    """
+    if delete_station(station_id):
+        return APIResponse(
+            success=True,
+            message=f"İstasyon silindi: {station_id}"
+        )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"İstasyon bulunamadı: {station_id}"
+        )
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
     """Global hata yakalayıcı"""
