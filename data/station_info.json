@@ -1,0 +1,8 @@
+{
+  "station_id": "TEST-001",
+  "name": "Test İstasyonu",
+  "location": "İstanbul",
+  "max_current_amp": 16,
+  "updated_at": "2025-12-08T18:22:53.390121",
+  "created_at": "2025-12-08T18:22:53.390232"
+}
