@@ -244,19 +244,55 @@ ESP32 kodunda `PPBAK()` fonksiyonu Proximity Pilot'u okuyor ve `cableCurrent` de
 - PP voltajı → Kablo kapasitesi mapping'i yapılıyor
 - `cableCurrent` değişkeni kablo kapasitesini gösteriyor, gerçek şarj akımını değil!
 
-**ÖNEMLİ BULGU:**
-- ✅ **CABLE=63A değeri KABLO KAPASİTESİ, şarj akımı değil!**
-- ✅ Gerçek şarj akımı PWM değerine göre kontrol ediliyor
-- ⚠️ **PWM=33 (12.9%) MAX=8A ile uyumlu DEĞİL!**
-- 🔴 **KRİTİK:** PWM=33 çok düşük, bu MAX=8A için beklenen değer değil
-- 🔴 **KRİTİK:** MAX current kontrolü çalışmıyor olabilir!
+**ÖNEMLİ BULGU - ESP32 Kod Analizi:**
 
-**PWM ve MAX İlişkisi Analizi:**
-- PWM=33 → 12.9% duty cycle
+**CABLE Değeri Hesaplama:**
+```cpp
+void PPBAK(void) {
+  // PP voltajına göre kablo kapasitesi belirleniyor
+  if(ppReadVal>2100){cableCurrent=0;}
+  else if(ppReadVal>2000){cableCurrent=6;}
+  else if(ppReadVal>1800){cableCurrent=13;}
+  else if(ppReadVal>1300){cableCurrent=20;}
+  else if(ppReadVal>750){cableCurrent=32;}
+  else if(ppReadVal>300){cableCurrent=63;}  // ← PPV=395mV için 63A
+  else{cableCurrent=0;}
+}
+```
+
+**PWM Hesaplama (dutyHesapIslemleri):**
+```cpp
+if(cableCurrent<maxCurrent){
+  dutyYuzde=(cableCurrent*100);
+} else {
+  dutyYuzde=(maxCurrent*100);  // ← MAX=8A kullanılıyor!
+}
+dutyYuzde=dutyYuzde/60;
+dutyYuzde=dutyYuzde*255;
+PWMVAL=dutyYuzde/100;
+```
+
+**Hesaplama Doğrulaması:**
+- PPV=395mV → cableCurrent=63A (PPV > 300mV)
 - MAX=8A ayarlanmış
-- Beklenen: PWM değeri MAX'a göre ayarlanmalı
-- Gerçek: PWM=33 çok düşük (MAX=8A için PWM≈80-100 olmalı)
-- **Sonuç:** MAX current kontrolü çalışmıyor olabilir!
+- cableCurrent (63) >= maxCurrent (8) → dutyYuzde = (8 * 100) = 800
+- dutyYuzde = 800 / 60 = 13.33
+- dutyYuzde = 13.33 * 255 = 3400
+- PWMVAL = 3400 / 100 = **34**
+
+**Gerçek PWM: 33**  
+**Hesaplanan PWM: 34**
+
+**✅ SONUÇ:**
+- ✅ **CABLE=63A değeri KABLO KAPASİTESİ (PP voltajından hesaplanan), şarj akımı değil!**
+- ✅ **MAX current kontrolü ÇALIŞIYOR!** PWM değeri MAX=8A'ye göre hesaplanmış (34 ≈ 33)
+- ✅ Gerçek şarj akımı PWM değerine göre kontrol ediliyor
+- ✅ MAX=8A ayarı doğru uygulanıyor
+
+**⚠️ ANCAK:**
+- ESP32 kodundaki bug hala var: `if (sarjStatus=SARJ_STAT_IDLE)` → Assignment operator
+- Bu bug MAX current ayarlamasını etkilemiyor (çünkü şarj başlamadan önce ayarlanıyor)
+- Ama kod kalitesi için düzeltilmeli
 
 **Olası Açıklamalar:**
 
