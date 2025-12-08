@@ -343,7 +343,24 @@ async def save_station_info_endpoint(station_data: Dict[str, Any]):
 # - GET /api/stations/{station_id}
 # - PUT /api/stations/{station_id}
 # - DELETE /api/stations/{station_id}
-    <!DOCTYPE html>
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    """Global hata yakalayıcı"""
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "success": False,
+            "message": f"Internal server error: {str(exc)}",
+            "timestamp": datetime.now().isoformat()
+        }
+    )
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
     <html lang="tr">
     <head>
         <meta charset="UTF-8">
