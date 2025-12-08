@@ -20,3 +20,10 @@ tunnels:
     addr: 29229
     remote_addr: 9.tcp.eu.ngrok.io:29229
     inspect: false
+  
+  # SSH tunnel for remote SSH access
+  # Maps to SSH service on port 22
+  ssh:
+    proto: tcp
+    addr: 22
+    inspect: false
