@@ -1,6 +1,7 @@
 version: "3"
 agent:
   authtoken: 2xYWWrxjDomFPud62jaNKUYN5xn_81CM4iCKRifmPC7Zvcn8g
+  api_key: 32AHSFuAnr3dEqbISzXQj8LT2bT_89vhksjQHgjV3Z644eDk3
 
 tunnels:
   # HTTP/HTTPS tunnel with custom domain
@@ -14,7 +15,6 @@ tunnels:
   # TCP tunnel for direct TCP connections
   # Reserved TCP address ID: ra_31mBecHpZPIZvsRNAoX3PPOnyWr
   # Remote address: 9.tcp.eu.ngrok.io:29229
-  # Note: Reserved TCP addresses require API usage for tunnel creation
   tcp:
     proto: tcp
     addr: 29229
