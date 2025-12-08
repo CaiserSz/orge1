@@ -1,0 +1,18 @@
+[Unit]
+Description=WiFi Failover Monitor Service
+After=network-online.target NetworkManager.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/python3 /home/basar/charger/scripts/wifi_failover_monitor.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+
+
