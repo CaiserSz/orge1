@@ -40,3 +40,42 @@ Agent sistem sağlık kontrollerini düzenli yapacaktır.
 Varsayımlarla değil gerçek verilerle hareket edilecektir.
 Sistemde birşey yapılması gerektiğinde erişilemez veya SSH gerekli gibi varsayılmayacaktır. Direkt terminalden herşey yapılabilir durumdadır.
 
+## Otonom Proje Yönetimi ve Devam Etme Kuralları
+
+**KRİTİK:** Kullanıcı "projeye devam et" veya benzeri bir komut verdiğinde, Agent şu adımları takip etmelidir:
+
+1. **İlk Adım - Durum Tespiti (ZORUNLU):**
+   - `/home/basar/charger/todo/START_HERE.md` dosyasını okumalıdır
+   - `/home/basar/charger/todo/checkpoint.md` dosyasını okumalıdır (nerede kaldık?)
+   - `/home/basar/charger/todo/project_state.md` dosyasını okumalıdır (detaylı durum)
+   - `/home/basar/charger/todo/master_live.md` dosyasını kontrol etmelidir (aktif görev var mı?)
+   - `/home/basar/charger/todo/master_next.md` dosyasını kontrol etmelidir (bekleyen görevler)
+
+2. **İkinci Adım - Görev Seçimi:**
+   - Eğer aktif görev varsa (`master_live.md`), önce onu tamamlamalıdır
+   - Eğer aktif görev yoksa, `master_next.md`'den en yüksek öncelikli görevi seçmelidir
+   - Görevi `master_live.md`'ye taşımalıdır
+   - `project_state.md` dosyasını güncellemelidir
+
+3. **Üçüncü Adım - Çalışma:**
+   - Seçilen görevi tamamlamalıdır
+   - `/home/basar/charger/todo/ai_workflow.md` dosyasındaki kurallara uymalıdır
+   - Proaktif çalışmalıdır (blokajları çözmeli, eksik testleri yazmalı, dokümantasyonu güncellemeli)
+
+4. **Dördüncü Adım - Tamamlama:**
+   - Görevi `master_done.md`'ye taşımalıdır
+   - `project_state.md` dosyasını güncellemelidir
+   - `checkpoint.md` dosyasını güncellemelidir
+   - Git commit ve push yapmalıdır
+
+5. **Beşinci Adım - Devam:**
+   - Eğer daha fazla görev varsa ve zaman varsa, bir sonraki görevi seçip devam etmelidir
+   - Proaktif olarak eksiklikleri tespit edip tamamlamalıdır (test eksikliği, dokümantasyon eksikliği, code quality iyileştirmeleri)
+
+**ÖNEMLİ NOTLAR:**
+- Agent projeye devam ettiğinde mutlaka `todo/START_HERE.md` dosyasını okumalıdır
+- Agent projenin ne olduğunu anlamak için `project_info_20251208_145614.md` dosyasını referans almalıdır
+- Agent gelinen noktadan daha ileri gitmek için `master_next.md` dosyasındaki görevleri takip etmelidir
+- Agent her zaman proaktif çalışmalıdır (eksiklikleri tespit edip tamamlamalı)
+- Agent görevleri tamamladıkça todo sistemini güncellemelidir
+
