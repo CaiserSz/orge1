@@ -166,24 +166,20 @@ class ESP32Bridge:
         Akım set komutu gönder
         
         Args:
-            amperage: Amper değeri (6, 10, 13, 16, 20, 25, 32)
+            amperage: Amper değeri (6-32 aralığında herhangi bir tam sayı)
         
         Returns:
             Başarı durumu
         """
-        valid_amperages = [6, 10, 13, 16, 20, 25, 32]
-        if amperage not in valid_amperages:
-            print(f"Geçersiz akım değeri: {amperage} (geçerli: {valid_amperages})")
+        # 6-32 amper aralığında herhangi bir değer geçerlidir
+        if not (6 <= amperage <= 32):
+            print(f"Geçersiz akım değeri: {amperage} (geçerli aralık: 6-32A)")
             return False
         
-        cmd_key = f'current_set_{amperage}A'
-        cmd = self.protocol_data.get('commands', {}).get(cmd_key)
-        if not cmd:
-            print(f"Akım komutu bulunamadı: {amperage}A")
-            return False
-        
-        byte_array = cmd.get('byte_array')
-        return self._send_command_bytes(byte_array)
+        # Komut formatı: 41 [KOMUT=0x02] 2C [DEĞER=amperage] 10
+        # Değer doğrudan amper cinsinden hex formatında gönderilir
+        command_bytes = [0x41, 0x02, 0x2C, amperage, 0x10]
+        return self._send_command_bytes(command_bytes)
     
     def send_charge_stop(self) -> bool:
         """Şarj durdurma komutu gönder"""

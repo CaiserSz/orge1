@@ -65,7 +65,7 @@ class ChargeStopRequest(BaseModel):
 
 class CurrentSetRequest(BaseModel):
     """Akım ayarlama isteği"""
-    amperage: int = Field(..., ge=6, le=32, description="Akım değeri (6, 10, 13, 16, 20, 25, 32)")
+    amperage: int = Field(..., ge=6, le=32, description="Akım değeri (6-32 amper aralığında herhangi bir tam sayı)")
 
 
 class APIResponse(BaseModel):
@@ -231,7 +231,7 @@ async def set_current(request: CurrentSetRequest):
     **ÖNEMLİ:** Akım ayarlama sadece aktif şarj başlamadan yapılabilir.
     Şarj esnasında akım değiştirilemez (güvenlik nedeniyle).
     
-    Geçerli akım değerleri: 6, 10, 13, 16, 20, 25, 32 (Amper)
+    Geçerli akım aralığı: 6-32 amper (herhangi bir tam sayı)
     """
     global esp32_bridge
     
@@ -273,16 +273,19 @@ async def get_available_currents():
     """
     Kullanılabilir akım değerlerini listele
     
-    ESP32'de ayarlanabilir tüm akım değerlerini döndürür.
+    ESP32'de ayarlanabilir akım aralığını döndürür.
     """
     return APIResponse(
         success=True,
-        message="Kullanılabilir akım değerleri",
+        message="Kullanılabilir akım aralığı",
         data={
-            "available_amperages": [6, 10, 13, 16, 20, 25, 32],
-            "recommended": 16,
+            "range": "6-32 amper",
             "min": 6,
-            "max": 32
+            "max": 32,
+            "unit": "amper",
+            "note": "6-32 aralığında herhangi bir tam sayı değer kullanılabilir",
+            "recommended": 16,
+            "common_values": [6, 10, 13, 16, 20, 25, 32]
         }
     )
 

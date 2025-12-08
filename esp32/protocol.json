@@ -121,9 +121,10 @@
     },
     "update_interval_seconds": 5
   },
-  "rules": {
-    "current_set_only_before_charging": "Akım set komutları sadece aktif şarj başlamadan gönderilebilir. Şarj esnasında akım değiştirilemez (güvenlik nedeniyle).",
-    "only_defined_commands": "Başka komut RPi'den ESP32'ye gitmez."
-  }
+    "rules": {
+        "current_set_only_before_charging": "Akım set komutları sadece aktif şarj başlamadan gönderilebilir. Şarj esnasında akım değiştirilemez (güvenlik nedeniyle).",
+        "only_defined_commands": "Başka komut RPi'den ESP32'ye gitmez.",
+        "current_set_range": "Akım set değeri 6-32 amper aralığında herhangi bir tam sayı olabilir. Değer doğrudan amper cinsinden hex formatında gönderilir (örn: 12A = 0x0C)."
+    }
 }
 
