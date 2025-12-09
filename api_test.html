@@ -128,14 +128,37 @@
         }
 
         /* STATE renkleri (ESP32 kodundan) - Görünürlük iyileştirmeleri */
-        .status-state-1 { background: #e8e8e8; color: #333; border-color: #bbb; } /* IDLE - Açık Gri */
-        .status-state-2 { background: rgb(0, 180, 180); color: white; border-color: rgb(0, 150, 150); } /* CABLE_DETECT - Turkuaz */
-        .status-state-3 { background: rgb(30, 30, 255); color: white; border-color: rgb(10, 10, 255); } /* EV_CONNECTED - Mavi */
-        .status-state-4 { background: rgb(50, 100, 255); color: white; border-color: rgb(30, 30, 255); } /* SARJA_HAZIR - Açık Mavi */
-        .status-state-5 { background: #2e7d32; color: white; border-color: #1b5e20; } /* SARJ_BASLADI - Koyu Yeşil */
-        .status-state-6 { background: rgb(255, 193, 7); color: #000; border-color: rgb(255, 152, 0); } /* SARJ_DURAKLATILDI - Altın Sarı */
-        .status-state-7 { background: rgb(200, 50, 100); color: white; border-color: rgb(180, 40, 90); } /* SARJ_BITIR - Koyu Lila */
-        .status-state-8 { background: #c62828; color: white; border-color: #b71c1c; } /* FAULT_HARD - Koyu Kırmızı */
+        .status-state-1 { background: #e8e8e8; border-color: #bbb; } /* IDLE - Açık Gri */
+        .status-state-1 .status-label { color: #555; } /* Koyu gri label */
+        .status-state-1 .status-value { color: #000; font-weight: bold; } /* Siyah değer */
+        
+        .status-state-2 { background: rgb(0, 180, 180); border-color: rgb(0, 150, 150); } /* CABLE_DETECT - Turkuaz */
+        .status-state-2 .status-label { color: rgba(255, 255, 255, 0.9); }
+        .status-state-2 .status-value { color: white; font-weight: bold; }
+        
+        .status-state-3 { background: rgb(30, 30, 255); border-color: rgb(10, 10, 255); } /* EV_CONNECTED - Mavi */
+        .status-state-3 .status-label { color: rgba(255, 255, 255, 0.9); }
+        .status-state-3 .status-value { color: white; font-weight: bold; }
+        
+        .status-state-4 { background: rgb(50, 100, 255); border-color: rgb(30, 30, 255); } /* SARJA_HAZIR - Açık Mavi */
+        .status-state-4 .status-label { color: rgba(255, 255, 255, 0.9); }
+        .status-state-4 .status-value { color: white; font-weight: bold; }
+        
+        .status-state-5 { background: #2e7d32; border-color: #1b5e20; } /* SARJ_BASLADI - Koyu Yeşil */
+        .status-state-5 .status-label { color: rgba(255, 255, 255, 0.9); }
+        .status-state-5 .status-value { color: white; font-weight: bold; }
+        
+        .status-state-6 { background: rgb(255, 193, 7); border-color: rgb(255, 152, 0); } /* SARJ_DURAKLATILDI - Altın Sarı */
+        .status-state-6 .status-label { color: #333; }
+        .status-state-6 .status-value { color: #000; font-weight: bold; }
+        
+        .status-state-7 { background: rgb(200, 50, 100); border-color: rgb(180, 40, 90); } /* SARJ_BITIR - Koyu Lila */
+        .status-state-7 .status-label { color: rgba(255, 255, 255, 0.9); }
+        .status-state-7 .status-value { color: white; font-weight: bold; }
+        
+        .status-state-8 { background: #c62828; border-color: #b71c1c; } /* FAULT_HARD - Koyu Kırmızı */
+        .status-state-8 .status-label { color: rgba(255, 255, 255, 0.9); }
+        .status-state-8 .status-value { color: white; font-weight: bold; }
 
         .status-indicator {
             width: 6px;
