@@ -344,7 +344,7 @@
                     <div class="endpoint-description">Şarj başlatma</div>
                     <div class="request-body">
                         <label>Request Body (JSON):</label>
-                        <textarea id="body-/api/charge/start" placeholder='{}' oninput="updateCurlPreview('POST', '/api/charge/start', 'body-/api/charge/start', 'curl-/api/charge/start')">{"test": true}</textarea>
+                        <textarea id="body-/api/charge/start" placeholder='{}' oninput="updateCurlPreviewDebounced('POST', '/api/charge/start', 'body-/api/charge/start', 'curl-/api/charge/start')">{"test": true}</textarea>
                     </div>
                     <div class="curl-preview">
                         <label>💻 cURL Command (Edit edilebilir):</label>
@@ -362,7 +362,7 @@
                     <div class="endpoint-description">Şarj durdurma</div>
                     <div class="request-body">
                         <label>Request Body (JSON):</label>
-                        <textarea id="body-/api/charge/stop" placeholder='{}' oninput="updateCurlPreview('POST', '/api/charge/stop', 'body-/api/charge/stop', 'curl-/api/charge/stop')">{"test": true}</textarea>
+                        <textarea id="body-/api/charge/stop" placeholder='{}' oninput="updateCurlPreviewDebounced('POST', '/api/charge/stop', 'body-/api/charge/stop', 'curl-/api/charge/stop')">{"test": true}</textarea>
                     </div>
                     <div class="curl-preview">
                         <label>💻 cURL Command (Edit edilebilir):</label>
@@ -385,7 +385,7 @@
                     <div class="endpoint-description">Maksimum akım ayarlama (6-32A)</div>
                     <div class="request-body">
                         <label>Amperage:</label>
-                        <input type="number" id="body-/api/maxcurrent" placeholder="16" value="16" min="6" max="32" oninput="updateCurlPreview('POST', '/api/maxcurrent', 'body-/api/maxcurrent', 'curl-/api/maxcurrent', true)">
+                        <input type="number" id="body-/api/maxcurrent" placeholder="16" value="16" min="6" max="32" oninput="updateCurlPreviewDebounced('POST', '/api/maxcurrent', 'body-/api/maxcurrent', 'curl-/api/maxcurrent', true)">
                     </div>
                     <div class="curl-preview">
                         <label>💻 cURL Command (Edit edilebilir):</label>
@@ -403,6 +403,9 @@
         const API_BASE_URL = window.location.origin;
         let cachedApiKey = null;
 
+        // Debounce timer for curl preview updates
+        let curlPreviewTimeouts = {};
+
         // Initialize curl previews on page load
         document.addEventListener('DOMContentLoaded', async () => {
             cachedApiKey = await getApiKey();
@@ -410,6 +413,20 @@
             updateCurlPreview('POST', '/api/charge/stop', 'body-/api/charge/stop', 'curl-/api/charge/stop');
             updateCurlPreview('POST', '/api/maxcurrent', 'body-/api/maxcurrent', 'curl-/api/maxcurrent', true);
         });
+
+        function updateCurlPreviewDebounced(method, path, bodyElementId, curlElementId, isNumber = false) {
+            /**
+             * Debounced curl preview update - Performans optimizasyonu
+             * Input değişikliklerinde 300ms bekle, sonra güncelle
+             */
+            const key = `${method}-${path}`;
+            if (curlPreviewTimeouts[key]) {
+                clearTimeout(curlPreviewTimeouts[key]);
+            }
+            curlPreviewTimeouts[key] = setTimeout(() => {
+                updateCurlPreview(method, path, bodyElementId, curlElementId, isNumber);
+            }, 300);
+        }
 
         async function updateCurlPreview(method, path, bodyElementId, curlElementId, isNumber = false) {
             const curlElement = document.getElementById(curlElementId);
@@ -426,11 +443,16 @@
             
             if (bodyElementId) {
                 const bodyElement = document.getElementById(bodyElementId);
-                if (isNumber) {
-                    // For number input (maxcurrent)
-                    const value = parseInt(bodyElement.value) || 16;
-                    requestBody = { amperage: value };
-                    requestBodyDisplay = JSON.stringify(requestBody, null, 2);
+                    if (isNumber) {
+                        // For number input (maxcurrent)
+                        const value = parseInt(bodyElement.value);
+                        // Validate amperage
+                        if (isNaN(value) || value < 6 || value > 32) {
+                            curlElement.value = `# Invalid amperage: ${bodyElement.value}. Must be between 6 and 32.`;
+                            return;
+                        }
+                        requestBody = { amperage: value };
+                        requestBodyDisplay = JSON.stringify(requestBody, null, 2);
                 } else {
                     // For textarea (JSON)
                     const text = bodyElement.value.trim();
@@ -546,6 +568,18 @@
                 // Get API key for display
                 const apiKey = await getApiKey();
                 
+                // User-friendly error messages
+                let errorMessage = error.message || 'Unknown error occurred';
+                let userFriendlyMessage = errorMessage;
+                
+                if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
+                    userFriendlyMessage = 'Network error: Could not connect to API server. Please check if the server is running.';
+                } else if (errorMessage.includes('Invalid JSON')) {
+                    userFriendlyMessage = `Invalid JSON format: ${errorMessage}`;
+                } else if (errorMessage.includes('Invalid amperage')) {
+                    userFriendlyMessage = errorMessage;
+                }
+                
                 // Display error
                 displayResponse(responseSection, {
                     method,
@@ -553,7 +587,7 @@
                     requestBody: requestBodyDisplay || 'null',
                     apiKey: apiKey,
                     status: 'ERROR',
-                    statusText: error.message,
+                    statusText: userFriendlyMessage,
                     responseTime: null,
                     responseBody: error.toString()
                 });
@@ -575,19 +609,34 @@
             }
         }
 
+        function escapeShellString(str) {
+            /**
+             * Shell komutları için güvenli string escape fonksiyonu
+             * Tüm shell özel karakterlerini escape eder
+             */
+            if (typeof str !== 'string') return '';
+            return str
+                .replace(/\\/g, '\\\\')  // Backslash'i önce escape et
+                .replace(/'/g, "'\\''")   // Single quote escape
+                .replace(/[;&|`$(){}[\]<>]/g, '\\$&')  // Diğer shell özel karakterler
+                .replace(/\n/g, '\\n')    // Newline
+                .replace(/\r/g, '\\r')    // Carriage return
+                .replace(/\t/g, '\\t');   // Tab
+        }
+
         function generateCurlCommand(method, path, apiKey, requestBody) {
             const url = `${API_BASE_URL}${path}`;
             let curlCmd = `curl -X ${method} "${url}"`;
             
             // Add headers
             curlCmd += ` \\\n  -H "Content-Type: application/json"`;
-            curlCmd += ` \\\n  -H "X-API-Key: ${apiKey}"`;
+            curlCmd += ` \\\n  -H "X-API-Key: ${escapeShellString(apiKey)}"`;
             
             // Add body if exists
             if (requestBody && requestBody !== 'null' && requestBody.trim() !== '') {
                 const bodyStr = typeof requestBody === 'string' ? requestBody : JSON.stringify(requestBody);
-                // Escape single quotes and newlines for shell
-                const escapedBody = bodyStr.replace(/'/g, "'\\''").replace(/\n/g, '\\n');
+                // Güvenli shell escape
+                const escapedBody = escapeShellString(bodyStr);
                 curlCmd += ` \\\n  -d '${escapedBody}'`;
             }
             
