@@ -6,9 +6,17 @@
 
 ## Aktif Görevler
 
-_(Şu anda aktif görev yok)_
-
-**Not:** Events Normalization tamamlandı (2025-12-10 07:45:00). Yeni görev seçilebilir.
+### Öncelik 0: User ID Entegrasyonu
+- **Görev:** user_id database şemasına ekleme ve API entegrasyonu
+- **Öncelik:** 0 (Kritik)
+- **Tahmini Süre:** 2-3 saat
+- **Durum:** 🔄 Devam Ediyor
+- **Başlangıç:** 2025-12-10 08:00:00
+- **Detaylar:**
+  - Database şemasına user_id ekleme (sessions ve session_events)
+  - SessionManager user_id entegrasyonu
+  - API endpoint user_id filtreleri
+  - User sessions endpoint (GET /api/users/{user_id}/sessions)
 
 ---
 

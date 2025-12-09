@@ -81,6 +81,9 @@ async def get_sessions(
         alias="status",
         description="Session durumu filtresi (ACTIVE, COMPLETED, CANCELLED, FAULTED)",
     ),
+    user_id: Optional[str] = Query(
+        None, description="User ID filtresi (belirli bir kullanıcının session'ları)"
+    ),
 ):
     """
     Session listesini döndür
@@ -89,6 +92,7 @@ async def get_sessions(
         limit: Maksimum döndürülecek session sayısı
         offset: Başlangıç offset'i
         status_filter: Session durumu filtresi
+        user_id: User ID filtresi (belirli bir kullanıcının session'ları)
 
     Returns:
         Session listesi
@@ -108,10 +112,12 @@ async def get_sessions(
                 )
 
         sessions = session_manager.get_sessions(
-            limit=limit, offset=offset, status=session_status
+            limit=limit, offset=offset, status=session_status, user_id=user_id
         )
 
-        total_count = session_manager.get_session_count(status=session_status)
+        total_count = session_manager.get_session_count(
+            status=session_status, user_id=user_id
+        )
 
         return {
             "success": True,
@@ -128,6 +134,72 @@ async def get_sessions(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Session listesi alınamadı: {str(e)}",
+        )
+
+
+@router.get("/users/{user_id}/sessions")
+async def get_user_sessions(
+    user_id: str,
+    limit: int = Query(
+        100, ge=1, le=1000, description="Maksimum döndürülecek session sayısı"
+    ),
+    offset: int = Query(0, ge=0, description="Başlangıç offset'i"),
+    status_filter: Optional[str] = Query(
+        None,
+        alias="status",
+        description="Session durumu filtresi (ACTIVE, COMPLETED, CANCELLED, FAULTED)",
+    ),
+):
+    """
+    Belirli bir kullanıcının session'larını döndür
+
+    Args:
+        user_id: User ID
+        limit: Maksimum döndürülecek session sayısı
+        offset: Başlangıç offset'i
+        status_filter: Session durumu filtresi
+
+    Returns:
+        User'ın session listesi
+    """
+    try:
+        session_manager = get_session_manager()
+
+        # Status filtresi
+        session_status = None
+        if status_filter:
+            try:
+                session_status = SessionStatus(status_filter.upper())
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Geçersiz status filtresi: {status_filter}. Geçerli değerler: ACTIVE, COMPLETED, CANCELLED, FAULTED",
+                )
+
+        sessions = session_manager.get_sessions(
+            limit=limit, offset=offset, status=session_status, user_id=user_id
+        )
+
+        total_count = session_manager.get_session_count(
+            status=session_status, user_id=user_id
+        )
+
+        return {
+            "success": True,
+            "user_id": user_id,
+            "sessions": sessions,
+            "total_count": total_count,
+            "limit": limit,
+            "offset": offset,
+            "has_more": (offset + limit) < total_count,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        system_logger.error(f"User sessions get error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"User session listesi alınamadı: {str(e)}",
         )
 
 

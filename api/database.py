@@ -56,6 +56,7 @@ class Database:
                     """
                     CREATE TABLE IF NOT EXISTS sessions (
                         session_id TEXT PRIMARY KEY,
+                        user_id TEXT,
                         start_time INTEGER NOT NULL,
                         end_time INTEGER,
                         start_state INTEGER NOT NULL CHECK(start_state >= 0 AND start_state <= 8),
@@ -106,12 +107,16 @@ class Database:
                 # Migration: Yeni metrik kolonlarını ekle (eğer yoksa)
                 self._migrate_metrics_columns(cursor)
 
+                # Migration: user_id kolonunu ekle (eğer yoksa)
+                self._migrate_user_id_column(cursor)
+
                 # Session events tablosu (normalized)
                 cursor.execute(
                     """
                     CREATE TABLE IF NOT EXISTS session_events (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         session_id TEXT NOT NULL,
+                        user_id TEXT,
                         event_type TEXT NOT NULL,
                         event_timestamp INTEGER NOT NULL,
                         from_state INTEGER,
@@ -158,6 +163,30 @@ class Database:
                     """
                     CREATE INDEX IF NOT EXISTS idx_session_events_session_type
                     ON session_events(session_id, event_type)
+                    """
+                )
+                cursor.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_sessions_user_id
+                    ON sessions(user_id)
+                    """
+                )
+                cursor.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_sessions_user_start_time
+                    ON sessions(user_id, start_time DESC)
+                    """
+                )
+                cursor.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_session_events_user_id
+                    ON session_events(user_id)
+                    """
+                )
+                cursor.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_session_events_user_timestamp
+                    ON session_events(user_id, event_timestamp DESC)
                     """
                 )
 
@@ -297,6 +326,30 @@ class Database:
                 f"Timestamp migration skipped (new database or already migrated): {e}"
             )
 
+    def _migrate_user_id_column(self, cursor):
+        """
+        user_id kolonunu ekle (eğer yoksa)
+
+        Args:
+            cursor: SQLite cursor
+        """
+        try:
+            # sessions tablosuna user_id ekle
+            cursor.execute("PRAGMA table_info(sessions)")
+            columns = [col[1] for col in cursor.fetchall()]
+            if "user_id" not in columns:
+                cursor.execute("ALTER TABLE sessions ADD COLUMN user_id TEXT")
+                system_logger.info("user_id kolonu sessions tablosuna eklendi")
+
+            # session_events tablosuna user_id ekle
+            cursor.execute("PRAGMA table_info(session_events)")
+            columns = [col[1] for col in cursor.fetchall()]
+            if "user_id" not in columns:
+                cursor.execute("ALTER TABLE session_events ADD COLUMN user_id TEXT")
+                system_logger.info("user_id kolonu session_events tablosuna eklendi")
+        except Exception as e:
+            system_logger.warning(f"user_id migration hatası: {e}")
+
     def _migrate_metrics_columns(self, cursor):
         """
         Yeni metrik kolonlarını ekle (eğer yoksa)
@@ -364,6 +417,7 @@ class Database:
         start_state: int,
         events: List[Dict[str, Any]],
         metadata: Dict[str, Any],
+        user_id: Optional[str] = None,
     ) -> bool:
         """
         Yeni session oluştur
@@ -388,12 +442,13 @@ class Database:
                 cursor.execute(
                     """
                     INSERT INTO sessions
-                    (session_id, start_time, end_time, start_state, end_state,
+                    (session_id, user_id, start_time, end_time, start_state, end_state,
                      status, events, metadata, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         session_id,
+                        user_id,
                         start_time_timestamp,
                         None,
                         start_state,
@@ -580,6 +635,7 @@ class Database:
         limit: int = 100,
         offset: int = 0,
         status: Optional[str] = None,
+        user_id: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         Session listesini al
@@ -588,6 +644,7 @@ class Database:
             limit: Maksimum döndürülecek session sayısı
             offset: Başlangıç offset'i
             status: Status filtresi (opsiyonel)
+            user_id: User ID filtresi (opsiyonel)
 
         Returns:
             Session listesi
@@ -597,25 +654,30 @@ class Database:
             try:
                 cursor = conn.cursor()
 
+                # Query builder
+                where_clauses = []
+                params = []
+
                 if status:
-                    cursor.execute(
-                        """
-                        SELECT * FROM sessions
-                        WHERE status = ?
-                        ORDER BY start_time DESC
-                        LIMIT ? OFFSET ?
-                        """,
-                        (status, limit, offset),
-                    )
-                else:
-                    cursor.execute(
-                        """
-                        SELECT * FROM sessions
-                        ORDER BY start_time DESC
-                        LIMIT ? OFFSET ?
-                        """,
-                        (limit, offset),
-                    )
+                    where_clauses.append("status = ?")
+                    params.append(status)
+
+                if user_id:
+                    where_clauses.append("user_id = ?")
+                    params.append(user_id)
+
+                where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
+                params.extend([limit, offset])
+
+                cursor.execute(
+                    f"""
+                    SELECT * FROM sessions
+                    WHERE {where_sql}
+                    ORDER BY start_time DESC
+                    LIMIT ? OFFSET ?
+                    """,
+                    params,
+                )
 
                 rows = cursor.fetchall()
                 return [self._row_to_dict(row) for row in rows]
@@ -625,12 +687,15 @@ class Database:
             finally:
                 conn.close()
 
-    def get_session_count(self, status: Optional[str] = None) -> int:
+    def get_session_count(
+        self, status: Optional[str] = None, user_id: Optional[str] = None
+    ) -> int:
         """
         Session sayısını al
 
         Args:
             status: Status filtresi (opsiyonel)
+            user_id: User ID filtresi (opsiyonel)
 
         Returns:
             Session sayısı
@@ -640,12 +705,23 @@ class Database:
             try:
                 cursor = conn.cursor()
 
+                # Query builder
+                where_clauses = []
+                params = []
+
                 if status:
-                    cursor.execute(
-                        "SELECT COUNT(*) FROM sessions WHERE status = ?", (status,)
-                    )
-                else:
-                    cursor.execute("SELECT COUNT(*) FROM sessions")
+                    where_clauses.append("status = ?")
+                    params.append(status)
+
+                if user_id:
+                    where_clauses.append("user_id = ?")
+                    params.append(user_id)
+
+                where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
+
+                cursor.execute(
+                    f"SELECT COUNT(*) FROM sessions WHERE {where_sql}", params
+                )
 
                 return cursor.fetchone()[0]
             except Exception as e:
@@ -761,6 +837,7 @@ class Database:
         power_kw: Optional[float] = None,
         event_data: Optional[Dict[str, Any]] = None,
         status_data: Optional[Dict[str, Any]] = None,
+        user_id: Optional[str] = None,
     ) -> bool:
         """
         Yeni event oluştur (normalized)
@@ -792,13 +869,14 @@ class Database:
                 cursor.execute(
                     """
                     INSERT INTO session_events
-                    (session_id, event_type, event_timestamp, from_state, to_state,
+                    (session_id, user_id, event_type, event_timestamp, from_state, to_state,
                      from_state_name, to_state_name, current_a, voltage_v, power_kw,
                      event_data, status_data, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         session_id,
+                        user_id,
                         event_type,
                         timestamp_int,
                         from_state,
@@ -839,6 +917,7 @@ class Database:
         event_type: Optional[str] = None,
         limit: int = 1000,
         offset: int = 0,
+        user_id: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         Session event'lerini al
@@ -857,26 +936,30 @@ class Database:
             try:
                 cursor = conn.cursor()
 
+                # Query builder
+                where_clauses = ["session_id = ?"]
+                params = [session_id]
+
                 if event_type:
-                    cursor.execute(
-                        """
-                        SELECT * FROM session_events
-                        WHERE session_id = ? AND event_type = ?
-                        ORDER BY event_timestamp DESC
-                        LIMIT ? OFFSET ?
-                        """,
-                        (session_id, event_type, limit, offset),
-                    )
-                else:
-                    cursor.execute(
-                        """
-                        SELECT * FROM session_events
-                        WHERE session_id = ?
-                        ORDER BY event_timestamp DESC
-                        LIMIT ? OFFSET ?
-                        """,
-                        (session_id, limit, offset),
-                    )
+                    where_clauses.append("event_type = ?")
+                    params.append(event_type)
+
+                if user_id:
+                    where_clauses.append("user_id = ?")
+                    params.append(user_id)
+
+                where_sql = " AND ".join(where_clauses)
+                params.extend([limit, offset])
+
+                cursor.execute(
+                    f"""
+                    SELECT * FROM session_events
+                    WHERE {where_sql}
+                    ORDER BY event_timestamp DESC
+                    LIMIT ? OFFSET ?
+                    """,
+                    params,
+                )
 
                 rows = cursor.fetchall()
                 return [self._event_row_to_dict(row) for row in rows]
@@ -899,6 +982,7 @@ class Database:
         return {
             "id": row["id"],
             "session_id": row["session_id"],
+            "user_id": row.get("user_id"),
             "event_type": row["event_type"],
             "event_timestamp": datetime.fromtimestamp(
                 row["event_timestamp"]

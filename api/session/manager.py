@@ -79,8 +79,12 @@ class SessionManager:
                 self.current_session.add_event(event_type, event_data)
                 # Metrikleri güncelle (real-time)
                 self._update_session_metrics(event_data)
+                # user_id'yi event_data'dan çıkar
+                user_id = event_data.get("user_id") or event_data.get("data", {}).get(
+                    "user_id"
+                )
                 # Normalized event tablosuna kaydet
-                self._save_event_to_table(event_type, event_data)
+                self._save_event_to_table(event_type, event_data, user_id)
                 # Database'e kaydet (backward compatibility için events JSON'ı da koru)
                 self.db.update_session(
                     session_id=self.current_session.session_id,
@@ -124,8 +128,17 @@ class SessionManager:
 
             session = ChargingSession(session_id, start_time, start_state)
             session.add_event(EventType.CHARGE_STARTED, event_data)
+
+            # user_id'yi event_data'dan çıkar (şarj başlatma/bitirme/durum değişiminde geliyor)
+            user_id = event_data.get("user_id") or event_data.get("data", {}).get(
+                "user_id"
+            )
+            # user_id'yi metadata'ya ekle
+            if user_id:
+                session.metadata["user_id"] = user_id
+
             # Normalized event tablosuna kaydet
-            self._save_event_to_table(EventType.CHARGE_STARTED, event_data)
+            self._save_event_to_table(EventType.CHARGE_STARTED, event_data, user_id)
 
             # Meter'dan başlangıç enerji seviyesini oku (eğer meter varsa)
             if self.meter and self.meter.is_connected():
@@ -149,6 +162,7 @@ class SessionManager:
                 start_state=start_state,
                 events=session.events,
                 metadata=session.metadata,
+                user_id=user_id,
             )
 
             self.current_session = session
@@ -193,8 +207,12 @@ class SessionManager:
                 status = SessionStatus.COMPLETED
 
             end_state = event_data.get("to_state", ESP32State.STOPPED.value)
+            # user_id'yi event_data'dan çıkar
+            user_id = event_data.get("user_id") or event_data.get("data", {}).get(
+                "user_id"
+            )
             # Normalized event tablosuna kaydet
-            self._save_event_to_table(event_type, event_data)
+            self._save_event_to_table(event_type, event_data, user_id)
             self._end_session_internal(
                 self.current_session, datetime.now(), end_state, status
             )
@@ -371,6 +389,7 @@ class SessionManager:
         limit: int = 100,
         offset: int = 0,
         status: Optional[SessionStatus] = None,
+        user_id: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         Session listesini döndür
@@ -385,21 +404,26 @@ class SessionManager:
         """
         # Database'den al
         status_str = status.value if status else None
-        return self.db.get_sessions(limit=limit, offset=offset, status=status_str)
+        return self.db.get_sessions(
+            limit=limit, offset=offset, status=status_str, user_id=user_id
+        )
 
-    def get_session_count(self, status: Optional[SessionStatus] = None) -> int:
+    def get_session_count(
+        self, status: Optional[SessionStatus] = None, user_id: Optional[str] = None
+    ) -> int:
         """
         Session sayısını döndür
 
         Args:
             status: Filtreleme için status (opsiyonel)
+            user_id: Filtreleme için user_id (opsiyonel)
 
         Returns:
             Session sayısı
         """
         # Database'den al
         status_str = status.value if status else None
-        return self.db.get_session_count(status=status_str)
+        return self.db.get_session_count(status=status_str, user_id=user_id)
 
     def _update_session_metrics(self, event_data: Dict[str, Any]):
         """
@@ -434,13 +458,19 @@ class SessionManager:
         ):
             self.current_session.metadata["set_current_a"] = float(max_current)
 
-    def _save_event_to_table(self, event_type: EventType, event_data: Dict[str, Any]):
+    def _save_event_to_table(
+        self,
+        event_type: EventType,
+        event_data: Dict[str, Any],
+        user_id: Optional[str] = None,
+    ):
         """
         Event'i normalized session_events tablosuna kaydet
 
         Args:
             event_type: Event type
             event_data: Event data dict'i
+            user_id: User ID (opsiyonel)
         """
         if not self.current_session:
             return
@@ -455,6 +485,10 @@ class SessionManager:
 
                 power_kw = calculate_power(current_a, voltage_v)
 
+            # user_id'yi session'dan al (eğer event_data'da yoksa)
+            if not user_id:
+                user_id = self.current_session.metadata.get("user_id")
+
             self.db.create_event(
                 session_id=self.current_session.session_id,
                 event_type=event_type.value,
@@ -468,6 +502,7 @@ class SessionManager:
                 power_kw=power_kw,
                 event_data=event_data,
                 status_data=status,
+                user_id=user_id,
             )
         except Exception as e:
             system_logger.warning(f"Event kaydetme hatası (session_events): {e}")
