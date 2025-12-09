@@ -28,3 +28,6 @@ pytest-benchmark>=5.0.0
 # Environment Variables
 python-dotenv>=1.0.0
 
+# System Monitoring
+psutil>=5.9.0
+

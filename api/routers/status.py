@@ -135,7 +135,7 @@ async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
         except (OSError, AttributeError):
             pass
 
-        # psutil varsa daha detaylı bilgi ekle (opsiyonel)
+        # psutil varsa daha detaylı bilgi ekle
         try:
             import psutil
             process = psutil.Process(pid)
@@ -148,6 +148,44 @@ async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
             pass  # psutil yoksa devam et
         except Exception:
             pass  # psutil hatası varsa sessizce geç
+
+        # CPU sıcaklığı (Raspberry Pi ve diğer sistemler için)
+        try:
+            cpu_temp_celsius = None
+
+            # Raspberry Pi: /sys/class/thermal/thermal_zone0/temp (millidegree)
+            try:
+                with open('/sys/class/thermal/thermal_zone0/temp', 'r') as f:
+                    temp_millidegree = int(f.read().strip())
+                    cpu_temp_celsius = round(temp_millidegree / 1000.0, 2)
+            except (OSError, ValueError, FileNotFoundError):
+                # psutil ile CPU sıcaklığı (Linux, alternatif yöntem)
+                try:
+                    import psutil
+                    if hasattr(psutil, "sensors_temperatures"):
+                        temps = psutil.sensors_temperatures()
+                        if 'cpu_thermal' in temps:
+                            cpu_temp_celsius = round(temps['cpu_thermal'][0].current, 2)
+                        elif 'coretemp' in temps:
+                            cpu_temp_celsius = round(temps['coretemp'][0].current, 2)
+                except (ImportError, AttributeError, KeyError, IndexError):
+                    pass
+
+            if cpu_temp_celsius is not None:
+                health_data["cpu_temperature_celsius"] = cpu_temp_celsius
+                health_data["cpu_temperature_fahrenheit"] = round(cpu_temp_celsius * 9/5 + 32, 2)
+
+                # Sıcaklık durumu (Raspberry Pi için eşik değerleri)
+                if cpu_temp_celsius > 80:
+                    health_data["cpu_temperature_status"] = "critical"
+                elif cpu_temp_celsius > 70:
+                    health_data["cpu_temperature_status"] = "high"
+                elif cpu_temp_celsius > 60:
+                    health_data["cpu_temperature_status"] = "warm"
+                else:
+                    health_data["cpu_temperature_status"] = "normal"
+        except Exception:
+            pass  # CPU sıcaklığı alınamadı
     except Exception as e:
         # Metrik toplama hatası - kritik değil, devam et
         health_data["metrics_error"] = str(e)
