@@ -34,14 +34,14 @@ class JSONFormatter(logging.Formatter):
     JSON formatında log mesajları oluşturan formatter
     Thread-safe
     """
-    
+
     def format(self, record: logging.LogRecord) -> str:
         """
         Log kaydını JSON formatına dönüştür
-        
+
         Args:
             record: Log kaydı
-            
+
         Returns:
             JSON formatında log mesajı
         """
@@ -55,11 +55,11 @@ class JSONFormatter(logging.Formatter):
                 "function": record.funcName,
                 "line": record.lineno,
             }
-            
+
             # Exception bilgisi varsa ekle
             if record.exc_info:
                 log_data["exception"] = self.formatException(record.exc_info)
-            
+
             # Ekstra alanlar varsa ekle
             if hasattr(record, "extra_fields"):
                 # Non-serializable objeleri string'e çevir
@@ -71,7 +71,7 @@ class JSONFormatter(logging.Formatter):
                     except (TypeError, ValueError):
                         safe_fields[key] = str(value)
                 log_data.update(safe_fields)
-            
+
             return json.dumps(log_data, ensure_ascii=False)
         except Exception as e:
             # Fallback: basit JSON format
@@ -93,27 +93,27 @@ def setup_logger(
 ) -> logging.Logger:
     """
     Logger oluştur ve yapılandır
-    
+
     Args:
         name: Logger adı
         log_file: Log dosyası yolu
         level: Log seviyesi
         max_bytes: Maksimum dosya boyutu (rotation için)
         backup_count: Yedek dosya sayısı
-        
+
     Returns:
         Yapılandırılmış logger
     """
     logger = logging.getLogger(name)
     logger.setLevel(level)
-    
+
     # Zaten handler'lar varsa ekleme (duplicate önleme)
     if logger.handlers:
         return logger
-    
+
     # JSON formatter
     json_formatter = JSONFormatter()
-    
+
     # File handler (rotation ile)
     try:
         file_handler = RotatingFileHandler(
@@ -128,7 +128,7 @@ def setup_logger(
     except (OSError, PermissionError) as e:
         # Dosya yazma hatası - sadece console logging kullan
         logger.warning(f"File logging failed for {log_file}: {e}, using console only")
-    
+
     # Console handler (geliştirme için)
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(level)
@@ -139,7 +139,7 @@ def setup_logger(
     )
     console_handler.setFormatter(console_formatter)
     logger.addHandler(console_handler)
-    
+
     return logger
 
 
@@ -160,7 +160,7 @@ def log_api_request(
 ):
     """
     API isteğini logla (Thread-safe)
-    
+
     Args:
         method: HTTP metodu (GET, POST, vb.)
         path: İstek yolu
@@ -178,7 +178,7 @@ def log_api_request(
                 "path": path,
                 **kwargs
             }
-            
+
             if client_ip:
                 extra_fields["client_ip"] = client_ip
             if status_code:
@@ -187,7 +187,7 @@ def log_api_request(
                 extra_fields["response_time_ms"] = response_time_ms
             if user_id:
                 extra_fields["user_id"] = user_id
-            
+
             # Log kaydına ekstra alanları ekle
             import inspect
             frame = inspect.currentframe().f_back
@@ -219,7 +219,7 @@ def log_esp32_message(
 ):
     """
     ESP32 mesajını logla (Thread-safe)
-    
+
     Args:
         message_type: Mesaj tipi (status, command, error, vb.)
         direction: Mesaj yönü ("tx" veya "rx")
@@ -234,10 +234,10 @@ def log_esp32_message(
                 "direction": direction,
                 **kwargs
             }
-            
+
             if data is not None:
                 extra_fields["data"] = data
-            
+
             import inspect
             frame = inspect.currentframe().f_back
             record = logging.LogRecord(
@@ -267,7 +267,7 @@ def log_event(
 ):
     """
     Genel event logla (Thread-safe)
-    
+
     Args:
         event_type: Event tipi
         event_data: Event verisi
@@ -281,10 +281,10 @@ def log_event(
                 "event_type": event_type,
                 **kwargs
             }
-            
+
             if event_data:
                 extra_fields["event_data"] = event_data
-            
+
             import inspect
             frame = inspect.currentframe().f_back
             record = logging.LogRecord(
@@ -313,10 +313,10 @@ _log_lock = threading.Lock()
 def get_logger(name: str) -> logging.Logger:
     """
     Logger instance'ı al (convenience function)
-    
+
     Args:
         name: Logger adı
-        
+
     Returns:
         Logger instance
     """
@@ -326,7 +326,7 @@ def get_logger(name: str) -> logging.Logger:
 def thread_safe_log(logger: logging.Logger, level: int, message: str, **kwargs):
     """
     Thread-safe log yazma
-    
+
     Args:
         logger: Logger instance
         level: Log seviyesi

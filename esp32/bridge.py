@@ -53,6 +53,11 @@ class ESP32Bridge:
         self.is_connected = False
         self._monitor_thread: Optional[threading.Thread] = None
         self._monitor_running = False
+        self._reconnect_enabled = True
+        self._reconnect_attempts = 0
+        self._max_reconnect_attempts = 3
+        self._reconnect_delay = 5  # seconds
+        self._last_connection_error: Optional[str] = None
 
     def _load_protocol(self) -> Dict[str, Any]:
         """Protokol tanımlarını yükle"""
@@ -123,12 +128,58 @@ class ESP32Bridge:
 
     def disconnect(self):
         """ESP32 bağlantısını kapat"""
+        self._reconnect_enabled = False  # Reconnection'ı durdur
         self._stop_monitoring()
         if self.serial_connection and self.serial_connection.is_open:
-            self.serial_connection.close()
+            try:
+                self.serial_connection.close()
+            except Exception as e:
+                esp32_logger.warning(f"Serial port kapatma hatası: {e}")
         self.is_connected = False
+        self._reconnect_attempts = 0
         esp32_logger.info("ESP32 bağlantısı kapatıldı")
         log_esp32_message("disconnection", "tx")
+
+    def reconnect(self, max_retries: Optional[int] = None, retry_delay: Optional[float] = None) -> bool:
+        """
+        ESP32 bağlantısını yeniden kur (reconnection mekanizması)
+
+        Args:
+            max_retries: Maksimum yeniden deneme sayısı (None ise varsayılan kullanılır)
+            retry_delay: Yeniden deneme aralığı (saniye, None ise varsayılan kullanılır)
+
+        Returns:
+            Başarı durumu
+        """
+        if not self._reconnect_enabled:
+            esp32_logger.debug("Reconnection devre dışı")
+            return False
+
+        max_retries = max_retries or self._max_reconnect_attempts
+        retry_delay = retry_delay or self._reconnect_delay
+
+        esp32_logger.info(f"ESP32 reconnection başlatılıyor (max {max_retries} deneme)")
+
+        for attempt in range(1, max_retries + 1):
+            try:
+                esp32_logger.info(f"Reconnection denemesi {attempt}/{max_retries}")
+                if self.connect():
+                    self._reconnect_attempts = 0
+                    self._last_connection_error = None
+                    esp32_logger.info(f"ESP32 reconnection başarılı (deneme {attempt})")
+                    return True
+                else:
+                    self._last_connection_error = "Connection failed"
+            except Exception as e:
+                self._last_connection_error = str(e)
+                esp32_logger.warning(f"Reconnection denemesi {attempt} başarısız: {e}")
+
+            if attempt < max_retries:
+                time.sleep(retry_delay)
+
+        self._reconnect_attempts += 1
+        esp32_logger.error(f"ESP32 reconnection başarısız ({max_retries} deneme sonrası)")
+        return False
 
     def _send_command_bytes(self, command_bytes: list) -> bool:
         """
@@ -249,6 +300,11 @@ class ESP32Bridge:
         Bunun yerine mevcut buffer'daki tüm satırları okumaya çalışıyoruz.
         """
         if not self.serial_connection or not self.serial_connection.is_open:
+            # Bağlantı yoksa reconnection dene
+            if self._reconnect_enabled and self.is_connected:
+                esp32_logger.warning("Serial port bağlantısı kopmuş, reconnection deneniyor")
+                self.is_connected = False
+                self.reconnect()
             return
 
         try:
@@ -275,6 +331,18 @@ class ESP32Bridge:
                 esp32_logger.warning(f"Buffer overflow riski: {lines_read} satır okundu, buffer temizleniyor")
                 self.serial_connection.reset_input_buffer()
 
+        except serial.SerialException as e:
+            # Serial port hatası - reconnection dene
+            error_msg = str(e)
+            esp32_logger.error(f"Serial port hatası: {error_msg}")
+
+            if "device disconnected" in error_msg.lower() or "multiple access" in error_msg.lower():
+                if self._reconnect_enabled and self.is_connected:
+                    esp32_logger.warning("Serial port bağlantısı kopmuş, reconnection deneniyor")
+                    self.is_connected = False
+                    self.reconnect()
+            else:
+                esp32_logger.error(f"Status okuma hatası: {e}", exc_info=True)
         except Exception as e:
             esp32_logger.error(f"Status okuma hatası: {e}", exc_info=True)
 
@@ -298,13 +366,29 @@ class ESP32Bridge:
         Durum izleme döngüsü
 
         Exception handling ile korumalı - loop crash etmez.
+        Reconnection mekanizması ile bağlantı kopmalarını handle eder.
         """
+        consecutive_errors = 0
+        max_consecutive_errors = 10
+
         while self._monitor_running:
             try:
                 if self.is_connected:
                     self._read_status_messages()
+                    consecutive_errors = 0  # Başarılı okuma - hata sayacını sıfırla
+                elif self._reconnect_enabled:
+                    # Bağlantı yoksa reconnection dene
+                    if consecutive_errors == 0:  # İlk hatada reconnection dene
+                        esp32_logger.info("Monitor loop: Bağlantı yok, reconnection deneniyor")
+                        self.reconnect()
+                    consecutive_errors += 1
+                    if consecutive_errors >= max_consecutive_errors:
+                        esp32_logger.warning(f"Monitor loop: {max_consecutive_errors} ardışık hata, reconnection duraklatılıyor")
+                        time.sleep(30)  # 30 saniye bekle
+                        consecutive_errors = 0  # Sayaç sıfırla ve tekrar dene
             except Exception as e:
                 # Loop crash etmemeli - hata logla ve devam et
+                consecutive_errors += 1
                 esp32_logger.error(f"Monitor loop error: {e}", exc_info=True)
                 # Kısa bir bekleme sonrası devam et
                 time.sleep(0.5)

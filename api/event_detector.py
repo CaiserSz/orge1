@@ -200,12 +200,25 @@ class EventDetector:
             event_data=event_data
         )
 
-        # Callback'leri çağır
-        for callback in self.event_callbacks:
+        # Callback'leri çağır (hata toleranslı)
+        failed_callbacks = []
+        for i, callback in enumerate(self.event_callbacks):
             try:
                 callback(event_type, event_data)
             except Exception as e:
-                system_logger.error(f"Event callback error: {e}", exc_info=True)
+                system_logger.error(f"Event callback error (callback {i}): {e}", exc_info=True)
+                # Hatalı callback'i işaretle (sonra temizlenecek)
+                failed_callbacks.append(i)
+
+        # Hatalı callback'leri listeden çıkar (ters sırada, index kaymasını önlemek için)
+        if failed_callbacks:
+            for i in reversed(failed_callbacks):
+                try:
+                    removed_callback = self.event_callbacks.pop(i)
+                    system_logger.warning(f"Hatalı callback listeden çıkarıldı (index {i})")
+                except IndexError:
+                    # Callback zaten çıkarılmış olabilir
+                    pass
 
     def _get_state_name(self, state: int) -> str:
         """

@@ -125,21 +125,58 @@ async def startup_event():
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    """Uygulama kapanışında event detector'ı durdur ve ESP32 bridge'i kapat"""
+    """Uygulama kapanışında event detector'ı durdur ve ESP32 bridge'i kapat (Graceful shutdown)"""
+    import asyncio
+
+    shutdown_timeout = 10.0  # Maksimum shutdown süresi (saniye)
+    start_time = time.time()
+
     try:
-        # Event detector'ı durdur
+        system_logger.info("Shutdown başlatılıyor...")
+
+        # 1. Event detector'ı durdur (timeout ile)
         try:
             event_detector = get_event_detector(get_esp32_bridge)
-            event_detector.stop_monitoring()
-            system_logger.info("Event detector durduruldu")
-        except Exception as e:
-            system_logger.warning(f"Event detector durdurma hatası: {e}")
+            if event_detector and event_detector.is_monitoring:
+                event_detector.stop_monitoring()
+                system_logger.info("Event detector durdurma komutu gönderildi")
 
-        # ESP32 bridge'i kapat
-        bridge = get_esp32_bridge()
-        if bridge and bridge.is_connected:
-            bridge.disconnect()
-            system_logger.info("ESP32 bridge kapatıldı")
+                # Monitor thread'inin bitmesini bekle (timeout ile)
+                if event_detector._monitor_thread and event_detector._monitor_thread.is_alive():
+                    event_detector._monitor_thread.join(timeout=5.0)
+                    if event_detector._monitor_thread.is_alive():
+                        system_logger.warning("Event detector thread timeout - zorla durduruldu")
+                    else:
+                        system_logger.info("Event detector thread başarıyla durduruldu")
+        except Exception as e:
+            system_logger.warning(f"Event detector durdurma hatası: {e}", exc_info=True)
+
+        # 2. ESP32 bridge'i kapat (timeout ile)
+        try:
+            bridge = get_esp32_bridge()
+            if bridge:
+                if bridge.is_connected:
+                    # Monitor thread'inin bitmesini bekle
+                    if bridge._monitor_thread and bridge._monitor_thread.is_alive():
+                        bridge._monitor_running = False
+                        bridge._monitor_thread.join(timeout=3.0)
+                        if bridge._monitor_thread.is_alive():
+                            system_logger.warning("ESP32 bridge monitor thread timeout")
+
+                    bridge.disconnect()
+                    system_logger.info("ESP32 bridge kapatıldı")
+                else:
+                    system_logger.info("ESP32 bridge zaten bağlantısız")
+        except Exception as e:
+            system_logger.warning(f"ESP32 bridge kapatma hatası: {e}", exc_info=True)
+
+        # 3. Shutdown süresini kontrol et
+        shutdown_duration = time.time() - start_time
+        if shutdown_duration > shutdown_timeout:
+            system_logger.warning(f"Shutdown timeout: {shutdown_duration:.1f}s > {shutdown_timeout}s")
+        else:
+            system_logger.info(f"Shutdown tamamlandı ({shutdown_duration:.2f}s)")
+
     except Exception as e:
         system_logger.error(f"Shutdown hatası: {e}", exc_info=True)
 

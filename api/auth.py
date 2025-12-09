@@ -25,10 +25,10 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 def get_secret_api_key() -> str:
     """
     .env dosyasından SECRET_API_KEY'i al
-    
+
     Returns:
         str: API key değeri
-        
+
     Raises:
         ValueError: SECRET_API_KEY tanımlı değilse
     """
@@ -41,13 +41,13 @@ def get_secret_api_key() -> str:
 def verify_api_key(api_key: Optional[str] = Security(api_key_header)) -> str:
     """
     API key doğrulama
-    
+
     Args:
         api_key: İstekten gelen API key (X-API-Key header)
-        
+
     Returns:
         str: Doğrulanmış API key
-        
+
     Raises:
         HTTPException: API key geçersiz veya eksikse
     """
@@ -56,14 +56,14 @@ def verify_api_key(api_key: Optional[str] = Security(api_key_header)) -> str:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="API key required. Please provide X-API-Key header."
         )
-    
+
     secret_key = get_secret_api_key()
-    
+
     if api_key != secret_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid API key"
         )
-    
+
     return api_key
 
