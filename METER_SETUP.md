@@ -11,9 +11,15 @@
 ### RS485 Çevirici (MAX13487) Bağlantıları
 
 **Raspberry Pi GPIO Pinleri:**
-- **GPIO 12 (TXD5)** → MAX13487 Pin 4 (DI) - TX
-- **GPIO 13 (RXD5)** ← MAX13487 Pin 1 (RO) - RX
+- **GPIO 12 (Pin 32)** → UART5_TXD (ALT3) → MAX13487 Pin 4 (DI) - TX
+- **GPIO 13 (Pin 33)** → UART5_RXD (ALT3) ← MAX13487 Pin 1 (RO) - RX
 - **GND** → MAX13487 GND
+
+**Pin Mapping:**
+| Pin No | BCM GPIO | Fonksiyon | ALT Fonksiyon |
+|--------|----------|-----------|---------------|
+| 32 | GPIO12 | PWM0 | ALT3 → UART5_TXD ✔ |
+| 33 | GPIO13 | PWM1 | ALT3 → UART5_RXD ✔ |
 
 **MAX13487 → ABB Meter:**
 - **MAX13487 Pin 6 (A)** → ABB Meter A
