@@ -13,22 +13,23 @@ from datetime import datetime
 from pathlib import Path
 
 # ESP32 bridge modülünü import etmek için path ekle
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 # .env dosyasından environment variable'ları yükle
 try:
     from dotenv import load_dotenv
-    env_path = Path(__file__).parent.parent / '.env'
+
+    env_path = Path(__file__).parent.parent / ".env"
     load_dotenv(dotenv_path=env_path)
 except ImportError:
     # python-dotenv yüklü değilse, manuel olarak .env dosyasını oku
-    env_path = Path(__file__).parent.parent / '.env'
+    env_path = Path(__file__).parent.parent / ".env"
     if env_path.exists():
-        with open(env_path, 'r') as f:
+        with open(env_path, "r") as f:
             for line in f:
                 line = line.strip()
-                if line and not line.startswith('#') and '=' in line:
-                    key, value = line.split('=', 1)
+                if line and not line.startswith("#") and "=" in line:
+                    key, value = line.split("=", 1)
                     os.environ[key.strip()] = value.strip()
 
 from fastapi import FastAPI, HTTPException, Request, status
@@ -38,8 +39,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from api.event_detector import get_event_detector
 from api.logging_config import log_api_request, system_logger
+from api.session_manager import get_session_manager
+
 # Router'ları import et
-from api.routers import charge, current, station, status, test
+from api.routers import charge, current, station, status as status_router, test, sessions
 from esp32.bridge import get_esp32_bridge
 
 # FastAPI uygulaması
@@ -48,15 +51,16 @@ app = FastAPI(
     description="ESP32 şarj istasyonu kontrolü için REST API",
     version="2.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
 )
 
 # Router'ları include et
 app.include_router(charge.router)
-app.include_router(status.router)
+app.include_router(status_router.router)
 app.include_router(current.router)
 app.include_router(station.router)
 app.include_router(test.router)
+app.include_router(sessions.router)
 
 
 # API Request Logging Middleware
@@ -87,9 +91,9 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
                     client_ip=client_ip,
                     status_code=response.status_code,
                     response_time_ms=process_time,
-                    user_id=user_id
+                    user_id=user_id,
                 )
-            except Exception as e:
+            except Exception:
                 # Logging hatası API response'u etkilememeli
                 # Sessizce geç (veya fallback logging)
                 pass
@@ -119,6 +123,11 @@ async def startup_event():
         event_detector = get_event_detector(get_esp32_bridge)
         event_detector.start_monitoring()
         system_logger.info("Event detector başlatıldı")
+
+        # Session manager'ı başlat ve event detector'a kaydet
+        session_manager = get_session_manager()
+        session_manager.register_with_event_detector(event_detector)
+        system_logger.info("Session manager başlatıldı ve event detector'a kaydedildi")
     except Exception as e:
         system_logger.error(f"Startup hatası: {e}", exc_info=True)
 
@@ -126,7 +135,6 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Uygulama kapanışında event detector'ı durdur ve ESP32 bridge'i kapat (Graceful shutdown)"""
-    import asyncio
 
     shutdown_timeout = 10.0  # Maksimum shutdown süresi (saniye)
     start_time = time.time()
@@ -142,10 +150,15 @@ async def shutdown_event():
                 system_logger.info("Event detector durdurma komutu gönderildi")
 
                 # Monitor thread'inin bitmesini bekle (timeout ile)
-                if event_detector._monitor_thread and event_detector._monitor_thread.is_alive():
+                if (
+                    event_detector._monitor_thread
+                    and event_detector._monitor_thread.is_alive()
+                ):
                     event_detector._monitor_thread.join(timeout=5.0)
                     if event_detector._monitor_thread.is_alive():
-                        system_logger.warning("Event detector thread timeout - zorla durduruldu")
+                        system_logger.warning(
+                            "Event detector thread timeout - zorla durduruldu"
+                        )
                     else:
                         system_logger.info("Event detector thread başarıyla durduruldu")
         except Exception as e:
@@ -173,7 +186,9 @@ async def shutdown_event():
         # 3. Shutdown süresini kontrol et
         shutdown_duration = time.time() - start_time
         if shutdown_duration > shutdown_timeout:
-            system_logger.warning(f"Shutdown timeout: {shutdown_duration:.1f}s > {shutdown_timeout}s")
+            system_logger.warning(
+                f"Shutdown timeout: {shutdown_duration:.1f}s > {shutdown_timeout}s"
+            )
         else:
             system_logger.info(f"Shutdown tamamlandı ({shutdown_duration:.2f}s)")
 
@@ -190,7 +205,7 @@ async def root():
         "version": "2.0.0",
         "status": "running",
         "docs": "/docs",
-        "form": "/form"
+        "form": "/form",
     }
 
 
@@ -203,8 +218,7 @@ async def station_form():
         return FileResponse(form_path)
     else:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Form dosyası bulunamadı"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Form dosyası bulunamadı"
         )
 
 
@@ -227,8 +241,8 @@ async def global_exception_handler(request, exc):
         extra={
             "path": str(request.url.path),
             "method": request.method,
-            "client_ip": request.client.host if request.client else None
-        }
+            "client_ip": request.client.host if request.client else None,
+        },
     )
 
     # Kullanıcıya gösterilecek mesaj
@@ -244,11 +258,12 @@ async def global_exception_handler(request, exc):
         content={
             "success": False,
             "message": message,
-            "timestamp": datetime.now().isoformat()
-        }
+            "timestamp": datetime.now().isoformat(),
+        },
     )
 
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
