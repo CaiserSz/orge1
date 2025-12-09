@@ -48,6 +48,10 @@ def mock_esp32_bridge():
 @pytest.fixture
 def client(mock_esp32_bridge):
     """Test client fixture"""
+    import os
+    # Test için API key set et
+    os.environ['SECRET_API_KEY'] = 'test-api-key'
+    
     with patch('api.main.esp32_bridge', mock_esp32_bridge):
         with patch('api.main.get_esp32_bridge', return_value=mock_esp32_bridge):
             yield TestClient(app)
@@ -91,7 +95,8 @@ class TestAPIEndpoints:
         """Stop charge endpoint çalışıyor mu?"""
         response = client.post(
             "/api/charge/stop",
-            json={}
+            json={},
+            headers={"X-API-Key": "test-api-key"}
         )
         assert response.status_code == 200
         data = response.json()

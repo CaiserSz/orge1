@@ -1,8 +1,8 @@
 """
 AC Charger REST API
 Created: 2025-12-08
-Last Modified: 2025-12-08
-Version: 1.0.0
+Last Modified: 2025-12-09
+Version: 1.1.0
 Description: ESP32 kontrolü için REST API endpoint'leri
 """
 
@@ -24,6 +24,7 @@ from pydantic import BaseModel, Field
 from esp32.bridge import get_esp32_bridge, ESP32Bridge
 from api.station_info import save_station_info, get_station_info
 from api.logging_config import api_logger, log_api_request, system_logger
+from api.auth import verify_api_key
 
 # FastAPI uygulaması
 app = FastAPI(
@@ -215,7 +216,11 @@ async def get_status(bridge: ESP32Bridge = Depends(get_bridge)):
 
 
 @app.post("/api/charge/start", tags=["Charge Control"])
-async def start_charge(request: ChargeStartRequest, bridge: ESP32Bridge = Depends(get_bridge)):
+async def start_charge(
+    request: ChargeStartRequest,
+    bridge: ESP32Bridge = Depends(get_bridge),
+    api_key: str = Depends(verify_api_key)
+):
     """
     Şarj başlatma
     
@@ -260,7 +265,11 @@ async def start_charge(request: ChargeStartRequest, bridge: ESP32Bridge = Depend
 
 
 @app.post("/api/charge/stop", tags=["Charge Control"])
-async def stop_charge(request: ChargeStopRequest, bridge: ESP32Bridge = Depends(get_bridge)):
+async def stop_charge(
+    request: ChargeStopRequest,
+    bridge: ESP32Bridge = Depends(get_bridge),
+    api_key: str = Depends(verify_api_key)
+):
     """
     Şarj durdurma
     
@@ -289,7 +298,11 @@ async def stop_charge(request: ChargeStopRequest, bridge: ESP32Bridge = Depends(
 
 
 @app.post("/api/maxcurrent", tags=["Current Control"])
-async def set_current(request: CurrentSetRequest, bridge: ESP32Bridge = Depends(get_bridge)):
+async def set_current(
+    request: CurrentSetRequest,
+    bridge: ESP32Bridge = Depends(get_bridge),
+    api_key: str = Depends(verify_api_key)
+):
     """
     Maksimum akım ayarlama
     
