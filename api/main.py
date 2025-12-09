@@ -12,7 +12,7 @@ import os
 # ESP32 bridge modülünü import etmek için path ekle
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from fastapi import FastAPI, HTTPException, status, Request
+from fastapi import FastAPI, HTTPException, status, Request, Depends
 from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.base import BaseHTTPMiddleware
@@ -21,7 +21,8 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 from pathlib import Path
 import time
-from esp32.bridge import get_esp32_bridge
+import os
+from esp32.bridge import get_esp32_bridge, ESP32Bridge
 from api.station_info import save_station_info, get_station_info
 from api.logging_config import api_logger, log_api_request, system_logger
 
@@ -34,8 +35,15 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# ESP32 bridge instance
-esp32_bridge = None
+# Dependency injection için bridge getter
+def get_bridge() -> ESP32Bridge:
+    """
+    ESP32 bridge instance'ı dependency injection için
+    
+    Returns:
+        ESP32Bridge instance
+    """
+    return get_esp32_bridge()
 
 
 # API Request Logging Middleware
@@ -79,10 +87,9 @@ app.add_middleware(APILoggingMiddleware)
 @app.on_event("startup")
 async def startup_event():
     """Uygulama başlangıcında ESP32 bridge'i başlat"""
-    global esp32_bridge
     try:
-        esp32_bridge = get_esp32_bridge()
-        if not esp32_bridge.is_connected:
+        bridge = get_esp32_bridge()
+        if not bridge.is_connected:
             system_logger.warning("ESP32 bağlantısı başlatılamadı")
         else:
             system_logger.info("ESP32 bridge başarıyla başlatıldı")
@@ -93,10 +100,13 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Uygulama kapanışında ESP32 bridge'i kapat"""
-    global esp32_bridge
-    if esp32_bridge:
-        esp32_bridge.disconnect()
-        system_logger.info("ESP32 bridge kapatıldı")
+    try:
+        bridge = get_esp32_bridge()
+        if bridge and bridge.is_connected:
+            bridge.disconnect()
+            system_logger.info("ESP32 bridge kapatıldı")
+    except Exception as e:
+        system_logger.error(f"ESP32 bridge kapatma hatası: {e}", exc_info=True)
 
 
 # Request/Response modelleri
@@ -151,20 +161,18 @@ async def station_form():
 
 
 @app.get("/api/health", tags=["Health"])
-async def health_check():
+async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
     """Sistem sağlık kontrolü"""
-    global esp32_bridge
-    
     health_data = {
         "api": "healthy",
         "esp32_connected": False,
         "esp32_status": None
     }
     
-    if esp32_bridge:
-        health_data["esp32_connected"] = esp32_bridge.is_connected
-        if esp32_bridge.is_connected:
-            status_data = esp32_bridge.get_status()
+    if bridge:
+        health_data["esp32_connected"] = bridge.is_connected
+        if bridge.is_connected:
+            status_data = bridge.get_status()
             health_data["esp32_status"] = "available" if status_data else "no_status"
     
     return APIResponse(
@@ -175,26 +183,24 @@ async def health_check():
 
 
 @app.get("/api/status", tags=["Status"])
-async def get_status():
+async def get_status(bridge: ESP32Bridge = Depends(get_bridge)):
     """
     ESP32 durum bilgisini al
     
     ESP32'den son durum bilgisini döndürür. 
     ESP32 her 5 saniyede bir otomatik olarak durum gönderir.
     """
-    global esp32_bridge
-    
-    if not esp32_bridge or not esp32_bridge.is_connected:
+    if not bridge or not bridge.is_connected:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="ESP32 bağlantısı yok"
         )
     
-    status_data = esp32_bridge.get_status()
+    status_data = bridge.get_status()
     
     if not status_data:
         # Status komutu gönder ve bekle
-        status_data = esp32_bridge.get_status_sync(timeout=2.0)
+        status_data = bridge.get_status_sync(timeout=2.0)
     
     if not status_data:
         raise HTTPException(
@@ -210,22 +216,20 @@ async def get_status():
 
 
 @app.post("/api/charge/start", tags=["Charge Control"])
-async def start_charge(request: ChargeStartRequest):
+async def start_charge(request: ChargeStartRequest, bridge: ESP32Bridge = Depends(get_bridge)):
     """
     Şarj başlatma
     
     ESP32'ye authorization komutu gönderir ve şarj izni verir.
     """
-    global esp32_bridge
-    
-    if not esp32_bridge or not esp32_bridge.is_connected:
+    if not bridge or not bridge.is_connected:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="ESP32 bağlantısı yok"
         )
     
     # Mevcut durumu kontrol et
-    current_status = esp32_bridge.get_status()
+    current_status = bridge.get_status()
     if current_status:
         state = current_status.get('STATE', 0)
         # STATE=1: IDLE (boşta, şarj başlatılabilir)
@@ -241,7 +245,7 @@ async def start_charge(request: ChargeStartRequest):
             )
     
     # Authorization komutu gönder
-    success = esp32_bridge.send_authorization()
+    success = bridge.send_authorization()
     
     if not success:
         raise HTTPException(
@@ -257,22 +261,20 @@ async def start_charge(request: ChargeStartRequest):
 
 
 @app.post("/api/charge/stop", tags=["Charge Control"])
-async def stop_charge(request: ChargeStopRequest):
+async def stop_charge(request: ChargeStopRequest, bridge: ESP32Bridge = Depends(get_bridge)):
     """
     Şarj durdurma
     
     ESP32'ye charge stop komutu gönderir ve şarjı sonlandırır.
     """
-    global esp32_bridge
-    
-    if not esp32_bridge or not esp32_bridge.is_connected:
+    if not bridge or not bridge.is_connected:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="ESP32 bağlantısı yok"
         )
     
     # Charge stop komutu gönder
-    success = esp32_bridge.send_charge_stop()
+    success = bridge.send_charge_stop()
     
     if not success:
         raise HTTPException(
@@ -288,7 +290,7 @@ async def stop_charge(request: ChargeStopRequest):
 
 
 @app.post("/api/maxcurrent", tags=["Current Control"])
-async def set_current(request: CurrentSetRequest):
+async def set_current(request: CurrentSetRequest, bridge: ESP32Bridge = Depends(get_bridge)):
     """
     Maksimum akım ayarlama
     
@@ -299,16 +301,14 @@ async def set_current(request: CurrentSetRequest):
     
     Geçerli akım aralığı: 6-32 amper (herhangi bir tam sayı)
     """
-    global esp32_bridge
-    
-    if not esp32_bridge or not esp32_bridge.is_connected:
+    if not bridge or not bridge.is_connected:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="ESP32 bağlantısı yok"
         )
     
     # Mevcut durumu kontrol et
-    current_status = esp32_bridge.get_status()
+    current_status = bridge.get_status()
     if current_status:
         state = current_status.get('STATE', 0)
         # STATE=1: IDLE (akım ayarlanabilir)
@@ -324,7 +324,7 @@ async def set_current(request: CurrentSetRequest):
             )
     
     # Akım set komutu gönder
-    success = esp32_bridge.send_current_set(request.amperage)
+    success = bridge.send_current_set(request.amperage)
     
     if not success:
         raise HTTPException(
@@ -416,12 +416,39 @@ async def save_station_info_endpoint(station_data: Dict[str, Any]):
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    """Global hata yakalayıcı"""
+    """
+    Global hata yakalayıcı
+    
+    Production'da detaylı hata mesajları gizlenir (güvenlik).
+    DEBUG mode aktifse detaylı bilgi gösterilir.
+    """
+    # DEBUG mode kontrolü
+    is_debug = os.getenv("DEBUG", "false").lower() == "true"
+    
+    # Detaylı hata bilgisini logla (her zaman)
+    system_logger.error(
+        f"Unhandled exception: {type(exc).__name__}: {exc}",
+        exc_info=True,
+        extra={
+            "path": str(request.url.path),
+            "method": request.method,
+            "client_ip": request.client.host if request.client else None
+        }
+    )
+    
+    # Kullanıcıya gösterilecek mesaj
+    if is_debug:
+        # DEBUG mode: Detaylı hata mesajı
+        message = f"Internal server error: {type(exc).__name__}: {str(exc)}"
+    else:
+        # Production: Genel hata mesajı
+        message = "Internal server error occurred"
+    
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
             "success": False,
-            "message": f"Internal server error: {str(exc)}",
+            "message": message,
             "timestamp": datetime.now().isoformat()
         }
     )

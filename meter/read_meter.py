@@ -9,6 +9,7 @@ Description: ABB meter'dan RS485 üzerinden Modbus RTU protokolü ile veri okuma
 import serial
 import time
 import struct
+import threading
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 import logging
@@ -425,15 +426,33 @@ class ABBMeterReader:
             return False
 
 
-# Singleton instance
+# Singleton instance (thread-safe)
 _meter_reader_instance: Optional[ABBMeterReader] = None
+_meter_lock = threading.Lock()
 
 
 def get_meter_reader() -> ABBMeterReader:
-    """ABB Meter Reader singleton instance'ı al"""
+    """
+    ABB Meter Reader singleton instance'ı al (thread-safe)
+    
+    Double-check locking pattern kullanarak thread-safe singleton sağlar.
+    
+    Returns:
+        ABBMeterReader instance
+    """
     global _meter_reader_instance
-    if _meter_reader_instance is None:
-        _meter_reader_instance = ABBMeterReader()
+    
+    # İlk kontrol (lock almadan - performans için)
+    if _meter_reader_instance is not None:
+        return _meter_reader_instance
+    
+    # İkinci kontrol (lock ile - thread-safety için)
+    with _meter_lock:
+        if _meter_reader_instance is None:
+            _meter_reader_instance = ABBMeterReader()
+            logger = logging.getLogger(__name__)
+            logger.info("ABB Meter Reader singleton instance oluşturuldu")
+    
     return _meter_reader_instance
 
 

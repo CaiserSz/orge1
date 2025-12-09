@@ -280,11 +280,22 @@ class ESP32Bridge:
             self._monitor_thread.join(timeout=2.0)
     
     def _monitor_loop(self):
-        """Durum izleme döngüsü"""
+        """
+        Durum izleme döngüsü
+        
+        Exception handling ile korumalı - loop crash etmez.
+        """
         while self._monitor_running:
-            if self.is_connected:
-                self._read_status_messages()
-            time.sleep(0.1)  # 100ms bekleme
+            try:
+                if self.is_connected:
+                    self._read_status_messages()
+            except Exception as e:
+                # Loop crash etmemeli - hata logla ve devam et
+                esp32_logger.error(f"Monitor loop error: {e}", exc_info=True)
+                # Kısa bir bekleme sonrası devam et
+                time.sleep(0.5)
+            else:
+                time.sleep(0.1)  # 100ms bekleme
     
     def get_status(self) -> Optional[Dict[str, Any]]:
         """
@@ -319,15 +330,39 @@ class ESP32Bridge:
         return None
 
 
-# Singleton instance
+# Singleton instance (thread-safe)
 _esp32_bridge_instance: Optional[ESP32Bridge] = None
+_bridge_lock = threading.Lock()
 
 
 def get_esp32_bridge() -> ESP32Bridge:
-    """ESP32 bridge singleton instance'ı al"""
+    """
+    ESP32 bridge singleton instance'ı al (thread-safe)
+    
+    Double-check locking pattern kullanarak thread-safe singleton sağlar.
+    
+    Returns:
+        ESP32Bridge instance
+        
+    Raises:
+        RuntimeError: ESP32 bağlantısı kurulamazsa
+    """
     global _esp32_bridge_instance
-    if _esp32_bridge_instance is None:
-        _esp32_bridge_instance = ESP32Bridge()
-        _esp32_bridge_instance.connect()
+    
+    # İlk kontrol (lock almadan - performans için)
+    if _esp32_bridge_instance is not None:
+        return _esp32_bridge_instance
+    
+    # İkinci kontrol (lock ile - thread-safety için)
+    with _bridge_lock:
+        if _esp32_bridge_instance is None:
+            instance = ESP32Bridge()
+            if not instance.connect():
+                # Bağlantı başarısız - instance oluşturma
+                esp32_logger.error("ESP32 bağlantısı kurulamadı")
+                raise RuntimeError("ESP32 bağlantısı kurulamadı")
+            _esp32_bridge_instance = instance
+            esp32_logger.info("ESP32 bridge singleton instance oluşturuldu")
+    
     return _esp32_bridge_instance
 
