@@ -398,17 +398,36 @@ Agent şu dosyaları **sırayla** okumalıdır:
 
 ### 2. İkinci Adım - Görev Seçimi
 
-**Mantık:**
-- ✅ Eğer aktif görev varsa (`master_live.md`), önce onu tamamlamalıdır
-- ✅ Eğer aktif görev yoksa, `master_next.md`'den en yüksek öncelikli görevi seçmelidir
-- ✅ Görevi `master_live.md`'ye taşımalıdır
-- ✅ `project_state.md` dosyasını güncellemelidir
+**Mantık (Öncelik Sırasına Göre):**
 
-**Öncelik Sırası:**
-1. Öncelik 0 (Acil - Refactoring)
-2. Öncelik 1 (Yüksek - Event Detection)
-3. Öncelik 2 (Yüksek - Session Management)
-4. Öncelik 3-8 (Orta/Düşük)
+1. **Aktif Görev Kontrolü:**
+   - ✅ `master_live.md`'de aktif görev var mı kontrol et
+   - ✅ Aktif görevin durumunu kontrol et:
+     - **"Devam Ediyor"** ise → Önce aktif görevi tamamla
+     - **"Bekliyor"** veya **"Hazırlanıyor"** ise → Öncelik karşılaştırması yap
+
+2. **Öncelik Karşılaştırması:**
+   - ✅ Aktif görevin önceliğini kontrol et
+   - ✅ `master_next.md`'deki en yüksek öncelikli görevi kontrol et
+   - ✅ **Eğer `master_next.md`'deki görev daha yüksek öncelikli ise:**
+     - Aktif görevi `master_next.md`'ye geri taşı (durum: Bekliyor)
+     - Yüksek öncelikli görevi `master_live.md`'ye taşı
+     - Yüksek öncelikli görevle devam et
+   - ✅ **Eğer aktif görev daha yüksek öncelikli ise:**
+     - Aktif görevle devam et
+
+3. **Aktif Görev Yoksa:**
+   - ✅ `master_next.md`'den en yüksek öncelikli görevi seç
+   - ✅ Görevi `master_live.md`'ye taşı
+   - ✅ Çalışmaya başla
+
+**Öncelik Sırası (Sayısal - Küçük = Yüksek Öncelik):**
+1. **Öncelik 0** (Acil - Refactoring, Standart İhlalleri)
+2. **Öncelik 1** (Yüksek - Event Detection, Kritik Özellikler)
+3. **Öncelik 2** (Yüksek - Session Management)
+4. **Öncelik 3-8** (Orta/Düşük)
+
+**ÖNEMLİ:** Öncelik 0 (Acil) görevleri her zaman en yüksek önceliğe sahiptir ve aktif görev "Bekliyor" durumundaysa öncelik verilmelidir.
 
 ### 3. Üçüncü Adım - Çalışma
 

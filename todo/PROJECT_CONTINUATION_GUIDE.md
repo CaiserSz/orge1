@@ -64,16 +64,30 @@ Agent şu dosyaları sırayla okuyacaktır:
 
 Agent şu mantıkla görev seçecektir:
 
-1. **Aktif Görev Varsa (`master_live.md`):**
-   - ✅ Önce aktif görevi tamamlamaya çalışır
-   - ✅ Blokaj varsa çözmeye çalışır
-   - ✅ Tamamlandıysa `master_done.md`'ye taşır
+1. **Aktif Görev Kontrolü (`master_live.md`):**
+   - ✅ Aktif görev var mı kontrol et
+   - ✅ Aktif görevin durumunu kontrol et:
+     - **"Devam Ediyor"** → Aktif görevle devam et
+     - **"Bekliyor"** veya **"Hazırlanıyor"** → Öncelik karşılaştırması yap
 
-2. **Aktif Görev Yoksa:**
+2. **Öncelik Karşılaştırması:**
+   - ✅ Aktif görevin önceliğini kontrol et
+   - ✅ `master_next.md`'deki en yüksek öncelikli görevi kontrol et
+   - ✅ **Eğer `master_next.md`'deki görev daha yüksek öncelikli ise (Öncelik 0 > Öncelik 1):**
+     - Aktif görevi `master_next.md`'ye geri taşı (durum: Bekliyor)
+     - Yüksek öncelikli görevi `master_live.md`'ye taşı
+     - Yüksek öncelikli görevle devam et
+   - ✅ **Eğer aktif görev daha yüksek öncelikli ise:**
+     - Aktif görevle devam et
+
+3. **Aktif Görev Yoksa:**
    - ✅ `master_next.md`'den en yüksek öncelikli görevi seçer
    - ✅ Bağımlılıkları kontrol eder
    - ✅ Görevi `master_live.md`'ye taşır
    - ✅ `project_state.md`'yi günceller
+
+**Öncelik Sırası (Sayısal - Küçük = Yüksek Öncelik):**
+- **Öncelik 0** (Acil) > **Öncelik 1** (Yüksek) > **Öncelik 2** (Yüksek) > **Öncelik 3-8** (Orta/Düşük)
 
 ### Adım 3: Çalışma
 
