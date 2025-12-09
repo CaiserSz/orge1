@@ -106,6 +106,64 @@ class Database:
                 # Migration: Yeni metrik kolonlarını ekle (eğer yoksa)
                 self._migrate_metrics_columns(cursor)
 
+                # Session events tablosu (normalized)
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS session_events (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        session_id TEXT NOT NULL,
+                        event_type TEXT NOT NULL,
+                        event_timestamp INTEGER NOT NULL,
+                        from_state INTEGER,
+                        to_state INTEGER,
+                        from_state_name TEXT,
+                        to_state_name TEXT,
+                        current_a REAL,
+                        voltage_v REAL,
+                        power_kw REAL,
+                        event_data TEXT,
+                        status_data TEXT,
+                        created_at INTEGER NOT NULL,
+                        FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE CASCADE
+                    )
+                    """
+                )
+
+                # Session events index'ler
+                cursor.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_session_events_session_id
+                    ON session_events(session_id)
+                    """
+                )
+                cursor.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_session_events_event_type
+                    ON session_events(event_type)
+                    """
+                )
+                cursor.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_session_events_timestamp
+                    ON session_events(event_timestamp DESC)
+                    """
+                )
+                cursor.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_session_events_session_timestamp
+                    ON session_events(session_id, event_timestamp DESC)
+                    """
+                )
+                cursor.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_session_events_session_type
+                    ON session_events(session_id, event_type)
+                    """
+                )
+
+                # Foreign keys aktif et
+                cursor.execute("PRAGMA foreign_keys=ON")
+
                 # Index'ler (performans için)
                 cursor.execute(
                     """
@@ -688,6 +746,258 @@ class Database:
                 result[field] = row[field]
 
         return result
+
+    def create_event(
+        self,
+        session_id: str,
+        event_type: str,
+        event_timestamp: datetime,
+        from_state: Optional[int] = None,
+        to_state: Optional[int] = None,
+        from_state_name: Optional[str] = None,
+        to_state_name: Optional[str] = None,
+        current_a: Optional[float] = None,
+        voltage_v: Optional[float] = None,
+        power_kw: Optional[float] = None,
+        event_data: Optional[Dict[str, Any]] = None,
+        status_data: Optional[Dict[str, Any]] = None,
+    ) -> bool:
+        """
+        Yeni event oluştur (normalized)
+
+        Args:
+            session_id: Session UUID
+            event_type: Event type
+            event_timestamp: Event zamanı
+            from_state: Önceki state
+            to_state: Yeni state
+            from_state_name: Önceki state adı
+            to_state_name: Yeni state adı
+            current_a: Akım (A)
+            voltage_v: Voltaj (V)
+            power_kw: Güç (kW)
+            event_data: Event data dict'i
+            status_data: Status data dict'i
+
+        Returns:
+            Başarı durumu
+        """
+        with self.lock:
+            conn = self._get_connection()
+            try:
+                cursor = conn.cursor()
+                timestamp_int = int(event_timestamp.timestamp())
+                created_at_int = int(datetime.now().timestamp())
+
+                cursor.execute(
+                    """
+                    INSERT INTO session_events
+                    (session_id, event_type, event_timestamp, from_state, to_state,
+                     from_state_name, to_state_name, current_a, voltage_v, power_kw,
+                     event_data, status_data, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        session_id,
+                        event_type,
+                        timestamp_int,
+                        from_state,
+                        to_state,
+                        from_state_name,
+                        to_state_name,
+                        current_a,
+                        voltage_v,
+                        power_kw,
+                        json.dumps(event_data) if event_data else None,
+                        json.dumps(status_data) if status_data else None,
+                        created_at_int,
+                    ),
+                )
+
+                # Session event_count'u güncelle
+                cursor.execute(
+                    """
+                    UPDATE sessions
+                    SET event_count = event_count + 1, updated_at = ?
+                    WHERE session_id = ?
+                    """,
+                    (created_at_int, session_id),
+                )
+
+                conn.commit()
+                return True
+            except Exception as e:
+                system_logger.error(f"Create event error: {e}", exc_info=True)
+                conn.rollback()
+                return False
+            finally:
+                conn.close()
+
+    def get_session_events(
+        self,
+        session_id: str,
+        event_type: Optional[str] = None,
+        limit: int = 1000,
+        offset: int = 0,
+    ) -> List[Dict[str, Any]]:
+        """
+        Session event'lerini al
+
+        Args:
+            session_id: Session UUID
+            event_type: Event type filtresi (opsiyonel)
+            limit: Maksimum döndürülecek event sayısı
+            offset: Başlangıç offset'i
+
+        Returns:
+            Event listesi
+        """
+        with self.lock:
+            conn = self._get_connection()
+            try:
+                cursor = conn.cursor()
+
+                if event_type:
+                    cursor.execute(
+                        """
+                        SELECT * FROM session_events
+                        WHERE session_id = ? AND event_type = ?
+                        ORDER BY event_timestamp DESC
+                        LIMIT ? OFFSET ?
+                        """,
+                        (session_id, event_type, limit, offset),
+                    )
+                else:
+                    cursor.execute(
+                        """
+                        SELECT * FROM session_events
+                        WHERE session_id = ?
+                        ORDER BY event_timestamp DESC
+                        LIMIT ? OFFSET ?
+                        """,
+                        (session_id, limit, offset),
+                    )
+
+                rows = cursor.fetchall()
+                return [self._event_row_to_dict(row) for row in rows]
+            except Exception as e:
+                system_logger.error(f"Get session events error: {e}", exc_info=True)
+                return []
+            finally:
+                conn.close()
+
+    def _event_row_to_dict(self, row: sqlite3.Row) -> Dict[str, Any]:
+        """
+        Event row'unu dict'e dönüştür
+
+        Args:
+            row: SQLite row
+
+        Returns:
+            Event dict'i
+        """
+        return {
+            "id": row["id"],
+            "session_id": row["session_id"],
+            "event_type": row["event_type"],
+            "event_timestamp": datetime.fromtimestamp(
+                row["event_timestamp"]
+            ).isoformat(),
+            "from_state": row["from_state"],
+            "to_state": row["to_state"],
+            "from_state_name": row["from_state_name"],
+            "to_state_name": row["to_state_name"],
+            "current_a": row["current_a"],
+            "voltage_v": row["voltage_v"],
+            "power_kw": row["power_kw"],
+            "event_data": json.loads(row["event_data"]) if row["event_data"] else None,
+            "status_data": (
+                json.loads(row["status_data"]) if row["status_data"] else None
+            ),
+            "created_at": datetime.fromtimestamp(row["created_at"]).isoformat(),
+        }
+
+    def migrate_events_to_table(self, session_id: Optional[str] = None) -> int:
+        """
+        Mevcut events JSON'ını session_events tablosuna migrate et
+
+        Args:
+            session_id: Belirli bir session (None ise tüm session'lar)
+
+        Returns:
+            Migrate edilen event sayısı
+        """
+        with self.lock:
+            conn = self._get_connection()
+            try:
+                cursor = conn.cursor()
+                migrated_count = 0
+
+                # Session'ları al
+                if session_id:
+                    cursor.execute(
+                        "SELECT session_id, events FROM sessions WHERE session_id = ?",
+                        (session_id,),
+                    )
+                else:
+                    cursor.execute("SELECT session_id, events FROM sessions")
+
+                rows = cursor.fetchall()
+
+                for row in rows:
+                    session_id_val = row["session_id"]
+                    events_json = row["events"]
+
+                    try:
+                        events = json.loads(events_json)
+                    except (json.JSONDecodeError, TypeError):
+                        continue
+
+                    # Her event'i session_events tablosuna ekle
+                    for event in events:
+                        event_type = event.get("event_type", "UNKNOWN")
+                        timestamp_str = event.get("timestamp")
+                        if not timestamp_str:
+                            continue
+
+                        try:
+                            event_timestamp = datetime.fromisoformat(timestamp_str)
+                        except (ValueError, TypeError):
+                            continue
+
+                        event_data = event.get("data", {})
+                        status = event_data.get("status", {})
+
+                        # Event'i kaydet
+                        success = self.create_event(
+                            session_id=session_id_val,
+                            event_type=event_type,
+                            event_timestamp=event_timestamp,
+                            from_state=event_data.get("from_state"),
+                            to_state=event_data.get("to_state"),
+                            from_state_name=event_data.get("from_state_name"),
+                            to_state_name=event_data.get("to_state_name"),
+                            current_a=status.get("CABLE") or status.get("CURRENT"),
+                            voltage_v=status.get("CPV") or status.get("PPV"),
+                            power_kw=None,  # Hesaplanacak
+                            event_data=event_data,
+                            status_data=status,
+                        )
+
+                        if success:
+                            migrated_count += 1
+
+                conn.commit()
+                system_logger.info(
+                    f"Migrated {migrated_count} events to session_events table"
+                )
+                return migrated_count
+            except Exception as e:
+                system_logger.error(f"Migrate events error: {e}", exc_info=True)
+                conn.rollback()
+                return 0
+            finally:
+                conn.close()
 
     def cleanup_old_sessions(self, max_sessions: int = 1000) -> int:
         """

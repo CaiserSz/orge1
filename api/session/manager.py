@@ -79,7 +79,9 @@ class SessionManager:
                 self.current_session.add_event(event_type, event_data)
                 # Metrikleri güncelle (real-time)
                 self._update_session_metrics(event_data)
-                # Database'e kaydet
+                # Normalized event tablosuna kaydet
+                self._save_event_to_table(event_type, event_data)
+                # Database'e kaydet (backward compatibility için events JSON'ı da koru)
                 self.db.update_session(
                     session_id=self.current_session.session_id,
                     events=self.current_session.events,
@@ -122,6 +124,8 @@ class SessionManager:
 
             session = ChargingSession(session_id, start_time, start_state)
             session.add_event(EventType.CHARGE_STARTED, event_data)
+            # Normalized event tablosuna kaydet
+            self._save_event_to_table(EventType.CHARGE_STARTED, event_data)
 
             # Meter'dan başlangıç enerji seviyesini oku (eğer meter varsa)
             if self.meter and self.meter.is_connected():
@@ -189,6 +193,8 @@ class SessionManager:
                 status = SessionStatus.COMPLETED
 
             end_state = event_data.get("to_state", ESP32State.STOPPED.value)
+            # Normalized event tablosuna kaydet
+            self._save_event_to_table(event_type, event_data)
             self._end_session_internal(
                 self.current_session, datetime.now(), end_state, status
             )
@@ -427,6 +433,44 @@ class SessionManager:
             and "set_current_a" not in self.current_session.metadata
         ):
             self.current_session.metadata["set_current_a"] = float(max_current)
+
+    def _save_event_to_table(self, event_type: EventType, event_data: Dict[str, Any]):
+        """
+        Event'i normalized session_events tablosuna kaydet
+
+        Args:
+            event_type: Event type
+            event_data: Event data dict'i
+        """
+        if not self.current_session:
+            return
+
+        try:
+            status = event_data.get("status", {})
+            current_a = status.get("CABLE") or status.get("CURRENT")
+            voltage_v = status.get("CPV") or status.get("PPV")
+            power_kw = None
+            if current_a is not None and voltage_v is not None:
+                from api.session.metrics import calculate_power
+
+                power_kw = calculate_power(current_a, voltage_v)
+
+            self.db.create_event(
+                session_id=self.current_session.session_id,
+                event_type=event_type.value,
+                event_timestamp=datetime.now(),
+                from_state=event_data.get("from_state"),
+                to_state=event_data.get("to_state"),
+                from_state_name=event_data.get("from_state_name"),
+                to_state_name=event_data.get("to_state_name"),
+                current_a=current_a,
+                voltage_v=voltage_v,
+                power_kw=power_kw,
+                event_data=event_data,
+                status_data=status,
+            )
+        except Exception as e:
+            system_logger.warning(f"Event kaydetme hatası (session_events): {e}")
 
     def _calculate_final_metrics(
         self, session: ChargingSession, end_time: datetime

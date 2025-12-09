@@ -361,6 +361,67 @@
 
 ---
 
+## Database Deep Dive Analizi Bulguları (2025-12-10)
+
+### 🔴 Kritik Database Sorunları (Acil Müdahale Gerekli)
+
+#### Öncelik 0: Events Normalization (En Kritik)
+- [ ] **Görev:** Events JSON blob'u normalize et - `session_events` tablosu oluştur
+  - Açıklama: Events JSON array olarak saklanıyor. Normalize edilmeli (ayrı tablo)
+  - Öncelik: 0 (En Kritik)
+  - Tahmini Süre: 3-4 saat
+  - Durum: 🔴 Kritik sorun
+  - Sorunlar:
+    - Event type'a göre filtreleme yapılamıyor
+    - Event bazlı analytics yapılamıyor
+    - Index yapılamıyor
+    - Update overhead (tüm events JSON güncelleniyor)
+    - Büyük session'larda JSON boyutu çok artıyor (1000 event = ~200 KB)
+  - Çözüm:
+    - `session_events` tablosu oluştur
+    - Events'i normalize et
+    - Migration script yaz
+    - Backward compatibility sağla
+  - Detaylar: `docs/DATABASE_DEEP_DIVE_ANALYSIS_20251210.md` dosyasına bakınız
+  - Durum: 📋 Bekliyor
+
+#### Öncelik 1: Database Şema Migration (TEXT → INTEGER)
+- [ ] **Görev:** Timestamp alanlarını INTEGER (Unix timestamp)'a çevir
+  - Açıklama: `start_time`, `end_time`, `created_at`, `updated_at` TEXT olarak saklanıyor
+  - Öncelik: 1 (Acil)
+  - Tahmini Süre: 2-3 saat
+  - Durum: 🔴 Kritik performans sorunu
+  - Sorunlar:
+    - String karşılaştırması (yavaş)
+    - Tarih aralığı sorguları zor
+    - Index kullanımı verimsiz
+    - Timezone sorunları
+  - Çözüm:
+    - TEXT → INTEGER migration
+    - Migration script yaz
+    - Rollback planı hazırla
+  - Detaylar: `docs/DATABASE_DEEP_DIVE_ANALYSIS_20251210.md` dosyasına bakınız
+  - Durum: 📋 Bekliyor
+
+#### Öncelik 2: Connection Management İyileştirmesi
+- [ ] **Görev:** Persistent connection + WAL mode
+  - Açıklama: Her operasyonda yeni connection açılıyor/kapatılıyor
+  - Öncelik: 2 (Acil)
+  - Tahmini Süre: 1-2 saat
+  - Durum: 🔴 Kritik performans sorunu
+  - Sorunlar:
+    - Yüksek overhead (connection açma/kapama)
+    - Concurrent işlemlerde performans sorunu
+    - SQLite WAL mode avantajları kullanılmıyor
+  - Çözüm:
+    - Persistent connection
+    - WAL mode aktif et (`PRAGMA journal_mode=WAL`)
+    - Cache size optimize et (`PRAGMA cache_size=10000`)
+  - Detaylar: `docs/DATABASE_DEEP_DIVE_ANALYSIS_20251210.md` dosyasına bakınız
+  - Durum: 📋 Bekliyor
+
+---
+
 ## Session Management Audit Bulguları (2025-12-10)
 
 ### 🟢 Genel Durum: Çok İyi (Skor: 9.0/10)
@@ -504,33 +565,33 @@ CREATE TABLE sessions (
     start_time INTEGER NOT NULL,
     end_time INTEGER,
     status TEXT NOT NULL,
-    
+
     -- Süre metrikleri
     duration_seconds INTEGER,
     charging_duration_seconds INTEGER,
     idle_duration_seconds INTEGER,
-    
+
     -- Enerji metrikleri
     total_energy_kwh REAL,
     start_energy_kwh REAL,
     end_energy_kwh REAL,
-    
+
     -- Güç metrikleri
     max_power_kw REAL,
     avg_power_kw REAL,
     min_power_kw REAL,
-    
+
     -- Akım metrikleri
     max_current_a REAL,
     avg_current_a REAL,
     min_current_a REAL,
     set_current_a REAL,
-    
+
     -- Voltaj metrikleri
     max_voltage_v REAL,
     avg_voltage_v REAL,
     min_voltage_v REAL,
-    
+
     -- Diğer alanlar
     event_count INTEGER DEFAULT 0,
     events TEXT NOT NULL DEFAULT '[]',
