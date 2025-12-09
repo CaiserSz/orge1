@@ -14,28 +14,30 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251208-003  
-**Tarih:** 2025-12-08 19:30:00  
-**Durum:** ✅ WiFi Failover Sistemi Kuruldu
+**Checkpoint ID:** CP-20251209-001  
+**Tarih:** 2025-12-09 03:45:00  
+**Durum:** 🔄 UART5 Overlay Reboot Öncesi
 
 ### Son Tamamlanan İş
-- **Görev:** WiFi Failover Sistemi Kurulumu
-- **Durum:** ✅ Tamamlandı
-- **Commit:** 18fec1d
-- **Tarih:** 2025-12-08 19:30:00
+- **Görev:** ABB Meter RS485 Yapılandırması
+- **Durum:** ✅ Config Tamamlandı, Reboot Bekleniyor
+- **Commit:** GPIO pin mapping dokümantasyonu eklendi
+- **Tarih:** 2025-12-09 03:45:00
 - **Detaylar:** 
-  - 4 WiFi ağı tanımlandı (ORGE_ARGE, ORGE_DEPO, ORGE_EV, ERTAC)
-  - Priority sıralaması yapılandırıldı
-  - WiFi failover monitor script ve systemd servisi kuruldu
-  - Internet erişimi kontrolü ve otomatik failover mekanizması aktif
+  - GPIO12 (Pin 32) → UART5_TXD (ALT3) doğrulandı
+  - GPIO13 (Pin 33) → UART5_RXD (ALT3) doğrulandı
+  - Config dosyasına `dtoverlay=uart5,txd5_pin=12,rxd5_pin=13` eklendi
+  - ABB B23 112-100 meter modeli dokümante edildi
+  - METER_SETUP.md güncellendi
 
 ### Son Aktif Görev
-- **Görev:** Yok (Yeni görev seçilecek)
+- **Görev:** UART5 Overlay Aktivasyonu (Reboot)
+- **Durum:** 🔄 Reboot yapılıyor
 
 ### Sonraki Yapılacak
-- **Görev:** Test Altyapısı Kurulumu (Kritik Öncelik)
-- **Öncelik:** Kritik
-- **Durum:** 📋 Beklemede
+- **Görev:** Reboot Sonrası UART5 Kontrolü ve Meter Okuma Testi
+- **Öncelik:** Yüksek
+- **Durum:** 🔄 Reboot sonrası yapılacak
 
 ---
 
