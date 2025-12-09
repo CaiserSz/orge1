@@ -277,6 +277,86 @@ Sistemde birşey yapılması gerektiğinde erişilemez veya SSH gerekli gibi var
 - Detaylı standartlar için `BACKUP_ROLLBACK_STANDARDS.md` dosyasına bakınız
 - Bu dosya proje boyunca referans olarak kullanılacaktır
 
+## KRİTİK KURAL: Workspace Yönetimi Standartları
+
+**ÖNEMLİ:** Workspace düzeni, temizliği ve organizasyonu için belirlenen standartlara uyulmalıdır.
+
+### Workspace Metrikleri
+
+#### Dosya Sayısı Sınırlamaları
+- **Toplam Dosya:** İdeal < 200, Uyarı 300, Maksimum 400
+- **Python Dosyaları:** İdeal < 20, Uyarı 30, Maksimum 40
+- **Dokümantasyon (.md):** İdeal < 30, Uyarı 40, Maksimum 50
+- **Test Dosyaları:** İdeal < 15, Uyarı 20, Maksimum 25
+- **Klasör Sayısı:** İdeal < 15, Uyarı 20, Maksimum 25
+
+#### Workspace Boyutu Sınırlamaları
+- **Toplam Boyut:** İdeal < 100 MB, Uyarı 200 MB, Maksimum 500 MB
+- **env/ Klasörü:** İdeal < 50 MB, Uyarı 100 MB, Maksimum 200 MB
+- **logs/ Klasörü:** İdeal < 10 MB, Uyarı 20 MB, Maksimum 50 MB
+
+### Temizlik Kuralları
+
+#### Gereksiz Dosya Kategorileri
+- ✅ Geçici dosyalar (`.tmp`, `.temp`, `.bak`, `.old`)
+- ✅ Yedek dosyalar (`.backup`, `*_backup.*`)
+- ✅ Cache dosyaları (`__pycache__/`, `*.pyc`, `.pytest_cache`)
+- ✅ Eski log dosyaları (30+ gün)
+- ✅ Kullanılmayan dosyalar
+
+#### Temizlik Checklist
+- [ ] Geçici dosyalar temizlendi mi?
+- [ ] Yedek dosyalar temizlendi mi?
+- [ ] Cache dosyaları temizlendi mi?
+- [ ] Eski log dosyaları kontrol edildi mi?
+- [ ] Kullanılmayan dosyalar tespit edildi mi?
+
+### Arşivleme Kuralları
+
+#### Ne Zaman Arşivlenmeli?
+- ✅ 6+ ay güncellenmemiş dokümantasyon
+- ✅ Çözülmüş audit raporları
+- ✅ Eski test sonuçları
+- ✅ Eski versiyon dosyaları
+
+#### Arşivleme Yöntemleri
+- ✅ Git archive (önerilen)
+- ✅ Arşiv klasörü (`archive/`)
+- ✅ Git tag ile versiyonlama
+
+### Workspace Düzen Kuralları
+
+#### Dosya İsimlendirme
+- ✅ Dokümantasyon: `UPPERCASE_WITH_UNDERSCORES.md`
+- ✅ Kod: `snake_case.py`
+- ✅ HTML: `kebab-case.html`
+
+#### Dosya Organizasyonu
+- ✅ İlgili dosyalar birlikte
+- ✅ Her klasör kendi sorumluluğunda
+- ✅ Kök dizin sadece ana dosyalar
+
+### Kontrol ve İzleme
+
+#### Her Commit Öncesi
+- ✅ Geçici dosyalar temizlendi mi?
+- ✅ Yedek dosyalar temizlendi mi?
+- ✅ `WORKSPACE_INDEX.md` güncellendi mi?
+
+#### Haftalık Kontrol
+- ✅ Workspace metrikleri kontrol et
+- ✅ Dosya sayısı kontrol et
+- ✅ Temizlik yap
+
+#### Aylık Kontrol
+- ✅ Arşivleme ihtiyacı değerlendir
+- ✅ Eski dosyaları arşivle
+- ✅ `WORKSPACE_INDEX.md` güncelle
+
+### Detaylı Standartlar
+- Detaylı standartlar için `WORKSPACE_MANAGEMENT_STANDARDS.md` dosyasına bakınız
+- Bu dosya proje boyunca referans olarak kullanılacaktır
+
 ## Otonom Proje Yönetimi ve Devam Etme Kuralları
 
 **KRİTİK:** Kullanıcı "projeye devam et" veya benzeri bir komut verdiğinde, Agent şu adımları takip etmelidir:

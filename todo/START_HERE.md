@@ -182,6 +182,38 @@ En yüksek öncelikli görevi seç ve çalışmaya başla.
 
 ---
 
+## 🔴 KRİTİK KURAL: Workspace Yönetimi Standartları
+
+**ÖNEMLİ:** Workspace düzeni, temizliği ve organizasyonu için belirlenen standartlara uyulmalıdır.
+
+**Workspace Metrikleri:**
+- Toplam Dosya: İdeal < 200, Uyarı 300, Maksimum 400
+- Python Dosyaları: İdeal < 20, Uyarı 30, Maksimum 40
+- Dokümantasyon: İdeal < 30, Uyarı 40, Maksimum 50
+- Workspace Boyutu: İdeal < 100 MB, Uyarı 200 MB, Maksimum 500 MB
+
+**Temizlik Kuralları:**
+- Geçici dosyalar (`.tmp`, `.bak`, `.old`) temizlenmeli
+- Yedek dosyalar (`.backup`) temizlenmeli
+- Cache dosyaları (`__pycache__/`) temizlenmeli
+- Eski log dosyaları (30+ gün) kontrol edilmeli
+- Kullanılmayan dosyalar tespit edilmeli
+
+**Arşivleme Kuralları:**
+- 6+ ay güncellenmemiş dokümantasyon arşivlenmeli
+- Çözülmüş audit raporları arşivlenmeli
+- Eski versiyon dosyaları arşivlenmeli
+
+**Workspace Düzen Kuralları:**
+- İlgili dosyalar birlikte olmalı
+- Her klasör kendi sorumluluğunda
+- Kök dizin sadece ana dosyalar
+- `WORKSPACE_INDEX.md` güncel tutulmalı
+
+**Detaylar:** Detaylı standartlar için `WORKSPACE_MANAGEMENT_STANDARDS.md` dosyasına bakınız.
+
+---
+
 ## 🆘 Yardım
 
 - **Durum:** `todo/project_state.md`
