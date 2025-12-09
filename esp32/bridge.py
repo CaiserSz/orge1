@@ -14,6 +14,12 @@ import time
 import threading
 from typing import Optional, Dict, Any
 from datetime import datetime
+import sys
+import os
+
+# Logging modülünü import et
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from api.logging_config import esp32_logger, log_esp32_message
 
 # Protocol constants
 PROTOCOL_HEADER = 0x41
@@ -56,7 +62,7 @@ class ESP32Bridge:
             with open(protocol_path, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except Exception as e:
-            print(f"Protocol yükleme hatası: {e}")
+            esp32_logger.error(f"Protocol yükleme hatası: {e}", exc_info=True)
             return {}
     
     def find_esp32_port(self) -> Optional[str]:
@@ -87,7 +93,7 @@ class ESP32Bridge:
             
             port = self.port or self.find_esp32_port()
             if not port:
-                print("ESP32 portu bulunamadı")
+                esp32_logger.warning("ESP32 portu bulunamadı")
                 return False
             
             self.serial_connection = serial.Serial(
@@ -106,11 +112,12 @@ class ESP32Bridge:
             # Durum izleme thread'ini başlat
             self._start_monitoring()
             
-            print(f"ESP32'ye bağlandı: {port}")
+            esp32_logger.info(f"ESP32'ye bağlandı: {port}")
+            log_esp32_message("connection", "tx", {"port": port, "baudrate": self.baudrate})
             return True
             
         except Exception as e:
-            print(f"ESP32 bağlantı hatası: {e}")
+            esp32_logger.error(f"ESP32 bağlantı hatası: {e}", exc_info=True)
             self.is_connected = False
             return False
     
@@ -120,7 +127,8 @@ class ESP32Bridge:
         if self.serial_connection and self.serial_connection.is_open:
             self.serial_connection.close()
         self.is_connected = False
-        print("ESP32 bağlantısı kapatıldı")
+        esp32_logger.info("ESP32 bağlantısı kapatıldı")
+        log_esp32_message("disconnection", "tx")
     
     def _send_command_bytes(self, command_bytes: list) -> bool:
         """
@@ -133,12 +141,12 @@ class ESP32Bridge:
             Başarı durumu
         """
         if not self.is_connected or not self.serial_connection or not self.serial_connection.is_open:
-            print("ESP32 bağlantısı yok")
+            esp32_logger.warning("ESP32 bağlantısı yok")
             return False
         
         try:
             if len(command_bytes) != 5:
-                print(f"Geçersiz komut uzunluğu: {len(command_bytes)} (beklenen: 5)")
+                esp32_logger.error(f"Geçersiz komut uzunluğu: {len(command_bytes)} (beklenen: 5)")
                 return False
             
             self.serial_connection.write(bytes(command_bytes))
@@ -146,20 +154,26 @@ class ESP32Bridge:
             return True
             
         except Exception as e:
-            print(f"Komut gönderme hatası: {e}")
+            esp32_logger.error(f"Komut gönderme hatası: {e}", exc_info=True)
             return False
     
     def send_status_request(self) -> bool:
         """Status komutu gönder"""
         cmd = self.protocol_data.get('commands', {}).get('status', {})
         byte_array = cmd.get('byte_array', [65, 0, 44, 0, 16])
-        return self._send_command_bytes(byte_array)
+        result = self._send_command_bytes(byte_array)
+        if result:
+            log_esp32_message("status_request", "tx", data={"command": "status_request", "bytes": byte_array})
+        return result
     
     def send_authorization(self) -> bool:
         """Authorization komutu gönder (şarj başlatma)"""
         cmd = self.protocol_data.get('commands', {}).get('authorization', {})
         byte_array = cmd.get('byte_array', [65, 1, 44, 1, 16])
-        return self._send_command_bytes(byte_array)
+        result = self._send_command_bytes(byte_array)
+        if result:
+            log_esp32_message("authorization", "tx", data={"command": "authorization", "bytes": byte_array})
+        return result
     
     def send_current_set(self, amperage: int) -> bool:
         """
@@ -173,19 +187,25 @@ class ESP32Bridge:
         """
         # 6-32 amper aralığında herhangi bir değer geçerlidir
         if not (6 <= amperage <= 32):
-            print(f"Geçersiz akım değeri: {amperage} (geçerli aralık: 6-32A)")
+            esp32_logger.warning(f"Geçersiz akım değeri: {amperage} (geçerli aralık: 6-32A)")
             return False
         
         # Komut formatı: 41 [KOMUT=0x02] 2C [DEĞER=amperage] 10
         # Değer doğrudan amper cinsinden hex formatında gönderilir
         command_bytes = [0x41, 0x02, 0x2C, amperage, 0x10]
-        return self._send_command_bytes(command_bytes)
+        result = self._send_command_bytes(command_bytes)
+        if result:
+            log_esp32_message("current_set", "tx", data={"command": "current_set", "amperage": amperage, "bytes": command_bytes})
+        return result
     
     def send_charge_stop(self) -> bool:
         """Şarj durdurma komutu gönder"""
         cmd = self.protocol_data.get('commands', {}).get('charge_stop', {})
         byte_array = cmd.get('byte_array', [65, 4, 44, 7, 16])
-        return self._send_command_bytes(byte_array)
+        result = self._send_command_bytes(byte_array)
+        if result:
+            log_esp32_message("charge_stop", "tx", data={"command": "charge_stop", "bytes": byte_array})
+        return result
     
     def _parse_status_message(self, message: str) -> Optional[Dict[str, Any]]:
         """
@@ -238,10 +258,11 @@ class ESP32Bridge:
                 if status:
                     with self.status_lock:
                         self.last_status = status
-                    print(f"Status güncellendi: {status.get('STATE', 'N/A')}")
+                    esp32_logger.debug(f"Status güncellendi: {status.get('STATE', 'N/A')}")
+                    log_esp32_message("status", "rx", data=status)
         
         except Exception as e:
-            print(f"Status okuma hatası: {e}")
+            esp32_logger.error(f"Status okuma hatası: {e}", exc_info=True)
     
     def _start_monitoring(self):
         """Durum izleme thread'ini başlat"""

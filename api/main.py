@@ -12,15 +12,18 @@ import os
 # ESP32 bridge modülünü import etmek için path ekle
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Request
 from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 from pathlib import Path
+import time
 from esp32.bridge import get_esp32_bridge
 from api.station_info import save_station_info, get_station_info
+from api.logging_config import api_logger, log_api_request, system_logger
 
 # FastAPI uygulaması
 app = FastAPI(
@@ -35,6 +38,39 @@ app = FastAPI(
 esp32_bridge = None
 
 
+# API Request Logging Middleware
+class APILoggingMiddleware(BaseHTTPMiddleware):
+    """API isteklerini loglayan middleware"""
+    
+    async def dispatch(self, request: Request, call_next):
+        start_time = time.time()
+        
+        # İstemci IP adresini al
+        client_ip = request.client.host if request.client else None
+        
+        # İsteği işle
+        response = await call_next(request)
+        
+        # Yanıt süresini hesapla
+        process_time = (time.time() - start_time) * 1000  # milisaniye
+        
+        # Logla (şarj başlatma/bitirme hariç)
+        if request.url.path not in ["/api/charge/start", "/api/charge/stop"]:
+            log_api_request(
+                method=request.method,
+                path=request.url.path,
+                client_ip=client_ip,
+                status_code=response.status_code,
+                response_time_ms=process_time
+            )
+        
+        return response
+
+
+# Middleware'i ekle
+app.add_middleware(APILoggingMiddleware)
+
+
 @app.on_event("startup")
 async def startup_event():
     """Uygulama başlangıcında ESP32 bridge'i başlat"""
@@ -42,17 +78,20 @@ async def startup_event():
     try:
         esp32_bridge = get_esp32_bridge()
         if not esp32_bridge.is_connected:
-            print("ESP32 bağlantısı başlatılamadı")
+            system_logger.warning("ESP32 bağlantısı başlatılamadı")
+        else:
+            system_logger.info("ESP32 bridge başarıyla başlatıldı")
     except Exception as e:
-        print(f"ESP32 bridge başlatma hatası: {e}")
+        system_logger.error(f"ESP32 bridge başlatma hatası: {e}", exc_info=True)
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Uygulama kapanışında ESP32 bridge'i kapat"""
     global esp32_bridge
-    if esp32_bridge:
-        esp32_bridge.disconnect()
+        if esp32_bridge:
+            esp32_bridge.disconnect()
+            system_logger.info("ESP32 bridge kapatıldı")
 
 
 # Request/Response modelleri
