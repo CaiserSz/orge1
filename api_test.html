@@ -44,8 +44,113 @@
             font-size: 0.9em;
         }
 
+        /* ESP32 Status Bar */
+        .status-bar {
+            background: #1a1a1a;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            border-bottom: 3px solid #333;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .status-bar-title {
+            font-weight: bold;
+            font-size: 0.9em;
+            color: #888;
+            margin-right: 10px;
+        }
+
+        .status-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            font-weight: 500;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            transition: all 0.3s ease;
+            min-width: 80px;
+            justify-content: center;
+        }
+
+        .status-item.changed {
+            animation: highlight 0.6s ease;
+            box-shadow: 0 0 10px rgba(255,255,255,0.3);
+        }
+
+        @keyframes highlight {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); background: #444; }
+            100% { transform: scale(1); }
+        }
+
+        .status-label {
+            color: #aaa;
+            font-size: 0.8em;
+        }
+
+        .status-value {
+            font-weight: bold;
+            color: white;
+        }
+
+        /* STATE renkleri (ESP32 kodundan) */
+        .status-state-1 { background: #ffffff; color: #000; border-color: #ccc; } /* IDLE - Beyaz */
+        .status-state-2 { background: rgb(0, 150, 150); color: white; } /* CABLE_DETECT - Turkuaz */
+        .status-state-3 { background: rgb(10, 10, 255); color: white; } /* EV_CONNECTED - Mavi */
+        .status-state-4 { background: rgb(10, 10, 255); color: white; } /* SARJA_HAZIR - Mavi */
+        .status-state-5 { background: #4CAF50; color: white; } /* SARJ_BASLADI - Yeşil */
+        .status-state-6 { background: rgb(255, 250, 0); color: #000; } /* SARJ_DURAKLATILDI - Sarı */
+        .status-state-7 { background: rgb(255, 20, 70); color: white; } /* SARJ_BITIR - Lila */
+        .status-state-8 { background: #F44336; color: white; } /* FAULT_HARD - Kırmızı */
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4CAF50;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.offline {
+            background: #F44336;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-last-update {
+            font-size: 0.75em;
+            color: #888;
+            margin-left: auto;
+        }
+
         .content {
             padding: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .status-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .status-item {
+                width: 100%;
+                justify-content: space-between;
+            }
         }
 
         @media (max-width: 768px) {
@@ -288,6 +393,45 @@
         <div class="header">
             <h1>🔌 Charger Station API Test Sayfası</h1>
             <p>API endpoint'lerini test etmek için kullanın</p>
+        </div>
+        
+        <!-- ESP32 Real-Time Status Bar -->
+        <div class="status-bar" id="statusBar">
+            <span class="status-bar-title">ESP32 Status:</span>
+            <div class="status-item" id="statusIndicator">
+                <span class="status-indicator" id="statusDot"></span>
+                <span class="status-label">Bağlantı</span>
+            </div>
+            <div class="status-item status-state-1" id="statusState">
+                <span class="status-label">STATE:</span>
+                <span class="status-value" id="stateValue">-</span>
+            </div>
+            <div class="status-item" id="statusCP">
+                <span class="status-label">CP:</span>
+                <span class="status-value" id="cpValue">-</span>
+            </div>
+            <div class="status-item" id="statusPP">
+                <span class="status-label">PP:</span>
+                <span class="status-value" id="ppValue">-</span>
+            </div>
+            <div class="status-item" id="statusRL">
+                <span class="status-label">RL:</span>
+                <span class="status-value" id="rlValue">-</span>
+            </div>
+            <div class="status-item" id="statusLOCK">
+                <span class="status-label">LOCK:</span>
+                <span class="status-value" id="lockValue">-</span>
+            </div>
+            <div class="status-item" id="statusMAX">
+                <span class="status-label">MAX:</span>
+                <span class="status-value" id="maxValue">-</span>
+                <span style="font-size: 0.75em; margin-left: 3px;">A</span>
+            </div>
+            <div class="status-item" id="statusAUTH">
+                <span class="status-label">AUTH:</span>
+                <span class="status-value" id="authValue">-</span>
+            </div>
+            <div class="status-last-update" id="lastUpdate">Son güncelleme: -</div>
         </div>
 
         <div class="content">
