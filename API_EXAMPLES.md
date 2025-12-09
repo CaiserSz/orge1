@@ -1,8 +1,34 @@
 # API Kullanım Örnekleri - Curl Komutları
 
 **Oluşturulma Tarihi:** 2025-12-08 18:15:00  
-**Son Güncelleme:** 2025-12-08 18:15:00  
-**Version:** 1.0.0
+**Son Güncelleme:** 2025-12-09 17:30:00  
+**Version:** 1.1.0
+
+---
+
+## 🔐 API Authentication
+
+**ÖNEMLİ:** Şarj kontrolü endpoint'leri (`/api/charge/start`, `/api/charge/stop`, `/api/maxcurrent`) için API key gereklidir.
+
+**API Key Kullanımı:**
+- Header adı: `X-API-Key`
+- Değer: `.env` dosyasındaki `SECRET_API_KEY` değeri
+- Örnek: `X-API-Key: your-secret-api-key-here`
+
+**API Key Alma:**
+```bash
+# .env dosyasından API key'i al
+export API_KEY=$(grep SECRET_API_KEY .env | cut -d'=' -f2)
+echo $API_KEY
+```
+
+**Örnek Kullanım:**
+```bash
+curl -X POST http://localhost:8000/api/charge/start \
+  -H "X-API-Key: your-secret-api-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
 
 ---
 
@@ -97,14 +123,18 @@ curl -s https://lixhium.ngrok.app/api/status | python3 -m json.tool
 
 ### 3. Maksimum Akım Ayarlama
 
+**ÖNEMLİ:** Bu endpoint için API key gereklidir (`X-API-Key` header).
+
 ```bash
 # Akım ayarla (örnek: 16A)
 curl -X POST https://lixhium.ngrok.app/api/maxcurrent \
+  -H "X-API-Key: your-secret-api-key-here" \
   -H "Content-Type: application/json" \
   -d '{"amperage": 16}'
 
 # JSON formatında
 curl -s -X POST https://lixhium.ngrok.app/api/maxcurrent \
+  -H "X-API-Key: your-secret-api-key-here" \
   -H "Content-Type: application/json" \
   -d '{"amperage": 16}' | python3 -m json.tool
 ```

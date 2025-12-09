@@ -83,7 +83,8 @@ class TestAPIEndpoints:
         """Start charge endpoint çalışıyor mu?"""
         response = client.post(
             "/api/charge/start",
-            json={"id_tag": "TEST-001"}
+            json={},
+            headers={"X-API-Key": "test-api-key"}
         )
         assert response.status_code == 200
         data = response.json()
@@ -108,7 +109,8 @@ class TestAPIEndpoints:
         """Set current 8A endpoint çalışıyor mu?"""
         response = client.post(
             "/api/maxcurrent",
-            json={"amperage": 8}
+            json={"amperage": 8},
+            headers={"X-API-Key": "test-api-key"}
         )
         assert response.status_code == 200
         data = response.json()
@@ -120,7 +122,8 @@ class TestAPIEndpoints:
         """Set current 16A endpoint çalışıyor mu?"""
         response = client.post(
             "/api/maxcurrent",
-            json={"amperage": 16}
+            json={"amperage": 16},
+            headers={"X-API-Key": "test-api-key"}
         )
         assert response.status_code == 200
         data = response.json()
@@ -132,7 +135,8 @@ class TestAPIEndpoints:
         """Set current 24A endpoint çalışıyor mu?"""
         response = client.post(
             "/api/maxcurrent",
-            json={"amperage": 24}
+            json={"amperage": 24},
+            headers={"X-API-Key": "test-api-key"}
         )
         assert response.status_code == 200
         data = response.json()
@@ -144,7 +148,8 @@ class TestAPIEndpoints:
         """Set current 32A endpoint çalışıyor mu?"""
         response = client.post(
             "/api/maxcurrent",
-            json={"amperage": 32}
+            json={"amperage": 32},
+            headers={"X-API-Key": "test-api-key"}
         )
         assert response.status_code == 200
         data = response.json()
@@ -179,7 +184,8 @@ class TestAPIEndpoints:
         
         response = client.post(
             "/api/charge/start",
-            json={"id_tag": "TEST-001"}
+            json={},
+            headers={"X-API-Key": "test-api-key"}
         )
         assert response.status_code == 400
         assert "zaten aktif" in response.json()['detail'].lower()

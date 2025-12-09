@@ -10,6 +10,7 @@ import pytest
 import os
 import sys
 from pathlib import Path
+from unittest.mock import Mock, patch
 from fastapi.testclient import TestClient
 
 # Proje root'unu path'e ekle
