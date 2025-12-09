@@ -1,50 +1,51 @@
 # Aktif Görevler (Şu Anda Yapılanlar)
 
-**Son Güncelleme:** 2025-12-09 21:35:00
+**Son Güncelleme:** 2025-12-09 22:30:00
 
 ---
 
 ## Aktif Görevler
 
-### 🔄 Event Detection Modülü (Yüksek Öncelik - Öncelik 1)
+### 🔴 project_info_20251208_145614.md Bölümleme (Acil Öncelik - Öncelik 0)
 
-**Görev ID:** TASK-006  
-**Başlangıç Tarihi:** 2025-12-09 16:10:00  
-**Güncelleme Tarihi:** 2025-12-09 21:35:00  
-**Durum:** 📋 Bekliyor (Hazırlanıyor)  
-**Öncelik:** Yüksek
+**Görev ID:** REFACTOR-001  
+**Başlangıç Tarihi:** 2025-12-09 22:30:00  
+**Güncelleme Tarihi:** 2025-12-09 22:30:00  
+**Durum:** 🔄 Devam Ediyor  
+**Öncelik:** Acil (Öncelik 0)
 
 #### Açıklama
-State transition detection ve event classification modülü oluşturulması gerekiyor. Logging sistemi kuruldu, şimdi event detection eklenmeli.
+`project_info_20251208_145614.md` dosyası maksimum sınırı (1200 satır) aşmıştır (1253 satır). Kod ve dokümantasyon standartlarına uygun olarak bölümlere ayrılmalıdır.
 
 #### Alt Görevler
-- [ ] Event detector modülü oluştur (`api/event_detector.py`)
-- [ ] State transition detection implementasyonu
-- [ ] Event type classification (kablo takılma, araç bağlantı, şarj başlatma/durdurma)
-- [ ] Event logging entegrasyonu
-- [ ] Unit testler yazılması
+- [ ] `docs/` klasörü oluştur
+- [ ] İçeriği bölümlere ayır:
+  - [ ] `project_info_20251208_145614.md` (ana dosya, ~300 satır)
+  - [ ] `docs/api_reference.md` (~300 satır)
+  - [ ] `docs/architecture.md` (~300 satır)
+  - [ ] `docs/deployment.md` (~200 satır)
+  - [ ] `docs/troubleshooting.md` (~200 satır)
+- [ ] Ana dosyada index ve linkler oluştur
+- [ ] Cross-reference'ları güncelle
+- [ ] Test et ve doğrula
+- [ ] Git commit ve push
 
 #### Tahmini Süre
-2-3 gün
+2-3 saat
 
-#### Bağımlılıklar
-- Logging sistemi ✅ (Tamamlandı)
-- ESP32 bridge modülü ✅ (Mevcut)
+#### Durum Detayları
+- **Mevcut Satır:** 1253 satır
+- **Maksimum Sınır:** 1200 satır
+- **Aşım:** 53 satır
+- **Durum:** 🔴 Maksimum sınır aşıldı
+
+#### Detaylar
+`todo/REFACTORING_PLAN.md` dosyasına bakınız
 
 #### Notlar
-- Event'ler state transition'lara göre tespit edilecek
-- Event'ler structured logging ile loglanacak
-- Event types: CABLE_CONNECTED, EV_CONNECTED, CHARGE_STARTED, CHARGE_STOPPED, CABLE_DISCONNECTED
-
-#### İyileştirme Fırsatları (Multi-Expert Analizi)
-- **Architecture Expert:** Event-driven architecture pattern kullanılabilir
-- **Performance Expert:** Event queue mekanizması eklenebilir
-- **Code Quality Expert:** Event history tracking eklenebilir
-- **Testing Expert:** Event detection unit testleri yazılmalı
-
-#### Sonraki Görevler
-- Session Management (Event Detection tamamlandıktan sonra)
-- Session Summary Generation (Session Management tamamlandıktan sonra)
+- Yedekleme yapıldı (git commit öncesi)
+- Refactoring sırasında fonksiyonellik korunmalıdır
+- Tüm referanslar güncellenmelidir
 
 ---
 
@@ -53,4 +54,3 @@ State transition detection ve event classification modülü oluşturulması gere
 - Aktif görevler buraya eklenecek
 - Maksimum 2-3 aktif görev olmalı
 - Her görev tamamlandığında `master_done.md`'ye taşınacak
-
