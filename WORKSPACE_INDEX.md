@@ -121,6 +121,38 @@
 - **Ne Zaman:** 2025-12-09'da oluşturuldu ve güncellendi
 - **İlgili Dosyalar:** `meter/read_meter.py`, `meter/RESEARCH_NOTES.md`
 
+#### `LOGGING_AUDIT.md`
+- **Ne:** Logging sistemi audit raporu
+- **Amaç:** Logging sisteminin uzman gözüyle değerlendirilmesi ve iyileştirme önerileri
+- **İçerik:**
+  - Güçlü yönler
+  - Kritik sorunlar ve çözümleri
+  - Kod kalitesi değerlendirmesi
+  - İyileştirme önerileri
+- **Ne Zaman:** 2025-12-09'da oluşturuldu
+- **İlgili Dosyalar:** `api/logging_config.py`, `api/main.py`
+
+#### `PRE_LOGGING_AUDIT.md`
+- **Ne:** Logging öncesi çalışmalar audit raporu
+- **Amaç:** ESP32 Bridge, API Endpoints, Test Sistemi audit'i
+- **İçerik:**
+  - Modül bazında audit (ESP32 Bridge, API Endpoints, Test Sistemi, Meter Modülü)
+  - Kritik sorunlar ve çözümleri
+  - Kod kalitesi değerlendirmesi
+  - İyileştirme önerileri
+- **Ne Zaman:** 2025-12-09'da oluşturuldu
+- **İlgili Dosyalar:** `esp32/bridge.py`, `api/main.py`, `tests/`
+
+#### `DOCUMENTATION_AUDIT.md`
+- **Ne:** Dokümantasyon ve proje yönetimi dosyaları audit raporu
+- **Amaç:** Todo sistemi, project_info, .cursorrules dosyalarının güncellik kontrolü
+- **İçerik:**
+  - Dosya bazında audit
+  - Güncelleme ihtiyaçları
+  - Öncelik sıralaması
+- **Ne Zaman:** 2025-12-09'da oluşturuldu
+- **İlgili Dosyalar:** `todo/`, `project_info_20251208_145614.md`, `.cursorrules`
+
 ### Yapılandırma Dosyaları
 
 #### `.cursorrules`
@@ -179,12 +211,27 @@
 - **Amaç:** REST API endpoint'lerinin tanımlanması ve yönetimi
 - **İçerik:**
   - API endpoint'leri (`/api/status`, `/api/charge/start`, `/api/charge/stop`, `/api/maxcurrent`, vb.)
-  - ESP32 bridge entegrasyonu
+  - ESP32 bridge entegrasyonu (dependency injection pattern)
   - Request/Response modelleri
-  - Error handling
-- **Ne Zaman:** 2025-12-08'de oluşturuldu
+  - Error handling (production-safe exception handler)
+  - API logging middleware
+- **Ne Zaman:** 2025-12-08'de oluşturuldu, 2025-12-09'da güncellendi
+- **Versiyon:** 1.1.0
+- **İlgili Dosyalar:** `esp32/bridge.py`, `api/station_info.py`, `api/logging_config.py`
+
+#### `api/logging_config.py`
+- **Ne:** Structured logging konfigürasyonu ve helper fonksiyonlar
+- **Amaç:** JSON formatında structured logging, log rotation, thread-safe logging
+- **İçerik:**
+  - JSONFormatter (JSON formatında loglama)
+  - Log rotation (10MB, 5 yedek dosya)
+  - Thread-safe logging mekanizması
+  - Helper fonksiyonlar (log_api_request, log_esp32_message, log_event)
+  - Ayrı logger'lar (api, esp32, system)
+- **Ne Zaman:** 2025-12-09'da oluşturuldu
 - **Versiyon:** 1.0.0
-- **İlgili Dosyalar:** `esp32/bridge.py`, `api/station_info.py`
+- **İlgili Dosyalar:** `api/main.py`, `esp32/bridge.py`
+- **Log Dosyaları:** `logs/api.log`, `logs/esp32.log`, `logs/system.log`
 
 #### `api/station_info.py`
 - **Ne:** İstasyon bilgileri yönetim modülü
@@ -261,11 +308,29 @@
 - **Ne:** Sistem log dosyası
 - **Amaç:** Sistem olaylarının loglanması
 - **İçerik:** Sistem mesajları, hatalar, uyarılar
+- **Format:** JSON (structured logging)
+- **Rotation:** 10MB maksimum, 5 yedek dosya
+
+#### `logs/api.log`
+- **Ne:** API istekleri ve yanıtları log dosyası
+- **Amaç:** API endpoint'lerinin istek ve yanıtlarının loglanması
+- **İçerik:** HTTP metodları, path'ler, status kodları, response time'lar
+- **Format:** JSON (structured logging)
+- **Rotation:** 10MB maksimum, 5 yedek dosya
+- **Not:** Şarj başlatma/bitirme istekleri güvenlik nedeniyle loglanmaz
+
+#### `logs/esp32.log`
+- **Ne:** ESP32 mesajları log dosyası
+- **Amaç:** ESP32 ile iletişim mesajlarının loglanması
+- **İçerik:** Komut gönderme (tx), status mesajları (rx), bağlantı/bağlantı kesme olayları
+- **Format:** JSON (structured logging)
+- **Rotation:** 10MB maksimum, 5 yedek dosya
 
 #### `logs/meter.log`
 - **Ne:** Enerji ölçüm log dosyası
 - **Amaç:** Meter okuma verilerinin loglanması
 - **İçerik:** Enerji ölçüm verileri
+- **Durum:** Henüz aktif değil (meter entegrasyonu devam ediyor)
 
 ---
 
