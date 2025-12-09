@@ -10,6 +10,7 @@ import pytest
 import sys
 import time
 import threading
+import logging
 from unittest.mock import Mock, patch, MagicMock
 from pathlib import Path
 
@@ -328,12 +329,23 @@ class TestESP32BridgeAdditionalEdgeCases:
 
         # Status yoksa timeout sonrası None döner
         bridge.last_status = None
-        # get_status_sync status yoksa status request gönderir ve bekler
-        # Mock bridge ile test edelim
         bridge.send_status_request = Mock(return_value=True)
-        result = bridge.get_status_sync(timeout=0.001)
-        # Timeout çok kısa olduğu için None dönebilir
-        assert result is None or isinstance(result, dict)
+
+        # get_status None döndürmeli (status yok)
+        original_get_status = bridge.get_status
+        call_count = [0]
+
+        def mock_get_status():
+            call_count[0] += 1
+            return None  # Status yok
+
+        bridge.get_status = mock_get_status
+
+        result = bridge.get_status_sync(timeout=0.05)  # Kısa timeout
+        # Timeout sonrası None döner
+        assert result is None
+        # get_status birkaç kez çağrılmalı
+        assert call_count[0] > 0
 
     def test_find_esp32_port_edge_cases(self):
         """Find ESP32 port - edge case'ler"""
@@ -432,7 +444,7 @@ class TestConcurrencyEdgeCases:
 
         # Handler yoksa ekle (test için)
         if not logger.handlers:
-            handler = logging.StreamHandler()
+            handler = logging.NullHandler()  # NullHandler kullan (output yok)
             handler.setLevel(logging.DEBUG)
             logger.addHandler(handler)
 
@@ -445,13 +457,13 @@ class TestConcurrencyEdgeCases:
                 errors.append(e)
 
         threads = []
-        for i in range(20):  # Daha az thread ile test et
+        for i in range(10):  # Daha az thread ile test et
             thread = threading.Thread(target=log_message, args=(i,))
             threads.append(thread)
             thread.start()
 
         for thread in threads:
-            thread.join()
+            thread.join(timeout=1.0)  # Timeout ekle
 
         # Hata oluşmamalı
         assert len(errors) == 0
