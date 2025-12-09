@@ -214,12 +214,27 @@ En yüksek öncelikli görevi seç ve çalışmaya başla.
 
 ---
 
+## ✅ Projeye Devam Etme
+
+**"projeye devam et" demeniz yeterlidir!**
+
+Agent otomatik olarak:
+1. ✅ Durum tespiti yapacak (`checkpoint.md`, `project_state.md`)
+2. ✅ Aktif görevleri kontrol edecek (`master_live.md`)
+3. ✅ Bekleyen görevleri seçecek (`master_next.md`)
+4. ✅ Sorunsuz bir şekilde devam edecek
+
+**Detaylı Rehber:** `todo/PROJECT_CONTINUATION_GUIDE.md`
+
+---
+
 ## 🆘 Yardım
 
 - **Durum:** `todo/project_state.md`
 - **Çalışma Akışı:** `todo/ai_workflow.md`
 - **Öneriler:** `todo/expert_recommendations.md`
 - **Proje Bilgileri:** `project_info_20251208_145614.md`
+- **Devam Etme Rehberi:** `todo/PROJECT_CONTINUATION_GUIDE.md` ⭐ YENİ
 
 ---
 

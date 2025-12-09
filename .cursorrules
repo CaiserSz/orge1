@@ -361,38 +361,94 @@ Sistemde birşey yapılması gerektiğinde erişilemez veya SSH gerekli gibi var
 
 **KRİTİK:** Kullanıcı "projeye devam et" veya benzeri bir komut verdiğinde, Agent şu adımları takip etmelidir:
 
-1. **İlk Adım - Durum Tespiti (ZORUNLU):**
-   - `/home/basar/charger/todo/START_HERE.md` dosyasını okumalıdır
-   - `/home/basar/charger/todo/checkpoint.md` dosyasını okumalıdır (nerede kaldık?)
-   - `/home/basar/charger/todo/project_state.md` dosyasını okumalıdır (detaylı durum)
-   - `/home/basar/charger/todo/master_live.md` dosyasını kontrol etmelidir (aktif görev var mı?)
-   - `/home/basar/charger/todo/master_next.md` dosyasını kontrol etmelidir (bekleyen görevler)
+### ✅ Sistem Durumu: HAZIR
 
-2. **İkinci Adım - Görev Seçimi:**
-   - Eğer aktif görev varsa (`master_live.md`), önce onu tamamlamalıdır
-   - Eğer aktif görev yoksa, `master_next.md`'den en yüksek öncelikli görevi seçmelidir
-   - Görevi `master_live.md`'ye taşımalıdır
-   - `project_state.md` dosyasını güncellemelidir
+**"projeye devam et" demeniz yeterlidir!** Agent otomatik olarak şu adımları izleyecektir:
 
-3. **Üçüncü Adım - Çalışma:**
-   - Seçilen görevi tamamlamalıdır
-   - `/home/basar/charger/todo/ai_workflow.md` dosyasındaki kurallara uymalıdır
-   - Proaktif çalışmalıdır (blokajları çözmeli, eksik testleri yazmalı, dokümantasyonu güncellemeli)
+### 1. İlk Adım - Durum Tespiti (ZORUNLU)
 
-4. **Dördüncü Adım - Tamamlama:**
-   - Görevi `master_done.md`'ye taşımalıdır
-   - `project_state.md` dosyasını güncellemelidir
-   - `checkpoint.md` dosyasını güncellemelidir
-   - Git commit ve push yapmalıdır
+Agent şu dosyaları **sırayla** okumalıdır:
 
-5. **Beşinci Adım - Devam:**
-   - Eğer daha fazla görev varsa ve zaman varsa, bir sonraki görevi seçip devam etmelidir
-   - Proaktif olarak eksiklikleri tespit edip tamamlamalıdır (test eksikliği, dokümantasyon eksikliği, code quality iyileştirmeleri)
+1. **`/home/basar/charger/todo/START_HERE.md`** ⭐ İLK OKUNACAK
+   - Hızlı başlangıç rehberi
+   - Kritik kurallar
+   - Okuma sırası
 
-**ÖNEMLİ NOTLAR:**
-- Agent projeye devam ettiğinde mutlaka `todo/START_HERE.md` dosyasını okumalıdır
-- Agent projenin ne olduğunu anlamak için `project_info_20251208_145614.md` dosyasını referans almalıdır
-- Agent gelinen noktadan daha ileri gitmek için `master_next.md` dosyasındaki görevleri takip etmelidir
-- Agent her zaman proaktif çalışmalıdır (eksiklikleri tespit edip tamamlamalı)
-- Agent görevleri tamamladıkça todo sistemini güncellemelidir
+2. **`/home/basar/charger/todo/checkpoint.md`** 📍 Nerede Kaldık?
+   - Son checkpoint bilgisi (CP-20251209-005)
+   - Son tamamlanan iş
+   - Sonraki yapılacaklar
+
+3. **`/home/basar/charger/todo/project_state.md`** 📊 Detaylı Durum
+   - Proje genel durumu (8.5/10)
+   - Tamamlanan işler
+   - Devam eden işler
+   - Bekleyen işler
+   - Blokajlar ve riskler
+
+4. **`/home/basar/charger/todo/master_live.md`** 🔄 Aktif Görevler
+   - Şu anda yapılan görevler
+   - Görev detayları
+   - İlerleme durumu
+
+5. **`/home/basar/charger/todo/master_next.md`** 📋 Bekleyen Görevler
+   - Öncelikli görevler (Öncelik 0-8)
+   - Bağımlılıklar
+   - Tahmini süreler
+
+### 2. İkinci Adım - Görev Seçimi
+
+**Mantık:**
+- ✅ Eğer aktif görev varsa (`master_live.md`), önce onu tamamlamalıdır
+- ✅ Eğer aktif görev yoksa, `master_next.md`'den en yüksek öncelikli görevi seçmelidir
+- ✅ Görevi `master_live.md`'ye taşımalıdır
+- ✅ `project_state.md` dosyasını güncellemelidir
+
+**Öncelik Sırası:**
+1. Öncelik 0 (Acil - Refactoring)
+2. Öncelik 1 (Yüksek - Event Detection)
+3. Öncelik 2 (Yüksek - Session Management)
+4. Öncelik 3-8 (Orta/Düşük)
+
+### 3. Üçüncü Adım - Çalışma
+
+**Kurallar:**
+- ✅ Seçilen görevi tamamlamalıdır
+- ✅ `/home/basar/charger/todo/ai_workflow.md` dosyasındaki kurallara uymalıdır
+- ✅ Proaktif çalışmalıdır (blokajları çözmeli, eksik testleri yazmalı, dokümantasyonu güncellemeli)
+- ✅ Tüm kritik kurallara uymalıdır:
+  - Test ve teyit zorunluluğu
+  - Browser test zorunluluğu
+  - External erişim test zorunluluğu
+  - Tespitlerin todo sistemine eklenmesi
+  - Yedekleme ve geri dönüş standartları
+  - Workspace yönetimi standartları
+
+### 4. Dördüncü Adım - Tamamlama
+
+**Checklist:**
+- ✅ Görevi `master_done.md`'ye taşımalıdır
+- ✅ `project_state.md` dosyasını güncellemelidir
+- ✅ `checkpoint.md` dosyasını güncellemelidir (yeni checkpoint oluştur)
+- ✅ Git commit ve push yapmalıdır
+- ✅ Standartlara uygunluğu kontrol etmelidir
+
+### 5. Beşinci Adım - Devam
+
+**Proaktif Çalışma:**
+- ✅ Eğer daha fazla görev varsa ve zaman varsa, bir sonraki görevi seçip devam etmelidir
+- ✅ Proaktif olarak eksiklikleri tespit edip tamamlamalıdır:
+  - Test eksikliği
+  - Dokümantasyon eksikliği
+  - Code quality iyileştirmeleri
+  - Standart ihlalleri
+
+### ÖNEMLİ NOTLAR
+
+- ✅ Agent projeye devam ettiğinde **mutlaka** `todo/START_HERE.md` dosyasını okumalıdır
+- ✅ Agent projenin ne olduğunu anlamak için `project_info_20251208_145614.md` dosyasını referans almalıdır
+- ✅ Agent gelinen noktadan daha ileri gitmek için `master_next.md` dosyasındaki görevleri takip etmelidir
+- ✅ Agent her zaman proaktif çalışmalıdır (eksiklikleri tespit edip tamamlamalı)
+- ✅ Agent görevleri tamamladıkça todo sistemini güncellemelidir
+- ✅ Detaylı rehber için `todo/PROJECT_CONTINUATION_GUIDE.md` dosyasına bakınız
 
