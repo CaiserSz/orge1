@@ -384,23 +384,15 @@
     - ✅ Selective loading (sadece gerekli event'ler)
   - Detaylar: `docs/DATABASE_DEEP_DIVE_ANALYSIS_20251210.md` dosyasına bakınız
 
-#### Öncelik 1: Database Şema Migration (TEXT → INTEGER)
-- [ ] **Görev:** Timestamp alanlarını INTEGER (Unix timestamp)'a çevir
-  - Açıklama: `start_time`, `end_time`, `created_at`, `updated_at` TEXT olarak saklanıyor
-  - Öncelik: 1 (Acil)
-  - Tahmini Süre: 2-3 saat
-  - Durum: 🔴 Kritik performans sorunu
-  - Sorunlar:
-    - String karşılaştırması (yavaş)
-    - Tarih aralığı sorguları zor
-    - Index kullanımı verimsiz
-    - Timezone sorunları
-  - Çözüm:
-    - TEXT → INTEGER migration
-    - Migration script yaz
-    - Rollback planı hazırla
+#### ✅ Database Şema Migration (TEXT → INTEGER) (Tamamlandı)
+- [x] **Görev:** Timestamp alanlarını INTEGER (Unix timestamp)'a çevir ✅ Tamamlandı
+  - Durum: ✅ Tamamlandı (2025-12-10 07:20:00)
+  - Sonuç:
+    - Timestamp kolonları INTEGER'a çevrildi
+    - Migration script eklendi (_migrate_timestamp_columns)
+    - Mevcut veriler migrate edildi
+    - Database şeması güncellendi
   - Detaylar: `docs/DATABASE_DEEP_DIVE_ANALYSIS_20251210.md` dosyasına bakınız
-  - Durum: 📋 Bekliyor
 
 #### ✅ Connection Management İyileştirmesi (Tamamlandı)
 - [x] **Görev:** Persistent connection + WAL mode ✅ Tamamlandı
@@ -494,24 +486,19 @@ Session Management modülü başarıyla implement edildi. Kod kalitesi yüksek, 
 
 ### 🔴 Kritik Eksik Metrikler
 
-#### Öncelik 0: Şarj Metrikleri Database Şeması
-- [ ] **Görev:** Database şemasına şarj metrikleri ekleme
-  - Açıklama: Süre, enerji, güç, akım, voltaj metrikleri database'de yok
-  - Öncelik: 0 (En Kritik)
-  - Tahmini Süre: 2-3 saat
-  - Durum: 🔴 Kritik eksiklik
-  - Eksik Metrikler:
-    - ❌ Süre metrikleri (duration_seconds, charging_duration_seconds)
-    - ❌ Enerji metrikleri (total_energy_kwh, start_energy_kwh, end_energy_kwh)
-    - ❌ Güç metrikleri (max_power_kw, avg_power_kw, min_power_kw)
-    - ❌ Akım metrikleri (max_current_a, avg_current_a, min_current_a, set_current_a)
-    - ❌ Voltaj metrikleri (max_voltage_v, avg_voltage_v, min_voltage_v)
-  - Çözüm:
-    - Database şemasına metrik kolonları ekle
-    - Migration script yaz
-    - Mevcut verileri migrate et
+#### ✅ Şarj Metrikleri Database Şeması (Tamamlandı)
+- [x] **Görev:** Database şemasına şarj metrikleri ekleme ✅ Tamamlandı
+  - Durum: ✅ Tamamlandı (2025-12-10 07:20:00)
+  - Sonuç:
+    - ✅ Süre metrikleri eklendi (duration_seconds, charging_duration_seconds, idle_duration_seconds)
+    - ✅ Enerji metrikleri eklendi (total_energy_kwh, start_energy_kwh, end_energy_kwh)
+    - ✅ Güç metrikleri eklendi (max_power_kw, avg_power_kw, min_power_kw)
+    - ✅ Akım metrikleri eklendi (max_current_a, avg_current_a, min_current_a, set_current_a)
+    - ✅ Voltaj metrikleri eklendi (max_voltage_v, avg_voltage_v, min_voltage_v)
+    - Migration script eklendi (_migrate_metrics_columns)
+    - Check constraints eklendi
+    - Composite index'ler eklendi
   - Detaylar: `docs/SESSION_CHARGING_METRICS_ANALYSIS_20251210.md` dosyasına bakınız
-  - Durum: 📋 Bekliyor
 
 #### ✅ Metrik Hesaplama Mantığı (Tamamlandı)
 - [x] **Görev:** Session metriklerini hesaplayan mantık ekleme ✅ Tamamlandı
@@ -524,24 +511,17 @@ Session Management modülü başarıyla implement edildi. Kod kalitesi yüksek, 
     - Metrikler database'e kaydediliyor
   - Detaylar: `docs/SESSION_CHARGING_METRICS_ANALYSIS_20251210.md` dosyasına bakınız
 
-#### Öncelik 2: SessionManager Metrik Entegrasyonu
-- [ ] **Görev:** SessionManager'a metrik entegrasyonu
-  - Açıklama: Event'lerden metrik çıkarma ve real-time güncelleme
-  - Öncelik: 2 (Yüksek)
-  - Tahmini Süre: 2-3 saat
-  - Durum: 🟡 Yüksek öncelik
-  - Gerekli Özellikler:
-    - Event'lerden current, voltage bilgilerini çıkar
-    - Real-time metrik güncelleme
-    - Session sonunda final metrik hesaplama
-    - Database'e metrik kaydetme
-  - ESP32 Status Bilgileri:
-    - `CABLE` - Cable current (A) - gerçek akım
-    - `CPV` - Control Pilot Voltage (V)
-    - `PPV` - Pilot Point Voltage (V)
-    - `MAX` - Maximum current (A)
+#### ✅ SessionManager Metrik Entegrasyonu (Tamamlandı)
+- [x] **Görev:** SessionManager'a metrik entegrasyonu ✅ Tamamlandı
+  - Durum: ✅ Tamamlandı (2025-12-10 07:30:00)
+  - Sonuç:
+    - ✅ SessionMetricsCalculator sınıfı oluşturuldu
+    - ✅ Event'lerden current, voltage bilgilerini çıkarma
+    - ✅ Real-time metrik güncelleme (_update_session_metrics)
+    - ✅ Session sonunda final metrik hesaplama (_calculate_final_metrics)
+    - ✅ Database'e metrik kaydetme
+    - ✅ Tüm metrikler hesaplanıyor ve kaydediliyor
   - Detaylar: `docs/SESSION_CHARGING_METRICS_ANALYSIS_20251210.md` dosyasına bakınız
-  - Durum: 📋 Bekliyor
 
 #### Öncelik 3: API Endpoint'leri
 - [ ] **Görev:** Metrik endpoint'leri ekleme
