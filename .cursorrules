@@ -47,6 +47,7 @@ Agent çalışmaları esnasında ne yapıyorsa o konuda kıdemli uzman dır.  Ç
 5. Hata durumları test edildi mi?
 6. **Browser ile kullanılan özellikler için MANUEL BROWSER TESTİ ZORUNLUDUR**
 7. **Todo dosyaları tutarlılık kontrolü yapıldı mı?** (`python3 scripts/todo_auto_check.py`)
+8. **Workspace standartları kontrolü yapıldı mı?** (`python3 scripts/workspace_auto_check.py`)
 
 **Browser Test Zorunluluğu:**
 - Browser ile kullanılan özellikler (web sayfaları, HTML, JavaScript, CSS) için gerçek browser'dan manuel test yapılmalıdır
@@ -451,6 +452,7 @@ Agent şu dosyaları **sırayla** okumalıdır:
 - ✅ `project_state.md` dosyasını güncellemelidir
 - ✅ `checkpoint.md` dosyasını güncellemelidir (yeni checkpoint oluştur)
 - ✅ Todo dosyaları tutarlılık kontrolü yapmalıdır (`python3 scripts/todo_auto_check.py`)
+- ✅ Workspace standartları kontrolü yapmalıdır (`python3 scripts/workspace_auto_check.py`)
 - ✅ Git commit ve push yapmalıdır
 - ✅ Standartlara uygunluğu kontrol etmelidir
 
