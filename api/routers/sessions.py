@@ -72,6 +72,60 @@ async def get_session(session_id: str):
         )
 
 
+@router.get("/{session_id}/metrics")
+async def get_session_metrics(session_id: str):
+    """
+    Belirli bir session'ın metriklerini döndür
+
+    Args:
+        session_id: Session UUID
+
+    Returns:
+        Session metrikleri dict'i
+    """
+    try:
+        session_manager = get_session_manager()
+        session = session_manager.get_session(session_id)
+
+        if not session:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Session bulunamadı: {session_id}",
+            )
+
+        # Metrikleri session dict'inden çıkar
+        metrics = {
+            "session_id": session_id,
+            "duration_seconds": session.get("duration_seconds"),
+            "charging_duration_seconds": session.get("charging_duration_seconds"),
+            "idle_duration_seconds": session.get("idle_duration_seconds"),
+            "total_energy_kwh": session.get("total_energy_kwh"),
+            "start_energy_kwh": session.get("start_energy_kwh"),
+            "end_energy_kwh": session.get("end_energy_kwh"),
+            "max_power_kw": session.get("max_power_kw"),
+            "avg_power_kw": session.get("avg_power_kw"),
+            "min_power_kw": session.get("min_power_kw"),
+            "max_current_a": session.get("max_current_a"),
+            "avg_current_a": session.get("avg_current_a"),
+            "min_current_a": session.get("min_current_a"),
+            "set_current_a": session.get("set_current_a"),
+            "max_voltage_v": session.get("max_voltage_v"),
+            "avg_voltage_v": session.get("avg_voltage_v"),
+            "min_voltage_v": session.get("min_voltage_v"),
+            "event_count": session.get("event_count"),
+        }
+
+        return {"success": True, "metrics": metrics}
+    except HTTPException:
+        raise
+    except Exception as e:
+        system_logger.error(f"Session metrics get error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Session metrikleri alınamadı: {str(e)}",
+        )
+
+
 @router.get("")
 async def get_sessions(
     limit: int = Query(
