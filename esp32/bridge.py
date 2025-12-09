@@ -6,16 +6,17 @@ Version: 1.0.0
 Description: ESP32 ile USB seri port üzerinden iletişim modülü
 """
 
+import json
+import os
+import re
+import sys
+import threading
+import time
+from datetime import datetime
+from typing import Any, Dict, Optional
+
 import serial
 import serial.tools.list_ports
-import json
-import re
-import time
-import threading
-from typing import Optional, Dict, Any
-from datetime import datetime
-import sys
-import os
 
 # Logging modülünü import et
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
