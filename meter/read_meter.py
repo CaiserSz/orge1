@@ -112,9 +112,11 @@ class ABBMeterReader:
                 timeout=self.timeout
             )
             
-            # RS485 için RTS kontrolü (MAX13487 için gerekli olabilir)
-            # self.serial_connection.rts = True  # TX modu
-            # self.serial_connection.dtr = False
+            # RS485 için RTS kontrolü (MAX13487 için kritik)
+            # MAX13487: RTS=HIGH -> TX modu (DE/RE aktif), RTS=LOW -> RX modu
+            # RTS sinyalinin veri paketleriyle senkronize olması kritik
+            # pyserial otomatik olarak TX sırasında RTS'i HIGH yapar
+            # Ancak Modbus RTU için manuel kontrol daha güvenilir
             
             time.sleep(0.1)  # Port'un hazır olması için bekle
             self.is_connected = True
@@ -312,9 +314,19 @@ class ABBMeterReader:
             self.serial_connection.reset_input_buffer()
             self.serial_connection.reset_output_buffer()
             
+            # RS485 TX moduna geç (RTS HIGH) - MAX13487 DE/RE aktif
+            self.serial_connection.rts = True
+            time.sleep(0.005)  # RTS stabilizasyonu için bekleme (5ms önerilir)
+            
             # Request gönder
             self.serial_connection.write(request)
             self.serial_connection.flush()
+            
+            # RS485 RX moduna geç (RTS LOW) - MAX13487 RX modu
+            # Tüm veri gönderildikten sonra RTS'i düşür
+            time.sleep(0.002)  # Son byte'ın gönderilmesi için bekleme
+            self.serial_connection.rts = False
+            time.sleep(0.005)  # RTS stabilizasyonu için bekleme (5ms önerilir)
             
             # Response bekle
             time.sleep(0.05)

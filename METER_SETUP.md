@@ -178,6 +178,64 @@ sudo minicom -D /dev/ttyAMA4 -b 9600
 
 ---
 
+## 🔍 Araştırma Bulguları (2025-12-09)
+
+### Önemli Tespitler
+
+1. **GPIO Pin Fonksiyonu:**
+   - GPIO12 ve GPIO13 pinlerinin **ALT3** fonksiyonunda olması gerekiyor
+   - Şu anki durum: Pinler "alt4" görünüyor ve "UNCLAIMED" durumunda
+   - Bu durum UART5'in tam olarak aktif olmadığını gösterebilir
+
+2. **RS485 Sonlandırma Dirençleri:**
+   - RS485 hattının her iki ucunda **120Ω** sonlandırma dirençleri kullanılmalı
+   - Bu dirençler sinyal yansımalarını önler ve daha kararlı iletişim sağlar
+   - Özellikle uzun mesafelerde kritik öneme sahip
+
+3. **MAX13487 DE/RE Kontrol Pinleri:**
+   - MAX13487 çevirici DE (Driver Enable) ve RE (Receiver Enable) pinleri var
+   - Bu pinler RTS sinyali ile kontrol edilmeli
+   - RTS=HIGH → TX modu (veri gönderme)
+   - RTS=LOW → RX modu (veri alma)
+   - RTS sinyalinin veri paketleriyle senkronize olması kritik
+
+4. **RTS Sinyali Senkronizasyonu:**
+   - Modbus RTU protokolünde RTS sinyalinin doğru zamanlaması çok önemli
+   - RTS HIGH → Veri gönder → RTS LOW → Veri bekle
+   - RTS geçişleri arasında kısa bekleme süreleri gerekebilir (1-5ms)
+
+5. **Topraklama ve Parazit:**
+   - RS485 iletişiminde cihazlar arasında ortak bir toprak hattı olmalı
+   - Topraklama eksikliği veya parazitler iletişim sorunlarına yol açabilir
+   - MAX13487 ve meter arasında GND bağlantısı kontrol edilmeli
+
+6. **ABB Meter B23 112-100:**
+   - Spesifik Modbus RTU dokümantasyonu bulunamadı
+   - Meter üzerindeki ayarlar veya dokümantasyon kontrol edilmeli
+   - Genellikle ABB meter'lar 9600 baudrate, EVEN parity kullanır
+   - Slave ID genellikle 1-247 aralığında (çoğunlukla 1)
+
+### Önerilen Çözümler
+
+1. **GPIO Pin Fonksiyonunu Düzelt:**
+   - Pinlerin ALT3 fonksiyonuna geçmesi için config.txt'yi kontrol et
+   - Alternatif olarak UART0 (GPIO14/15) kullanılabilir
+
+2. **RS485 Sonlandırma Dirençleri:**
+   - Hattın her iki ucuna 120Ω direnç ekle
+   - Özellikle meter ve MAX13487 arasında
+
+3. **RTS Kontrolünü İyileştir:**
+   - RTS geçişlerinde yeterli bekleme süreleri kullan
+   - Veri gönderme/alma arasında net ayrım yap
+
+4. **Alternatif Test:**
+   - Meter'i başka bir RS485 cihazla test et
+   - MAX13487'i başka bir UART ile test et
+   - Bu şekilde sorunun kaynağını izole edebiliriz
+
+---
+
 ## 🔧 Sorun Giderme
 
 ### Sorun 1: `/dev/ttyAMA4` görünmüyor
@@ -198,13 +256,30 @@ newgrp dialout
 ### Sorun 3: Veri okunamıyor
 
 **Kontrol Listesi:**
-- ✅ UART5 aktif mi? (`dtoverlay=uart5`)
-- ✅ Cihaz dosyası mevcut mu? (`/dev/ttyAMA4`)
-- ✅ RS485 bağlantıları doğru mu? (TX-RX çapraz kontrol)
-- ✅ Baudrate doğru mu? (9600 veya 19200)
-- ✅ Parity doğru mu? (EVEN)
-- ✅ Slave ID doğru mu? (meter yapılandırmasına göre)
-- ✅ Register adresleri doğru mu? (ABB meter dokümantasyonu)
+- ✅ UART5 aktif mi? (`dtoverlay=uart5`) → `/dev/ttyAMA5` mevcut
+- ✅ Cihaz dosyası mevcut mu? (`/dev/ttyAMA5`) → Mevcut
+- ✅ RS485 bağlantıları doğru mu? (TX-RX çapraz kontrol) → **TEST EDİLMELİ**
+- ✅ Baudrate doğru mu? (9600, 19200, 4800) → **TEST EDİLDİ, HİÇBİRİNDE ÇALIŞMADI**
+- ✅ Parity doğru mu? (EVEN) → **EVEN kullanılıyor, NO/NONE denemeli**
+- ✅ Slave ID doğru mu? (meter yapılandırmasına göre) → **1, 2, 3, 247 test edildi**
+- ✅ Register adresleri doğru mu? (ABB meter dokümantasyonu) → **0x0000 test edildi**
+- ✅ RTS kontrolü aktif mi? (MAX13487 için) → **Eklendi**
+- ✅ Meter açık ve çalışıyor mu? → **KONTROL EDİLMELİ**
+- ✅ MAX13487 çevirici doğru çalışıyor mu? → **KONTROL EDİLMELİ**
+
+**Test Sonuçları (2025-12-09):**
+- Tüm baudrate kombinasyonları test edildi: ❌ Response yok
+- Tüm slave ID kombinasyonları test edildi: ❌ Response yok
+- RTS kontrolü eklendi: ✅ Kod güncellendi
+- `/dev/ttyAMA5` aktif: ✅ Mevcut ve erişilebilir
+
+**Sonraki Adımlar:**
+1. Meter'in açık ve çalışır durumda olduğunu doğrula
+2. RS485 TX-RX bağlantılarını ters çevir ve tekrar test et
+3. Parity ayarını NO/NONE olarak değiştir ve test et
+4. MAX13487 çeviricinin doğru çalıştığını kontrol et (LED'ler, voltaj seviyeleri)
+5. GPIO12/13 pinlerinin fiziksel bağlantılarını kontrol et
+6. Meter dokümantasyonundan gerçek Modbus ayarlarını al
 
 ### Sorun 4: TX-RX Bağlantısı Belirsiz
 

@@ -1,8 +1,8 @@
 # Workspace Index - Proje Yapısı ve Dosya Açıklamaları
 
 **Oluşturulma Tarihi:** 2025-12-09 02:45:00  
-**Son Güncelleme:** 2025-12-09 02:45:00  
-**Version:** 1.0.0  
+**Son Güncelleme:** 2025-12-09 04:35:00  
+**Version:** 1.1.0  
 **Amaç:** Workspace'teki tüm dosya ve klasörlerin hızlı referansı ve açıklamaları
 
 ---
@@ -74,6 +74,19 @@
 - **Amaç:** WiFi sorunlarında hızlı referans ve çözüm adımları
 - **İçerik:** Sorun tespiti, çözüm adımları, NetworkManager komutları
 - **Ne Zaman:** WiFi sorunları yaşandığında oluşturuldu (2025-12-08)
+
+#### `METER_SETUP.md`
+- **Ne:** ABB Meter RS485 kurulum ve yapılandırma dokümantasyonu
+- **Amaç:** ABB Meter RS485 bağlantısı, Raspberry Pi yapılandırması ve sorun giderme rehberi
+- **İçerik:**
+  - Donanım bağlantıları (GPIO12/13, MAX13487, ABB Meter)
+  - Raspberry Pi UART5 yapılandırması
+  - Modbus RTU protokol bilgileri
+  - Test ve doğrulama adımları
+  - Sorun giderme rehberi
+  - Araştırma bulguları
+- **Ne Zaman:** 2025-12-09'da oluşturuldu ve güncellendi
+- **İlgili Dosyalar:** `meter/read_meter.py`, `meter/RESEARCH_NOTES.md`
 
 ### Yapılandırma Dosyaları
 
@@ -225,13 +238,46 @@
 
 ### `meter/` - Enerji Ölçüm Modülü
 
-**Amaç:** Enerji ölçüm cihazı entegrasyonu (gelecek geliştirme)
+**Amaç:** ABB Meter RS485 entegrasyonu ve Modbus RTU protokolü ile veri okuma
 
 #### `meter/read_meter.py`
-- **Ne:** Meter okuma modülü (placeholder)
-- **Amaç:** Enerji ölçüm cihazı entegrasyonu
-- **Durum:** Henüz implement edilmedi
-- **Planlanan:** Faz 4'te geliştirilecek
+- **Ne:** ABB Meter RS485 okuma modülü
+- **Amaç:** ABB B23 112-100 meter'dan RS485 üzerinden Modbus RTU protokolü ile veri okuma
+- **Durum:** ✅ Implement edildi (2025-12-09)
+- **İçerik:**
+  - ABBMeterReader sınıfı
+  - Modbus RTU protokol implementasyonu
+  - RS485 RTS kontrolü (MAX13487 için)
+  - CRC16 hesaplama
+  - Register okuma fonksiyonları
+- **Ne Zaman:** 2025-12-09'da oluşturuldu ve geliştirildi
+- **İlgili Dosyalar:** `METER_SETUP.md`, `meter/RESEARCH_NOTES.md`
+
+#### `meter/RESEARCH_NOTES.md`
+- **Ne:** Meter araştırma notları ve bulgular
+- **Amaç:** Web araştırması bulguları, sorun giderme notları ve çözüm önerileri
+- **İçerik:**
+  - GPIO pin fonksiyonu sorunları
+  - RS485 sonlandırma dirençleri
+  - MAX13487 DE/RE kontrol pinleri
+  - RTS sinyal senkronizasyonu
+  - Topraklama ve parazit kontrolü
+- **Ne Zaman:** 2025-12-09'da oluşturuldu
+- **İlgili Dosyalar:** `METER_SETUP.md`, `meter/read_meter.py`
+
+#### `meter/test_meter_scan.py`
+- **Ne:** Meter tarama ve test scripti
+- **Amaç:** Farklı baudrate ve slave ID kombinasyonlarını test etme
+- **İçerik:** Otomatik tarama scripti (9600, 19200, 4800 baudrate, slave ID 1-247)
+- **Ne Zaman:** 2025-12-09'da oluşturuldu
+- **Kullanım:** `python3 meter/test_meter_scan.py`
+
+#### `meter/test_parity.py`
+- **Ne:** Parity ayarları test scripti
+- **Amaç:** Farklı parity ayarlarını (EVEN, ODD, NONE) test etme
+- **İçerik:** Parity kombinasyonları test scripti
+- **Ne Zaman:** 2025-12-09'da oluşturuldu
+- **Kullanım:** `python3 meter/test_parity.py`
 
 ---
 
