@@ -95,6 +95,27 @@ En yüksek öncelikli görevi seç ve çalışmaya başla.
 
 ---
 
+## 🔴 KRİTİK KURAL: Test ve Teyit Zorunluluğu
+
+**ÖNEMLİ:** Agent, kullanıcıya teslim etmeden önce MUTLAKA test edip teyit etmelidir.
+
+- ❌ **Test edilmemiş veya teyit edilmemiş hiçbir şey kullanıcıya verilmemelidir**
+- ✅ Her implementasyon sonrası çalıştırılabilir testler yapılmalıdır
+- ✅ API endpoint'leri test edilmeli ve çalıştığı doğrulanmalıdır
+- ✅ Servis başlatma sonrası erişilebilirlik test edilmelidir
+- ✅ Hata durumlarında kullanıcıya bilgi verilmemeli, önce düzeltilmelidir
+
+**Test Adımları:**
+1. Kod çalıştırılabilir mi? (syntax, import hataları)
+2. Servis başlatılabiliyor mu?
+3. Endpoint'ler erişilebilir mi?
+4. Fonksiyonellik beklendiği gibi çalışıyor mu?
+5. Hata durumları test edildi mi?
+
+**Kural İhlali:** Kullanıcıya test edilmemiş bir şey verilirse, hemen test edip düzeltilmelidir.
+
+---
+
 ## 🆘 Yardım
 
 - **Durum:** `todo/project_state.md`
