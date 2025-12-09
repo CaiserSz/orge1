@@ -16,9 +16,9 @@ import logging
 # RS485/UART5 Konfigürasyonu
 # GPIO 12 (TX) -> MAX13487 Pin 4 (DI)
 # GPIO 13 (RX) <- MAX13487 Pin 1 (RO)
-# UART5 -> /dev/ttyAMA4 (dtoverlay=uart5 sonrası)
+# UART5 -> /dev/ttyAMA5 (dtoverlay=uart5 sonrası)
 
-UART5_DEVICE = "/dev/ttyAMA4"  # UART5 cihaz dosyası (dtoverlay=uart5 sonrası)
+UART5_DEVICE = "/dev/ttyAMA5"  # UART5 cihaz dosyası (dtoverlay=uart5 sonrası)
 DEFAULT_BAUDRATE = 9600  # ABB meter için tipik baudrate (model'e göre değişebilir)
 DEFAULT_SLAVE_ID = 1  # Modbus slave ID (meter'a göre ayarlanmalı)
 DEFAULT_TIMEOUT = 1.0  # Timeout (saniye)
@@ -76,7 +76,7 @@ class ABBMeterReader:
         ABB Meter Reader başlatıcı
         
         Args:
-            device: Serial port cihaz dosyası (örn: /dev/ttyAMA4)
+            device: Serial port cihaz dosyası (örn: /dev/ttyAMA5)
             baudrate: Baudrate (genellikle 9600 veya 19200)
             slave_id: Modbus slave ID (meter adresi)
             timeout: Timeout süresi (saniye)
