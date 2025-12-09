@@ -42,7 +42,14 @@ from api.logging_config import log_api_request, system_logger
 from api.session_manager import get_session_manager
 
 # Router'ları import et
-from api.routers import charge, current, station, status as status_router, test, sessions
+from api.routers import (
+    charge,
+    current,
+    station,
+    status as status_router,
+    test,
+    sessions,
+)
 from esp32.bridge import get_esp32_bridge
 
 # FastAPI uygulaması
