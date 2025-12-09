@@ -6,17 +6,9 @@
 
 ## Aktif Görevler
 
-### Öncelik 0: Events Normalization
-- **Görev:** Events JSON blob'u normalize et - `session_events` tablosu oluştur
-- **Öncelik:** 0 (En Kritik)
-- **Tahmini Süre:** 3-4 saat
-- **Durum:** 🔄 Devam Ediyor
-- **Başlangıç:** 2025-12-10 07:35:00
-- **Detaylar:**
-  - `session_events` tablosu oluşturma
-  - Events'i normalize etme
-  - Migration script yazma
-  - Backward compatibility sağlama
+_(Şu anda aktif görev yok)_
+
+**Not:** Events Normalization tamamlandı (2025-12-10 07:45:00). Yeni görev seçilebilir.
 
 ---
 

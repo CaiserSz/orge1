@@ -365,25 +365,24 @@
 
 ### 🔴 Kritik Database Sorunları (Acil Müdahale Gerekli)
 
-#### Öncelik 0: Events Normalization (En Kritik)
-- [ ] **Görev:** Events JSON blob'u normalize et - `session_events` tablosu oluştur
-  - Açıklama: Events JSON array olarak saklanıyor. Normalize edilmeli (ayrı tablo)
-  - Öncelik: 0 (En Kritik)
-  - Tahmini Süre: 3-4 saat
-  - Durum: 🔴 Kritik sorun
-  - Sorunlar:
-    - Event type'a göre filtreleme yapılamıyor
-    - Event bazlı analytics yapılamıyor
-    - Index yapılamıyor
-    - Update overhead (tüm events JSON güncelleniyor)
-    - Büyük session'larda JSON boyutu çok artıyor (1000 event = ~200 KB)
-  - Çözüm:
-    - `session_events` tablosu oluştur
-    - Events'i normalize et
-    - Migration script yaz
-    - Backward compatibility sağla
+#### ✅ Events Normalization (Tamamlandı)
+- [x] **Görev:** Events JSON blob'u normalize et - `session_events` tablosu oluştur ✅ Tamamlandı
+  - Durum: ✅ Tamamlandı (2025-12-10 07:45:00)
+  - Sonuç:
+    - `session_events` tablosu oluşturuldu
+    - Event'ler normalize edildi
+    - Index'ler eklendi (session_id, event_type, timestamp)
+    - Database.create_event() ve get_session_events() metodları eklendi
+    - SessionManager event'leri session_events tablosuna kaydediyor
+    - Backward compatibility sağlandı (events JSON'ı da korunuyor)
+    - Migration script eklendi
+  - Avantajlar:
+    - ✅ Event type'a göre filtreleme yapılabiliyor
+    - ✅ Event bazlı analytics yapılabiliyor
+    - ✅ Index'ler kullanılabiliyor
+    - ✅ Incremental update (tek event ekleme)
+    - ✅ Selective loading (sadece gerekli event'ler)
   - Detaylar: `docs/DATABASE_DEEP_DIVE_ANALYSIS_20251210.md` dosyasına bakınız
-  - Durum: 📋 Bekliyor
 
 #### Öncelik 1: Database Şema Migration (TEXT → INTEGER)
 - [ ] **Görev:** Timestamp alanlarını INTEGER (Unix timestamp)'a çevir
