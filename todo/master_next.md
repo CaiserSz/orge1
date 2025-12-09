@@ -202,14 +202,13 @@
   - Detaylar: `todo/REFACTORING_PLAN.md` dosyasına bakınız
   - Durum: 📋 Bekliyor
 
-- [ ] **Görev:** `api/main.py` router'lara bölme
-  - Açıklama: Maksimum sınır (600 satır) aşıldı (638 satır). Router'lara bölünmeli (charge, status, current, vb.)
+- [x] **Görev:** `api/main.py` router'lara bölme ✅ Tamamlandı
+  - Açıklama: Maksimum sınır (600 satır) aşıldı (638 satır). Router'lara bölündü (charge, status, current, vb.)
   - Öncelik: Acil (Öncelik 0)
   - Tahmini Süre: 3-4 saat
-  - Durum: 🔴 Maksimum sınır aşıldı
-  - Neden Önemli: Kod kalitesi ve bakım kolaylığı için kritik
+  - Durum: ✅ Tamamlandı (2025-12-10 02:40:00)
+  - Sonuç: api/main.py 638 satır -> 217 satır (maksimum 600 sınırının altında)
   - Detaylar: `todo/REFACTORING_PLAN.md` dosyasına bakınız
-  - Durum: 📋 Bekliyor (Acil)
 
 - [ ] **Görev:** `MULTI_EXPERT_ANALYSIS.md` bölümleme
   - Açıklama: Uyarı eşiği (1000 satır) aşıldı (1115 satır). Bölümlere ayırılabilir
