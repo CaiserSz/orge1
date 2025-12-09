@@ -138,6 +138,30 @@ En yüksek öncelikli görevi seç ve çalışmaya başla.
 
 ---
 
+## 🔴 KRİTİK KURAL: Tespitlerin Todo Sistemine Eklenmesi
+
+**ÖNEMLİ:** Çalışmalar esnasında tespit edilen, gözden geçirilmesi gereken veya kontrol edilmesi gereken durumlar MUTLAKA `todo/master_next.md` dosyasına eklenmelidir.
+
+**Kural:**
+- ❌ **Hiçbir tespit gözden kaçırılmamalı veya atlanmamalıdır**
+- ✅ Çalışma sırasında tespit edilen her şey `master_next.md`'ye eklenmelidir
+- ✅ Mevcut çalışma dışı tespitler de eklenmelidir
+- ✅ Refactoring ihtiyaçları, iyileştirme fırsatları, kontrol edilmesi gerekenler eklenmelidir
+- ✅ Görevler öncelik sırasına göre eklenmelidir
+
+**Ne Zaman Eklenmeli?**
+- ✅ Kod standartlarını aşan dosyalar tespit edildiğinde
+- ✅ Dokümantasyon standartlarını aşan dosyalar tespit edildiğinde
+- ✅ Refactoring ihtiyacı tespit edildiğinde
+- ✅ İyileştirme fırsatları tespit edildiğinde
+- ✅ Kontrol edilmesi gereken durumlar tespit edildiğinde
+- ✅ Audit raporlarından çıkan aksiyonlar
+- ✅ Code review sonrası tespitler
+
+**Detaylar:** Detaylı kurallar için `.cursorrules` dosyasına bakınız. Bu kural proaktif çalışma için kritiktir.
+
+---
+
 ## 🆘 Yardım
 
 - **Durum:** `todo/project_state.md`
