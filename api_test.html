@@ -48,6 +48,17 @@
             padding: 30px;
         }
 
+        @media (max-width: 768px) {
+            .status-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .status-item {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
         .endpoint-group {
             margin-bottom: 30px;
             border: 2px solid #e0e0e0;
@@ -406,12 +417,116 @@
         // Debounce timer for curl preview updates
         let curlPreviewTimeouts = {};
 
-        // Initialize curl previews on page load
+        // ESP32 Status Tracking
+        let lastStatusData = {};
+        let statusUpdateInterval = null;
+
+        // STATE açıklamaları
+        const STATE_MEANINGS = {
+            1: 'IDLE',
+            2: 'CABLE_DETECT',
+            3: 'EV_CONNECTED',
+            4: 'SARJA_HAZIR',
+            5: 'SARJ_BASLADI',
+            6: 'SARJ_DURAKLATILDI',
+            7: 'SARJ_BITIR',
+            8: 'FAULT_HARD'
+        };
+
+        // Initialize curl previews and status bar on page load
         document.addEventListener('DOMContentLoaded', async () => {
             cachedApiKey = await getApiKey();
             updateCurlPreview('POST', '/api/charge/start', 'body-/api/charge/start', 'curl-/api/charge/start');
             updateCurlPreview('POST', '/api/charge/stop', 'body-/api/charge/stop', 'curl-/api/charge/stop');
             updateCurlPreview('POST', '/api/maxcurrent', 'body-/api/maxcurrent', 'curl-/api/maxcurrent', true);
+            
+            // Start ESP32 status polling
+            startStatusPolling();
+        });
+
+        async function startStatusPolling() {
+            // İlk güncelleme
+            await updateESP32Status();
+            
+            // Her 3 saniyede bir güncelle (ESP32 5 saniyede bir gönderiyor)
+            statusUpdateInterval = setInterval(updateESP32Status, 3000);
+        }
+
+        async function updateESP32Status() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/status`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                if (data.success && data.data) {
+                    updateStatusBar(data.data);
+                    document.getElementById('statusDot').classList.remove('offline');
+                } else {
+                    throw new Error('Invalid response format');
+                }
+            } catch (error) {
+                console.error('Status update error:', error);
+                document.getElementById('statusDot').classList.add('offline');
+                document.getElementById('lastUpdate').textContent = 'Bağlantı hatası';
+            }
+        }
+
+        function updateStatusBar(data) {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('tr-TR');
+            
+            // Son güncelleme zamanı
+            document.getElementById('lastUpdate').textContent = `Son güncelleme: ${timeStr}`;
+            
+            // STATE güncelleme (renk değişimi ile)
+            updateStatusItem('stateValue', data.STATE, STATE_MEANINGS[data.STATE] || 'UNKNOWN', 'statusState', `status-state-${data.STATE}`);
+            
+            // Diğer değerler
+            updateStatusItem('cpValue', data.CP, data.CP);
+            updateStatusItem('ppValue', data.PP, data.PP);
+            updateStatusItem('rlValue', data.RL, data.RL);
+            updateStatusItem('lockValue', data.LOCK, data.LOCK);
+            updateStatusItem('maxValue', data.MAX, data.MAX);
+            updateStatusItem('authValue', data.AUTH, data.AUTH);
+        }
+
+        function updateStatusItem(elementId, newValue, displayValue, containerId = null, stateClass = null) {
+            const element = document.getElementById(elementId);
+            const container = containerId ? document.getElementById(containerId) : element.parentElement;
+            
+            if (!element) return;
+            
+            const oldValue = lastStatusData[elementId];
+            const hasChanged = oldValue !== undefined && oldValue !== newValue;
+            
+            // Değeri güncelle
+            element.textContent = displayValue;
+            lastStatusData[elementId] = newValue;
+            
+            // STATE için renk sınıfını güncelle
+            if (stateClass && container) {
+                // Eski state sınıflarını kaldır
+                container.className = container.className.replace(/status-state-\d+/g, '');
+                // Yeni state sınıfını ekle
+                container.classList.add('status-item', stateClass);
+            }
+            
+            // Değişiklik varsa highlight animasyonu
+            if (hasChanged && container) {
+                container.classList.add('changed');
+                setTimeout(() => {
+                    container.classList.remove('changed');
+                }, 600);
+            }
+        }
+
+        // Sayfa kapatılırken polling'i durdur
+        window.addEventListener('beforeunload', () => {
+            if (statusUpdateInterval) {
+                clearInterval(statusUpdateInterval);
+            }
         });
 
         function updateCurlPreviewDebounced(method, path, bodyElementId, curlElementId, isNumber = false) {
