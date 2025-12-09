@@ -143,7 +143,7 @@ Sistemde birşey yapılması gerektiğinde erişilemez veya SSH gerekli gibi var
 3. ✅ Gerekirse refactor yap
 
 #### Detaylı Standartlar
-- Detaylı standartlar için `CODE_DOCUMENTATION_STANDARDS.md` dosyasına bakınız
+- Detaylı standartlar için `docs/standards/CODE_DOCUMENTATION_STANDARDS.md` dosyasına bakınız
 - Bu dosya proje boyunca referans olarak kullanılacaktır
 
 ## KRİTİK KURAL: Tespitlerin Todo Sistemine Eklenmesi
@@ -274,7 +274,7 @@ Sistemde birşey yapılması gerektiğinde erişilemez veya SSH gerekli gibi var
 - ✅ `project_info_20251208_145614.md` güncelle
 
 ### Detaylı Standartlar
-- Detaylı standartlar için `BACKUP_ROLLBACK_STANDARDS.md` dosyasına bakınız
+- Detaylı standartlar için `docs/standards/BACKUP_ROLLBACK_STANDARDS.md` dosyasına bakınız
 - Bu dosya proje boyunca referans olarak kullanılacaktır
 
 ## KRİTİK KURAL: Workspace Yönetimi Standartları
@@ -341,7 +341,7 @@ Sistemde birşey yapılması gerektiğinde erişilemez veya SSH gerekli gibi var
 #### Her Commit Öncesi
 - ✅ Geçici dosyalar temizlendi mi?
 - ✅ Yedek dosyalar temizlendi mi?
-- ✅ `WORKSPACE_INDEX.md` güncellendi mi?
+- ✅ `docs/workspace_index.md` güncellendi mi?
 
 #### Haftalık Kontrol
 - ✅ Workspace metrikleri kontrol et
@@ -351,10 +351,10 @@ Sistemde birşey yapılması gerektiğinde erişilemez veya SSH gerekli gibi var
 #### Aylık Kontrol
 - ✅ Arşivleme ihtiyacı değerlendir
 - ✅ Eski dosyaları arşivle
-- ✅ `WORKSPACE_INDEX.md` güncelle
+- ✅ `docs/workspace_index.md` güncelle
 
 ### Detaylı Standartlar
-- Detaylı standartlar için `WORKSPACE_MANAGEMENT_STANDARDS.md` dosyasına bakınız
+- Detaylı standartlar için `docs/standards/WORKSPACE_MANAGEMENT_STANDARDS.md` dosyasına bakınız
 - Bu dosya proje boyunca referans olarak kullanılacaktır
 
 ## Otonom Proje Yönetimi ve Devam Etme Kuralları
