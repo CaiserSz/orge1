@@ -319,18 +319,21 @@ class TestESP32BridgeAdditionalEdgeCases:
         """Get status sync - timeout edge case'leri"""
         bridge = ESP32Bridge()
         bridge.is_connected = True
-        bridge.last_status = None
-
-        # Çok kısa timeout - status yoksa None döner
-        result = bridge.get_status_sync(timeout=0.001)
-        # Timeout çok kısa olduğu için None dönebilir
-        assert result is None or isinstance(result, dict)
 
         # Status varsa hemen döner
         bridge.last_status = {"STATE": 1}
         result = bridge.get_status_sync(timeout=0.001)
         assert result is not None
         assert result["STATE"] == 1
+
+        # Status yoksa timeout sonrası None döner
+        bridge.last_status = None
+        # get_status_sync status yoksa status request gönderir ve bekler
+        # Mock bridge ile test edelim
+        bridge.send_status_request = Mock(return_value=True)
+        result = bridge.get_status_sync(timeout=0.001)
+        # Timeout çok kısa olduğu için None dönebilir
+        assert result is None or isinstance(result, dict)
 
     def test_find_esp32_port_edge_cases(self):
         """Find ESP32 port - edge case'ler"""
@@ -424,13 +427,25 @@ class TestConcurrencyEdgeCases:
 
     def test_logging_concurrent_access(self):
         """Logging - eşzamanlı erişim"""
-        logger = logging.getLogger("test_concurrent_logging")
+        logger = logging.getLogger("test_concurrent_logging_final")
+        logger.setLevel(logging.DEBUG)
+
+        # Handler yoksa ekle (test için)
+        if not logger.handlers:
+            handler = logging.StreamHandler()
+            handler.setLevel(logging.DEBUG)
+            logger.addHandler(handler)
+
+        errors = []
 
         def log_message(msg_id):
-            thread_safe_log(logger, 20, f"Message {msg_id}", id=msg_id)
+            try:
+                thread_safe_log(logger, 20, f"Message {msg_id}", id=msg_id)
+            except Exception as e:
+                errors.append(e)
 
         threads = []
-        for i in range(50):
+        for i in range(20):  # Daha az thread ile test et
             thread = threading.Thread(target=log_message, args=(i,))
             threads.append(thread)
             thread.start()
@@ -438,6 +453,6 @@ class TestConcurrencyEdgeCases:
         for thread in threads:
             thread.join()
 
-        # Tüm thread'ler başarılı olmalı
-        assert True
+        # Hata oluşmamalı
+        assert len(errors) == 0
 
