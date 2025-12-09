@@ -1,15 +1,15 @@
 # WiFi Bağlantı Sorunları ve Çözümleri
 
-**Oluşturulma Tarihi:** 2025-12-08 19:10:00  
-**Son Güncelleme:** 2025-12-08 19:10:00  
+**Oluşturulma Tarihi:** 2025-12-08 19:10:00
+**Son Güncelleme:** 2025-12-08 19:10:00
 **Version:** 1.0.0
 
 ---
 
 ## Sorun Özeti
 
-**Tarih:** 2025-12-08  
-**Durum:** WiFi bağlantısı kurulamıyordu, yaklaşık 2 saat sorun yaşandı  
+**Tarih:** 2025-12-08
+**Durum:** WiFi bağlantısı kurulamıyordu, yaklaşık 2 saat sorun yaşandı
 **Çözüm:** NetworkManager ile WiFi bağlantısı manuel olarak kuruldu
 
 ---
@@ -71,10 +71,10 @@ ip addr show wlan0
 
 ## Başarılı Bağlantı Bilgileri
 
-**WiFi Ağı:** ORGE_ARGE  
-**IP Adresi:** 10.248.244.15/24  
-**Gateway:** 10.248.244.237  
-**DNS:** 10.248.244.237  
+**WiFi Ağı:** ORGE_ARGE
+**IP Adresi:** 10.248.244.15/24
+**Gateway:** 10.248.244.237
+**DNS:** 10.248.244.237
 **Durum:** ✅ Bağlı
 
 ---

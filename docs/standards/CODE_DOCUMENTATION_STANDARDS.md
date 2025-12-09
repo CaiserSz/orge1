@@ -1,8 +1,8 @@
 # Kod ve Dokümantasyon Standartları
 
-**Oluşturulma Tarihi:** 2025-12-09 22:00:00  
-**Son Güncelleme:** 2025-12-09 22:00:00  
-**Version:** 1.0.0  
+**Oluşturulma Tarihi:** 2025-12-09 22:00:00
+**Son Güncelleme:** 2025-12-09 22:00:00
+**Version:** 1.0.0
 **Durum:** ✅ Aktif
 
 ---

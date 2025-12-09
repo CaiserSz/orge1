@@ -1,7 +1,7 @@
 # Git ve GitHub İyileştirme Planı - 2025-12-09
 
-**Tarih:** 2025-12-09 18:45:00  
-**Uzman:** Kıdemli DevOps/Git Expert  
+**Tarih:** 2025-12-09 18:45:00
+**Uzman:** Kıdemli DevOps/Git Expert
 **Amaç:** Projeyi daha sağlıklı yürütmek, yönetmek ve riskleri minimize etmek
 
 ---
@@ -58,7 +58,7 @@
 - Scope: api, esp32, meter, tests, docs
 
 #### 1.2 Git Hooks
-- **pre-commit hook:** 
+- **pre-commit hook:**
   - Python syntax check
   - Import sıralama kontrolü
   - Trailing whitespace kontrolü
@@ -191,6 +191,6 @@
 
 ---
 
-**Rapor Tarihi:** 2025-12-09 18:45:00  
+**Rapor Tarihi:** 2025-12-09 18:45:00
 **Uygulama Durumu:** Başlatılıyor
 

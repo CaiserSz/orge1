@@ -1,0 +1,40 @@
+# Systemd Service Dosyası - Charger API
+# Oluşturulma Tarihi: 2025-12-10 01:15:00
+# Son Güncelleme: 2025-12-10 01:15:00
+# Version: 1.0.0
+# Açıklama: FastAPI servisi için systemd service dosyası
+
+[Unit]
+Description=Charger API Service (FastAPI)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=basar
+Group=basar
+WorkingDirectory=/home/basar/charger
+Environment="PATH=/home/basar/charger/env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStart=/home/basar/charger/env/bin/uvicorn api.main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=charger-api
+
+# Graceful shutdown
+TimeoutStopSec=30
+KillMode=mixed
+KillSignal=SIGTERM
+
+# Resource limits (opsiyonel)
+# MemoryMax=500M
+# CPUQuota=50%
+
+# Health check (opsiyonel - systemd 244+)
+# ExecStartPost=/bin/sleep 5
+# ExecStartPost=/usr/bin/curl -f http://localhost:8000/api/health || exit 1
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,8 +1,8 @@
 # Workspace Yönetimi Standartları
 
-**Oluşturulma Tarihi:** 2025-12-09 22:45:00  
-**Son Güncelleme:** 2025-12-09 22:45:00  
-**Version:** 1.0.0  
+**Oluşturulma Tarihi:** 2025-12-09 22:45:00
+**Son Güncelleme:** 2025-12-09 22:45:00
+**Version:** 1.0.0
 **Durum:** ✅ Aktif
 
 ---

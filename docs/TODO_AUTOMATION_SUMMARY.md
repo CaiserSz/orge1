@@ -1,6 +1,6 @@
 # Todo Otomasyon Sistemi - Özet
 
-**Tarih:** 2025-12-10 02:25:00  
+**Tarih:** 2025-12-10 02:25:00
 **Durum:** ✅ Tamamlandı
 
 ---

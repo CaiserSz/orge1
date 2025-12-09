@@ -1,7 +1,7 @@
 # API Kullanım Örnekleri - Curl Komutları
 
-**Oluşturulma Tarihi:** 2025-12-08 18:15:00  
-**Son Güncelleme:** 2025-12-09 17:30:00  
+**Oluşturulma Tarihi:** 2025-12-08 18:15:00
+**Son Güncelleme:** 2025-12-09 17:30:00
 **Version:** 1.1.0
 
 ---
@@ -34,7 +34,7 @@ curl -X POST http://localhost:8000/api/charge/start \
 
 ## 🌐 Base URL
 
-**Dışarıdan Erişim:** `https://lixhium.ngrok.app`  
+**Dışarıdan Erişim:** `https://lixhium.ngrok.app`
 **Local Erişim:** `http://localhost:8000`
 
 ---

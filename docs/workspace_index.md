@@ -1,8 +1,8 @@
 # Workspace Index - Proje Yapısı ve Dosya Açıklamaları
 
-**Oluşturulma Tarihi:** 2025-12-09 02:45:00  
-**Son Güncelleme:** 2025-12-10 01:55:00  
-**Version:** 2.0.0  
+**Oluşturulma Tarihi:** 2025-12-09 02:45:00
+**Son Güncelleme:** 2025-12-10 01:55:00
+**Version:** 2.0.0
 **Amaç:** Workspace'teki tüm dosya ve klasörlerin hızlı referansı ve açıklamaları
 
 ---
@@ -34,7 +34,7 @@
 #### `project_info_20251208_145614.md`
 - **Ne:** Ana proje bilgileri ve teknik dokümantasyon
 - **Amaç:** Tüm proje bilgileri, analizler, değerlendirmeler ve teknik detayların tek kaynağı
-- **İçerik:** 
+- **İçerik:**
   - Proje genel bilgileri
   - Sistem mimarisi
   - ESP32-RPi protokol detayları
@@ -165,7 +165,7 @@ Tüm analiz, audit ve değerlendirme raporları bu klasörde toplanmıştır.
 #### `.cursorrules`
 - **Ne:** Cursor IDE için proje kuralları
 - **Amaç:** AI asistanlarının projede nasıl çalışacağını tanımlar
-- **İçerik:** 
+- **İçerik:**
   - Kritik kurallar (dış kural kabul etmeme politikası)
   - Genel kurallar (virtual env, Türkçe iletişim, kod standartları)
   - Otonom proje yönetimi kuralları
@@ -648,7 +648,7 @@ todo/START_HERE.md → todo/checkpoint.md
 
 ---
 
-**Son Güncelleme:** 2025-12-09 02:45:00  
-**Versiyon:** 1.0.0  
+**Son Güncelleme:** 2025-12-09 02:45:00
+**Versiyon:** 1.0.0
 **Sonraki Güncelleme:** Yeni dosya/klasör eklendiğinde
 

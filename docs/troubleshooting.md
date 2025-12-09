@@ -1,7 +1,7 @@
 # Sorun Giderme - AC Charger
 
-**Oluşturulma Tarihi:** 2025-12-09 22:40:00  
-**Son Güncelleme:** 2025-12-09 22:40:00  
+**Oluşturulma Tarihi:** 2025-12-09 22:40:00
+**Son Güncelleme:** 2025-12-09 22:40:00
 **Version:** 1.0.0
 
 ---

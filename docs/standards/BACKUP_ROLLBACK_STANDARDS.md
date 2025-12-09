@@ -1,8 +1,8 @@
 # Yedekleme ve Geri Dönüş Standartları
 
-**Oluşturulma Tarihi:** 2025-12-09 22:30:00  
-**Son Güncelleme:** 2025-12-09 22:30:00  
-**Version:** 1.0.0  
+**Oluşturulma Tarihi:** 2025-12-09 22:30:00
+**Son Güncelleme:** 2025-12-09 22:30:00
+**Version:** 1.0.0
 **Durum:** ✅ Aktif
 
 ---

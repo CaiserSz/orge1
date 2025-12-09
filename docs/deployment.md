@@ -1,7 +1,7 @@
 # Deployment Kılavuzu - AC Charger
 
-**Oluşturulma Tarihi:** 2025-12-09 22:40:00  
-**Son Güncelleme:** 2025-12-09 22:40:00  
+**Oluşturulma Tarihi:** 2025-12-09 22:40:00
+**Son Güncelleme:** 2025-12-09 22:40:00
 **Version:** 1.0.0
 
 ---
@@ -69,7 +69,7 @@ sudo journalctl -u ngrok -f
 **1. API ve Web Erişimi:**
 - **URL:** `https://lixhium.ngrok.app`
 - **Hedef:** RPi'deki port 8000
-- **Kullanım:** 
+- **Kullanım:**
   - REST API endpoint'leri
   - Web arayüzü
   - HTTP/HTTPS servisleri
@@ -77,7 +77,7 @@ sudo journalctl -u ngrok -f
 **2. CSMS (OCPP) WebSocket Bağlantısı:**
 - **WebSocket URL:** `wss://lixhium.ngrok.app` (HTTP tunnel üzerinden WebSocket upgrade)
 - **Hedef:** RPi'deki port 8000 (OCPP WebSocket servisi)
-- **Kullanım:** 
+- **Kullanım:**
   - OCPP 1.6J WebSocket bağlantıları
   - OCPP 2.0.1 WebSocket bağlantıları
   - CSMS (Central System Management System) ile haberleşme

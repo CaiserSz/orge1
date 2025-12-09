@@ -1,7 +1,7 @@
 # ABB Meter RS485 Kurulumu ve Yapılandırması
 
-**Oluşturulma Tarihi:** 2025-12-09 02:50:00  
-**Son Güncelleme:** 2025-12-09 02:50:00  
+**Oluşturulma Tarihi:** 2025-12-09 02:50:00
+**Son Güncelleme:** 2025-12-09 02:50:00
 **Version:** 1.0.0
 
 ---
@@ -90,7 +90,7 @@ newgrp dialout
 
 ### ABB Meter Model Bilgileri
 
-**Model:** ABB B23 112-100  
+**Model:** ABB B23 112-100
 **Özellikler:**
 - **Voltaj:** 3x220/380V veya 3x240/415V
 - **Akım Aralığı:** 0.25-5(65)A
@@ -111,7 +111,7 @@ newgrp dialout
 
 ### Register Adresleri
 
-**ÖNEMLİ:** Gerçek register adresleri ABB meter modeline ve dokümantasyonuna göre değişir. 
+**ÖNEMLİ:** Gerçek register adresleri ABB meter modeline ve dokümantasyonuna göre değişir.
 `meter/read_meter.py` dosyasındaki `ABB_REGISTERS` dictionary'si örnek değerler içerir.
 
 **Örnek Register Adresleri (ABB meter'a göre güncellenmeli):**
@@ -314,7 +314,7 @@ if reader.connect():
         print(f"Akım L1: {data['current_l1']}A")
         print(f"Aktif Güç: {data['power_active_w']}W")
         print(f"Aktif Enerji: {data['energy_active_kwh']}kWh")
-    
+
     # Bağlantıyı kapat
     reader.disconnect()
 ```
@@ -357,6 +357,6 @@ async def get_meter_status():
 
 ---
 
-**Son Güncelleme:** 2025-12-09 02:50:00  
+**Son Güncelleme:** 2025-12-09 02:50:00
 **Sonraki Adım:** Meter dokümantasyonundan gerçek register adreslerini al ve `meter/read_meter.py` dosyasını güncelle
 
