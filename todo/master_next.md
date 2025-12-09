@@ -221,17 +221,24 @@
   - Durum: 📋 Bekliyor
 
 ### 📋 Test Coverage Artırma (Yüksek Öncelik - Öncelik 5)
-- [ ] **Görev:** Test coverage artırma
+- [x] **Görev:** Test coverage artırma
   - Açıklama: Eksik test senaryolarını tamamlama, edge case testleri, integration testleri genişletme
   - Öncelik: Yüksek
   - Tahmini Süre: 1-2 gün
-  - Mevcut Coverage: ~70%
+  - Mevcut Coverage: %84
   - Hedef Coverage: %85+
+  - Tamamlanan:
+    - API edge case testleri eklendi (test_api_edge_cases.py)
+    - Station info modülü için testler eklendi (test_station_info.py)
+    - Event detector edge case testleri eklendi (test_event_detector_edge_cases.py)
+    - Logging config testleri eklendi (test_logging_config.py)
+    - ESP32 bridge edge case testleri eklendi (test_esp32_bridge_edge_cases.py)
+    - Toplam 99 test geçiyor
   - İyileştirme Fırsatları:
     - Property-based testing (Hypothesis)
     - Performance testing (locust veya pytest-benchmark)
     - Load testing (API endpoint'leri için)
-  - Durum: 📋 Bekliyor
+  - Durum: ✅ Tamamlandı (%84 - %85+ hedefine yakın)
 
 ### 📋 Code Quality Tools Kurulumu (Orta Öncelik - Öncelik 6)
 - [ ] **Görev:** Code quality tools kurulumu

@@ -21,17 +21,21 @@ logger = logging.getLogger(__name__)
 
 def ensure_data_dir():
     """Veri dizinini oluştur"""
-    DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
+    except Exception as e:
+        logger.error(f"Data directory oluşturma hatası: {e}", exc_info=True)
+        raise
 
 
 def save_station_info(station_data: Dict) -> bool:
     """İstasyon bilgilerini kaydet"""
-    ensure_data_dir()
     try:
+        ensure_data_dir()
         station_data['updated_at'] = datetime.now().isoformat()
         if 'created_at' not in station_data:
             station_data['created_at'] = datetime.now().isoformat()
-        
+
         with open(DATA_FILE, 'w', encoding='utf-8') as f:
             json.dump(station_data, f, indent=2, ensure_ascii=False)
         logger.info(f"Station info kaydedildi: {DATA_FILE}")
@@ -46,7 +50,7 @@ def get_station_info() -> Optional[Dict]:
     ensure_data_dir()
     if not DATA_FILE.exists():
         return None
-    
+
     try:
         with open(DATA_FILE, 'r', encoding='utf-8') as f:
             data = json.load(f)
