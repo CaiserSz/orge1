@@ -19,26 +19,55 @@
             position: relative;
         }
 
-        /* Üst sol köşe logo */
+        /* Üst sol köşe logo - UX optimized */
         .top-left-logo {
             position: fixed;
-            top: 10px;
-            left: 10px;
+            top: 15px;
+            left: 15px;
             z-index: 2000;
-            width: 60px;
+            width: 120px;
             height: auto;
-            opacity: 0.9;
-            transition: opacity 0.3s ease;
+            opacity: 0.95;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 8px 12px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
         .top-left-logo:hover {
             opacity: 1;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
         }
 
         .top-left-logo img {
             width: 100%;
             height: auto;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+            display: block;
+        }
+
+        /* Mobil görünümde logo boyutu küçült */
+        @media (max-width: 768px) {
+            .top-left-logo {
+                width: 80px;
+                top: 10px;
+                left: 10px;
+                padding: 6px 8px;
+            }
+        }
+
+        /* Çok küçük ekranlarda logo'yu header'a taşı */
+        @media (max-width: 480px) {
+            .top-left-logo {
+                position: relative;
+                top: 0;
+                left: 0;
+                width: 100px;
+                margin: 0 auto 10px;
+                display: block;
+            }
         }
 
         .container {
@@ -63,6 +92,7 @@
             justify-content: center;
             gap: 15px;
             margin-bottom: 10px;
+            position: relative;
         }
 
         .header-logo {
@@ -70,6 +100,11 @@
             width: auto;
             object-fit: contain;
             background: transparent;
+        }
+
+        /* Header içindeki logo'yu küçült (üst sol köşe logo varsa) */
+        .header-logo {
+            opacity: 0.8;
         }
 
         .header h1 {
