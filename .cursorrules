@@ -60,6 +60,14 @@ Agent çalışmaları esnasında ne yapıyorsa o konuda kıdemli uzman dır.  Ç
 - External erişim test edilmeden görev tamamlanmış sayılamaz
 - Test sonuçları (URL, response, status code) dokümante edilmelidir
 
+**Sayfa İçerik ve Fonksiyon Test Zorunluluğu:**
+- Browser ile kullanılan sayfalar için sadece erişim testi yeterli değildir
+- Sayfa içeriği görsel olarak kontrol edilmelidir
+- Tüm butonlar test edilmeli ve aksiyonları çalıştırılmalıdır
+- Buton aksiyonlarının sonuçları görüntülenmeli ve teyit edilmelidir
+- API çağrıları yapılmalı, request/response body'leri kontrol edilmelidir
+- Sayfa fonksiyonları ve değişim sonuçları test edilmeden görev tamamlanmış sayılamaz
+
 **Kural İhlali Durumunda:**
 - Kullanıcıya test edilmemiş bir şey verilirse, hemen test edip düzeltilmelidir
 - Test sonuçları kullanıcıya açıkça bildirilmelidir
