@@ -16,6 +16,29 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
+            position: relative;
+        }
+
+        /* Üst sol köşe logo */
+        .top-left-logo {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 2000;
+            width: 60px;
+            height: auto;
+            opacity: 0.9;
+            transition: opacity 0.3s ease;
+        }
+
+        .top-left-logo:hover {
+            opacity: 1;
+        }
+
+        .top-left-logo img {
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
         }
 
         .container {
@@ -436,6 +459,11 @@
     </style>
 </head>
 <body>
+    <!-- Üst sol köşe logo -->
+    <div class="top-left-logo">
+        <img src="/static/logo/Orge-RAL6037-Logo.svg" alt="ORGE Logo">
+    </div>
+    
     <div class="container">
         <div class="header">
             <div class="header-content">
