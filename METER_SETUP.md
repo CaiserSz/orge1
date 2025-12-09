@@ -80,14 +80,26 @@ newgrp dialout
 
 ## 📡 Modbus RTU Protokol Bilgileri
 
+### ABB Meter Model Bilgileri
+
+**Model:** ABB B23 112-100  
+**Özellikler:**
+- **Voltaj:** 3x220/380V veya 3x240/415V
+- **Akım Aralığı:** 0.25-5(65)A
+- **Frekans:** 50 or 60 Hz
+- **Doğruluk Sınıfı:** kWh Cl. B (1)
+- **Impulse Rate:** 1000 imp/kW
+
+**NOT:** Register adresleri ve protokol detayları AC istasyonu açıldığında meter dokümantasyonundan alınacak.
+
 ### ABB Meter Ayarları
 
 **Genel Modbus RTU Ayarları:**
-- **Baudrate:** 9600 veya 19200 (meter modeline göre)
+- **Baudrate:** 9600 veya 19200 (meter modeline göre - AC istasyonu açıldığında kontrol edilecek)
 - **Parity:** EVEN (çoğu ABB meter)
 - **Data Bits:** 8
 - **Stop Bits:** 1
-- **Slave ID:** 1 (meter yapılandırmasına göre değişebilir)
+- **Slave ID:** 1 (meter yapılandırmasına göre değişebilir - AC istasyonu açıldığında kontrol edilecek)
 
 ### Register Adresleri
 

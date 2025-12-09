@@ -29,21 +29,36 @@ MODBUS_READ_INPUT_REGISTERS = 0x04
 MODBUS_READ_COILS = 0x01
 MODBUS_READ_DISCRETE_INPUTS = 0x02
 
+# ABB Meter Register Adresleri
+# Model: ABB B23 112-100
+# NOT: Gerçek register adresleri meter dokümantasyonundan alınmalı
+# Şu anki değerler örnek/placeholder - AC istasyonu açıldığında güncellenecek
+
+ABB_METER_MODEL = "ABB B23 112-100"
+ABB_METER_SPECS = {
+    "voltage": "3x220/380V veya 3x240/415V",
+    "current_range": "0.25-5(65)A",
+    "frequency": "50 or 60 Hz",
+    "accuracy_class": "kWh Cl. B (1)",
+    "impulse_rate": "1000 imp/kW"
+}
+
 # ABB Meter Register Adresleri (örnek - gerçek adresler meter modeline göre değişir)
 # Bu adresler ABB meter dokümantasyonundan alınmalı
+# AC istasyonu açıldığında meter dokümantasyonu kontrol edilecek
 ABB_REGISTERS = {
-    "voltage_l1": 0x0000,  # L1 voltajı (V)
-    "voltage_l2": 0x0001,  # L2 voltajı (V)
-    "voltage_l3": 0x0002,  # L3 voltajı (V)
-    "current_l1": 0x0003,  # L1 akımı (A)
-    "current_l2": 0x0004,  # L2 akımı (A)
-    "current_l3": 0x0005,  # L3 akımı (A)
-    "power_active": 0x0006,  # Aktif güç (W)
-    "power_reactive": 0x0007,  # Reaktif güç (VAR)
-    "power_apparent": 0x0008,  # Görünür güç (VA)
-    "energy_active": 0x0009,  # Aktif enerji (kWh)
-    "energy_reactive": 0x000A,  # Reaktif enerji (kVARh)
-    "frequency": 0x000B,  # Frekans (Hz)
+    "voltage_l1": 0x0000,  # L1 voltajı (V) - ÖRNEK
+    "voltage_l2": 0x0001,  # L2 voltajı (V) - ÖRNEK
+    "voltage_l3": 0x0002,  # L3 voltajı (V) - ÖRNEK
+    "current_l1": 0x0003,  # L1 akımı (A) - ÖRNEK
+    "current_l2": 0x0004,  # L2 akımı (A) - ÖRNEK
+    "current_l3": 0x0005,  # L3 akımı (A) - ÖRNEK
+    "power_active": 0x0006,  # Aktif güç (W) - ÖRNEK
+    "power_reactive": 0x0007,  # Reaktif güç (VAR) - ÖRNEK
+    "power_apparent": 0x0008,  # Görünür güç (VA) - ÖRNEK
+    "energy_active": 0x0009,  # Aktif enerji (kWh) - ÖRNEK
+    "energy_reactive": 0x000A,  # Reaktif enerji (kVARh) - ÖRNEK
+    "frequency": 0x000B,  # Frekans (Hz) - ÖRNEK
 }
 
 
