@@ -56,13 +56,18 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
         
         # Logla (şarj başlatma/bitirme hariç)
         if request.url.path not in ["/api/charge/start", "/api/charge/stop"]:
-            log_api_request(
-                method=request.method,
-                path=request.url.path,
-                client_ip=client_ip,
-                status_code=response.status_code,
-                response_time_ms=process_time
-            )
+            try:
+                log_api_request(
+                    method=request.method,
+                    path=request.url.path,
+                    client_ip=client_ip,
+                    status_code=response.status_code,
+                    response_time_ms=process_time
+                )
+            except Exception as e:
+                # Logging hatası API response'u etkilememeli
+                # Sessizce geç (veya fallback logging)
+                pass
         
         return response
 
