@@ -1,7 +1,7 @@
 # RPi Tarafı Aksiyon Planı - Stratejik Değerlendirme
 
-**Tarih:** 2025-12-10 00:45:00  
-**Durum:** Stratejik Değerlendirme ve Aksiyon Planı  
+**Tarih:** 2025-12-10 00:45:00
+**Durum:** Stratejik Değerlendirme ve Aksiyon Planı
 **Sorumluluk:** RPi Geliştirme Ekibi
 
 ---
@@ -33,82 +33,66 @@
 
 ## 🔴 Acil Öncelikli Aksiyonlar
 
-### Aksiyon #1: Authorization Komutu Workaround
+### Aksiyon #1: Authorization Komutu State Kontrolü Düzeltmesi ✅ TAMAMLANDI
 
-**Durum:** Sistem çalışmıyor - ESP32 firmware bug'ı nedeniyle
+**Durum:** ✅ **TAMAMLANDI** - Python API sadece EV_CONNECTED (state=3) durumunda authorization gönderiyor
 
 **Stratejik Değerlendirme:**
 
 **Mevcut Durum:**
-- Python API state kontrolü yapıyor (State 1-4 ✅)
-- ESP32 firmware ters mantık nedeniyle IDLE'dayken reddediyor ❌
-- Sistem kullanılamaz durumda
+- ✅ Python API sadece EV_CONNECTED (state=3) durumunda authorization gönderiyor
+- ✅ IDLE, CABLE_DETECT, READY ve diğer state'lerde hata döndürüyor
+- ✅ Güvenlik korunuyor
 
-**Yapılması Gerekenler:**
-1. ESP32 firmware bug'ına özel geçici workaround
-2. State 1-4 durumunda komut gönderilir ama ESP32 reddederse durumu kontrol et
-3. Geçici çözüm olduğu açıkça dokümante edilmeli
+**Yapılan Değişiklikler:**
+1. ✅ State kontrolü düzeltildi: Sadece state=3 (EV_CONNECTED) kontrolü
+2. ✅ Detaylı hata mesajları eklendi (her state için özel mesaj)
+3. ✅ Dokümantasyon güncellendi
 
 **Risk Analizi:**
-- **Risk:** Orta (geçici çözüm, ESP32 firmware düzeltilince kaldırılmalı)
-- **Etki:** Yüksek (sistem çalışabilir hale gelir)
+- **Risk:** Düşük (güvenlik iyileştirmesi)
+- **Etki:** Yüksek (güvenlik korunuyor, doğru davranış)
 - **Tutarlılık:** ✅ Mevcut yapıya uyumlu
 - **Test Edilebilirlik:** ✅ Test edilebilir
 
-**Önerilen Implementasyon:**
+**Uygulanan Kod:**
 
 ```python
 # api/main.py - start_charge endpoint
-async def start_charge(...):
-    # ... mevcut kod ...
-    
-    # Authorization komutu gönder
-    success = bridge.send_authorization()
-    
-    # ESP32 FIRMWARE BUG WORKAROUND (Geçici)
-    # ESP32 firmware bug: Authorization komutu IDLE state'inde reddediyor (ters mantık)
-    # Bu workaround ESP32 firmware düzeltilince kaldırılmalıdır
-    # Detaylar: ESP32_FIRMWARE_ADVISORY_REPORT.md - Sorun #1
-    if not success and current_status and state in [1, 2, 3, 4]:
-        system_logger.warning(
-            "ESP32 firmware bug detected: Authorization rejected in valid state. "
-            "Applying workaround...",
-            extra={"state": state, "workaround": True}
-        )
-        
-        # State değişimini bekle (ESP32 firmware state machine çalışıyor olabilir)
-        import time
-        time.sleep(0.5)
-        
-        # Tekrar dene
-        success = bridge.send_authorization()
-        
-        if success:
-            system_logger.info("Authorization workaround successful")
-        else:
-            # ESP32 firmware bug devam ediyor - hata döndür
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"ESP32 firmware bug: Authorization komutu reddedildi (State: {state}). "
-                       "ESP32 firmware düzeltilmesi gerekiyor. "
-                       "Detaylar: ESP32_FIRMWARE_ADVISORY_REPORT.md"
-            )
-    
-    if not success:
-        raise HTTPException(...)
+# Sadece EV_CONNECTED (state=3) durumunda authorization gönderilebilir
+if state != 3:  # EV_CONNECTED
+    # Detaylı hata mesajı döndür
+    if state == 1:
+        detail = "Şarj başlatılamaz (State: IDLE). Kablo takılı değil."
+    elif state == 2:
+        detail = "Şarj başlatılamaz (State: CABLE_DETECT). Araç bağlı değil."
+    elif state == 4:
+        detail = "Şarj başlatılamaz (State: READY). Authorization zaten verilmiş."
+    elif state >= 5:
+        detail = f"Şarj başlatılamaz (State: {state_name}). Şarj zaten aktif veya hata durumunda."
+    else:
+        detail = f"Şarj başlatılamaz (State: {state_name}). Sadece EV_CONNECTED durumunda authorization gönderilebilir."
+
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=detail
+    )
+
+# Authorization komutu gönder (sadece EV_CONNECTED durumunda)
+success = bridge.send_authorization()
 ```
 
 **Dokümantasyon:**
-- Workaround açıkça işaretlenmeli
-- ESP32 firmware düzeltilince kaldırılacağı belirtilmeli
-- Test senaryoları eklenmeli
+- ✅ API referansı güncellendi
+- ✅ Architecture dokümantasyonu güncellendi
+- ✅ Authorization logic revised dokümantasyonu güncellendi
 
 **Test Stratejisi:**
-- Unit test: Workaround senaryosu test edilmeli
-- Integration test: ESP32 firmware bug simülasyonu
+- Unit test: Her state için test senaryoları
+- Integration test: EV_CONNECTED durumunda authorization testi
 - Edge case test: Farklı state'lerde test
 
-**Öncelik:** 🔴 **ACİL** - Sistem çalışmıyor
+**Öncelik:** ✅ **TAMAMLANDI**
 
 ---
 
@@ -416,6 +400,6 @@ def test_protocol_json_status_format():
 
 ---
 
-**Plan Tarihi:** 2025-12-10 00:45:00  
+**Plan Tarihi:** 2025-12-10 00:45:00
 **Sonraki Adım:** Authorization workaround implementasyonu
 

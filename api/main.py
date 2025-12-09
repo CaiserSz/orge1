@@ -266,6 +266,9 @@ async def start_charge(
     Şarj başlatma
 
     ESP32'ye authorization komutu gönderir ve şarj izni verir.
+
+    **ÖNEMLİ:** Sadece EV_CONNECTED (State=3) durumunda çalışır.
+    Diğer state'lerde hata döndürülür.
     """
     # User ID'yi al (audit trail için)
     user_id = os.getenv("TEST_API_USER_ID", None)
@@ -290,21 +293,50 @@ async def start_charge(
 
     # Mevcut durumu kontrol et
     current_status = bridge.get_status()
-    if current_status:
-        state = current_status.get('STATE', 0)
-        # STATE=1: IDLE (boşta, şarj başlatılabilir)
-        # STATE=2: CABLE_DETECT (kablo algılandı, şarj başlatılabilir)
-        # STATE=3: EV_CONNECTED (araç bağlı, şarj başlatılabilir)
-        # STATE=4: SARJA_HAZIR (şarja hazır, şarj başlatılabilir)
-        # STATE=5+: Aktif şarj veya hata durumları (şarj başlatılamaz)
-        # Eğer şarj zaten aktifse veya hata durumundaysa (STATE >= 5) hata döndür
-        if state >= 5:  # STATE >= 5 aktif şarj veya hata durumu
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Şarj başlatılamaz (State: {state}). Şarj zaten aktif veya hata durumunda."
-            )
+    if not current_status:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="ESP32 durum bilgisi alınamadı"
+        )
 
-    # Authorization komutu gönder
+    state = current_status.get('STATE', 0)
+
+    # STATE=1: IDLE (kablo takılı değil, şarj başlatılamaz)
+    # STATE=2: CABLE_DETECT (kablo algılandı, şarj başlatılamaz)
+    # STATE=3: EV_CONNECTED (araç bağlı, şarj başlatılabilir) ✅
+    # STATE=4: SARJA_HAZIR (şarja hazır, şarj başlatılamaz - authorization zaten verilmiş)
+    # STATE=5+: Aktif şarj veya hata durumları (şarj başlatılamaz)
+
+    # Sadece EV_CONNECTED (state=3) durumunda authorization gönderilebilir
+    if state != 3:  # EV_CONNECTED
+        state_names = {
+            1: "IDLE",
+            2: "CABLE_DETECT",
+            4: "READY",
+            5: "CHARGING",
+            6: "PAUSED",
+            7: "STOPPED",
+            8: "FAULT_HARD"
+        }
+        state_name = state_names.get(state, f"UNKNOWN_{state}")
+
+        if state == 1:
+            detail = "Şarj başlatılamaz (State: IDLE). Kablo takılı değil."
+        elif state == 2:
+            detail = "Şarj başlatılamaz (State: CABLE_DETECT). Araç bağlı değil."
+        elif state == 4:
+            detail = "Şarj başlatılamaz (State: READY). Authorization zaten verilmiş."
+        elif state >= 5:
+            detail = f"Şarj başlatılamaz (State: {state_name}). Şarj zaten aktif veya hata durumunda."
+        else:
+            detail = f"Şarj başlatılamaz (State: {state_name}). Sadece EV_CONNECTED durumunda authorization gönderilebilir."
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=detail
+        )
+
+    # Authorization komutu gönder (sadece EV_CONNECTED durumunda)
     success = bridge.send_authorization()
 
     if not success:

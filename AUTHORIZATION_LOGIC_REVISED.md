@@ -1,7 +1,7 @@
 # Authorization Mantığı - Gözden Geçirilmiş Analiz
 
-**Tarih:** 2025-12-10 01:10:00  
-**Konu:** Authorization Komutu Mantık Analizi - Gözden Geçirme  
+**Tarih:** 2025-12-10 01:10:00
+**Konu:** Authorization Komutu Mantık Analizi - Gözden Geçirme
 **Durum:** Kullanıcı Geri Bildirimi Sonrası Analiz
 
 ---
@@ -172,28 +172,40 @@ if (sarjStatus!=SARJ_STAT_IDLE){  // ✅ DOĞRU MANTIK
 ```python
 # Mevcut durumu kontrol et
 current_status = bridge.get_status()
-if current_status:
-    state = current_status.get('STATE', 0)
-    # STATE=1: IDLE (kablo takılı değil, şarj başlatılamaz) ✅ DOĞRU
-    # STATE=2: CABLE_DETECT (kablo algılandı, şarj başlatılabilir)
-    # STATE=3: EV_CONNECTED (araç bağlı, şarj başlatılabilir)
-    # STATE=4: SARJA_HAZIR (şarja hazır, şarj başlatılabilir)
-    # STATE=5+: Aktif şarj veya hata durumları (şarj başlatılamaz)
-    
-    # IDLE state'inde authorization verilmemeli (güvenlik)
-    if state == 1:  # IDLE - Kablo takılı değil
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Şarj başlatılamaz (State: IDLE). Kablo takılı değil."
-        )
-    
-    if state >= 5:  # STATE >= 5 aktif şarj veya hata durumu
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Şarj başlatılamaz (State: {state}). Şarj zaten aktif veya hata durumunda."
-        )
+if not current_status:
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="ESP32 durum bilgisi alınamadı"
+    )
 
-# Authorization komutu gönder (sadece state 2, 3, 4 için)
+state = current_status.get('STATE', 0)
+
+# STATE=1: IDLE (kablo takılı değil, şarj başlatılamaz)
+# STATE=2: CABLE_DETECT (kablo algılandı, şarj başlatılamaz)
+# STATE=3: EV_CONNECTED (araç bağlı, şarj başlatılabilir) ✅
+# STATE=4: SARJA_HAZIR (şarja hazır, şarj başlatılamaz - authorization zaten verilmiş)
+# STATE=5+: Aktif şarj veya hata durumları (şarj başlatılamaz)
+
+# Sadece EV_CONNECTED (state=3) durumunda authorization gönderilebilir
+if state != 3:  # EV_CONNECTED
+    # Detaylı hata mesajı döndür
+    if state == 1:
+        detail = "Şarj başlatılamaz (State: IDLE). Kablo takılı değil."
+    elif state == 2:
+        detail = "Şarj başlatılamaz (State: CABLE_DETECT). Araç bağlı değil."
+    elif state == 4:
+        detail = "Şarj başlatılamaz (State: READY). Authorization zaten verilmiş."
+    elif state >= 5:
+        detail = f"Şarj başlatılamaz (State: {state}). Şarj zaten aktif veya hata durumunda."
+    else:
+        detail = f"Şarj başlatılamaz (State: {state}). Sadece EV_CONNECTED durumunda authorization gönderilebilir."
+
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=detail
+    )
+
+# Authorization komutu gönder (sadece EV_CONNECTED durumunda)
 success = bridge.send_authorization()
 ```
 
@@ -295,6 +307,6 @@ if state == 1:  # IDLE - Kablo takılı değil
 
 ---
 
-**Analiz Tarihi:** 2025-12-10 01:10:00  
+**Analiz Tarihi:** 2025-12-10 01:10:00
 **Durum:** Analiz gözden geçirildi, Python API düzeltmesi gerekli
 

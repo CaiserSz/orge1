@@ -1,7 +1,7 @@
 # API Referansı - AC Charger
 
-**Oluşturulma Tarihi:** 2025-12-09 22:35:00  
-**Son Güncelleme:** 2025-12-09 22:35:00  
+**Oluşturulma Tarihi:** 2025-12-09 22:35:00
+**Son Güncelleme:** 2025-12-09 22:35:00
 **Version:** 1.0.0
 
 ---
@@ -30,8 +30,15 @@
 
 4. **POST /api/charge/start** - Şarj başlatma
    - ESP32'ye authorization komutu gönderir
+   - **ÖNEMLİ:** Sadece EV_CONNECTED (State=3) durumunda çalışır
    - Şarj izni verir ve şarjı başlatır
    - Request Body: `{}` (boş)
+   - **State Gereksinimleri:**
+     - ✅ State=3 (EV_CONNECTED): Authorization gönderilir
+     - ❌ State=1 (IDLE): Kablo takılı değil, hata döndürülür
+     - ❌ State=2 (CABLE_DETECT): Araç bağlı değil, hata döndürülür
+     - ❌ State=4 (READY): Authorization zaten verilmiş, hata döndürülür
+     - ❌ State>=5: Aktif şarj veya hata durumu, hata döndürülür
 
 5. **POST /api/charge/stop** - Şarj durdurma
    - ESP32'ye charge stop komutu gönderir
