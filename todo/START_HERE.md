@@ -162,6 +162,26 @@ En yüksek öncelikli görevi seç ve çalışmaya başla.
 
 ---
 
+## 🔴 KRİTİK KURAL: Yedekleme ve Geri Dönüş Standartları
+
+**ÖNEMLİ:** Tüm refactoring ve büyük değişiklikler öncesi MUTLAKA yedekleme yapılmalıdır.
+
+**Yedekleme Kuralları:**
+- ✅ Büyük refactoring için Git branch oluştur (`git checkout -b refactor/description`)
+- ✅ Kritik değişiklikler için Git tag oluştur (`git tag -a v1.x.x-pre-refactor`)
+- ✅ Küçük değişiklikler için dosya yedekle (`cp file.py file.py.backup`)
+- ✅ Mevcut durum commit edilmeli
+
+**Geri Dönüş Kuralları:**
+- ✅ Git branch'e geri dön (`git checkout main`)
+- ✅ Git tag'e geri dön (`git checkout v1.x.x-pre-refactor`)
+- ✅ Belirli commit'e geri dön (`git checkout <commit-hash>`)
+- ✅ Yedek dosyadan geri yükle (`cp file.py.backup file.py`)
+
+**Detaylar:** Detaylı standartlar için `BACKUP_ROLLBACK_STANDARDS.md` dosyasına bakınız.
+
+---
+
 ## 🆘 Yardım
 
 - **Durum:** `todo/project_state.md`

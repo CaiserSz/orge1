@@ -186,14 +186,29 @@ meter/
 
 ### Her Refactoring İçin
 
-- [ ] Mevcut dosyayı yedekle
+#### Refactoring Öncesi (Yedekleme)
+- [ ] Mevcut durum commit edildi mi?
+- [ ] Refactoring branch oluşturuldu mu? (`git checkout -b refactor/description`)
+- [ ] Tag oluşturuldu mu? (büyük refactoring için) (`git tag -a v1.x.x-pre-refactor`)
+- [ ] Dosya yedeklendi mi? (küçük değişiklikler için) (`cp file.py file.py.backup`)
+- [ ] Testler geçiyor mu? (mevcut durum) (`pytest`)
+- [ ] Dokümantasyon güncel mi?
+
+#### Refactoring Sırasında
 - [ ] Yeni dosya yapısını oluştur
 - [ ] İçeriği taşı ve düzenle
 - [ ] Import/reference'ları güncelle
-- [ ] Test et (syntax, import, çalışma)
+- [ ] Her adımda test et (`pytest`)
+- [ ] Küçük commit'ler yap (`git commit -m "refactor(scope): ..."`)
+
+#### Refactoring Sonrası
+- [ ] Tüm testler geçiyor mu? (`pytest`)
+- [ ] Syntax kontrolü yapıldı mı?
+- [ ] Standartlara uygunluğu kontrol et (`wc -l`, `du -h`)
 - [ ] Dokümantasyonu güncelle
+- [ ] Yedek dosyalar temizlendi mi? (`rm *.backup`)
 - [ ] Git commit ve push
-- [ ] Standartlara uygunluğu kontrol et
+- [ ] Detaylar: `BACKUP_ROLLBACK_STANDARDS.md` dosyasına bakınız
 
 ---
 
