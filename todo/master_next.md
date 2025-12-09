@@ -523,18 +523,16 @@ Session Management modülü başarıyla implement edildi. Kod kalitesi yüksek, 
     - ✅ Tüm metrikler hesaplanıyor ve kaydediliyor
   - Detaylar: `docs/SESSION_CHARGING_METRICS_ANALYSIS_20251210.md` dosyasına bakınız
 
-#### Öncelik 3: API Endpoint'leri
-- [ ] **Görev:** Metrik endpoint'leri ekleme
-  - Açıklama: Session metriklerini döndüren API endpoint'leri
-  - Öncelik: 3 (Yüksek)
-  - Tahmini Süre: 1-2 saat
-  - Durum: 🟡 Yüksek öncelik
-  - Önerilen Endpoint'ler:
-    - `GET /api/sessions/{session_id}/metrics` - Session metrikleri
-    - `GET /api/sessions/stats/energy` - Enerji istatistikleri
-    - `GET /api/sessions/stats/power` - Güç istatistikleri
+#### ✅ API Endpoint'leri (Tamamlandı)
+- [x] **Görev:** Metrik endpoint'leri ekleme ✅ Tamamlandı
+  - Durum: ✅ Tamamlandı (2025-12-10 08:45:00)
+  - Sonuç:
+    - ✅ GET /api/sessions/{session_id}/metrics - Session metrikleri
+    - ✅ GET /api/sessions/stats/energy - Enerji istatistikleri
+    - ✅ GET /api/sessions/stats/power - Güç istatistikleri
+    - ✅ User ID filtresi desteği
+    - ✅ Tüm metrikler döndürülüyor
   - Detaylar: `docs/SESSION_CHARGING_METRICS_ANALYSIS_20251210.md` dosyasına bakınız
-  - Durum: 📋 Bekliyor
 
 ### 📊 Önerilen Database Şeması (Metriklerle)
 

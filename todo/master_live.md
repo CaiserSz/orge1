@@ -6,16 +6,9 @@
 
 ## Aktif Görevler
 
-### Öncelik 3: API Endpoint'leri - Metrik Endpoint'leri
-- **Görev:** Session metriklerini döndüren API endpoint'leri ekleme
-- **Öncelik:** 3 (Yüksek)
-- **Tahmini Süre:** 1-2 saat
-- **Durum:** 🔄 Devam Ediyor
-- **Başlangıç:** 2025-12-10 08:40:00
-- **Detaylar:**
-  - GET /api/sessions/{session_id}/metrics - Session metrikleri
-  - GET /api/sessions/stats/energy - Enerji istatistikleri
-  - GET /api/sessions/stats/power - Güç istatistikleri
+_(Şu anda aktif görev yok)_
+
+**Not:** Metrik endpoint'leri tamamlandı (2025-12-10 08:45:00). Yeni görev seçilebilir.
 
 ---
 
