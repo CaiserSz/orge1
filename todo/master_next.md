@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-09 21:35:00
+**Son Güncelleme:** 2025-12-09 22:15:00
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -187,6 +187,39 @@
 
 ## Faz 7: Code Quality ve DevOps İyileştirmeleri (Yeni - 2025-12-09)
 
+### 📋 Kod ve Dokümantasyon Standartlarına Uyum (Yüksek Öncelik - Öncelik 0)
+- [ ] **Görev:** `project_info_20251208_145614.md` bölümleme
+  - Açıklama: Maksimum sınır (1200 satır) aşıldı (1245 satır). Bölümlere ayrılmalı
+  - Öncelik: Yüksek (Acil)
+  - Tahmini Süre: 2-3 saat
+  - Durum: 🔴 Maksimum sınır aşıldı
+  - Detaylar: `todo/REFACTORING_PLAN.md` dosyasına bakınız
+  - Durum: 📋 Bekliyor
+
+- [ ] **Görev:** `api/main.py` router'lara bölme
+  - Açıklama: Uyarı eşiği (600 satır) yakın (591 satır). Router'lara bölünmeli
+  - Öncelik: Orta
+  - Tahmini Süre: 3-4 saat
+  - Durum: 🟡 Uyarı eşiği yakın
+  - Detaylar: `todo/REFACTORING_PLAN.md` dosyasına bakınız
+  - Durum: 📋 Bekliyor
+
+- [ ] **Görev:** `MULTI_EXPERT_ANALYSIS.md` bölümleme
+  - Açıklama: Uyarı eşiği (1000 satır) aşıldı (1115 satır). Bölümlere ayırılabilir
+  - Öncelik: Orta
+  - Tahmini Süre: 1-2 saat
+  - Durum: 🟡 Uyarı eşiği aşıldı
+  - Detaylar: `todo/REFACTORING_PLAN.md` dosyasına bakınız
+  - Durum: 📋 Bekliyor
+
+- [ ] **Görev:** `meter/read_meter.py` modüllere bölme
+  - Açıklama: Uyarı eşiği (500 satır) yakın (496 satır). Modüllere bölünebilir
+  - Öncelik: Düşük
+  - Tahmini Süre: 2-3 saat
+  - Durum: 🟡 Uyarı eşiği yakın
+  - Detaylar: `todo/REFACTORING_PLAN.md` dosyasına bakınız
+  - Durum: 📋 Bekliyor
+
 ### 📋 Test Coverage Artırma (Yüksek Öncelik - Öncelik 5)
 - [ ] **Görev:** Test coverage artırma
   - Açıklama: Eksik test senaryolarını tamamlama, edge case testleri, integration testleri genişletme
@@ -249,4 +282,5 @@
 - **Yeni:** Loglama ve Session Yönetimi fazı eklendi (2025-12-09)
 - **Yeni:** Code Quality ve DevOps İyileştirmeleri fazı eklendi (2025-12-09)
 - **Güncelleme:** Genel durum değerlendirmesi ve iyileştirme fırsatları analizi yapıldı (2025-12-09 21:35:00)
+- **Güncelleme:** Kod ve dokümantasyon standartlarına uyum görevleri eklendi (2025-12-09 22:15:00)
 

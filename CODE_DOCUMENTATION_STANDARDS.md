@@ -275,8 +275,25 @@ için oluşturulmuştur.
 - `project_info_20251208_145614.md` - Proje bilgileri
 - `CONTRIBUTING.md` - Katkıda bulunma rehberi
 - `WORKSPACE_INDEX.md` - Workspace indeksi
+- `todo/master_next.md` - Bekleyen görevler
 
 ---
 
-**Son Güncelleme:** 2025-12-09 22:00:00
+## ⚠️ ÖNEMLİ NOT: Tespitlerin Todo Sistemine Eklenmesi
+
+**KRİTİK:** Çalışmalar esnasında tespit edilen, gözden geçirilmesi gereken veya kontrol edilmesi gereken durumlar MUTLAKA `todo/master_next.md` dosyasına eklenmelidir.
+
+### Ne Zaman Eklenmeli?
+- ✅ Standart kontrolü sonrası tespitler
+- ✅ Refactoring ihtiyaçları
+- ✅ İyileştirme fırsatları
+- ✅ Kontrol edilmesi gerekenler
+
+### Detaylar
+- Detaylı kurallar için `.cursorrules` dosyasına bakınız
+- Bu kural proaktif çalışma için kritiktir
+
+---
+
+**Son Güncelleme:** 2025-12-09 22:15:00
 

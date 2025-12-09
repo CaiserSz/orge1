@@ -146,6 +146,89 @@ Sistemde birşey yapılması gerektiğinde erişilemez veya SSH gerekli gibi var
 - Detaylı standartlar için `CODE_DOCUMENTATION_STANDARDS.md` dosyasına bakınız
 - Bu dosya proje boyunca referans olarak kullanılacaktır
 
+## KRİTİK KURAL: Tespitlerin Todo Sistemine Eklenmesi
+
+**ÖNEMLİ:** Çalışmalar esnasında tespit edilen, gözden geçirilmesi gereken veya kontrol edilmesi gereken durumlar MUTLAKA `todo/master_next.md` dosyasına eklenmelidir.
+
+### Kural
+- ❌ **Hiçbir tespit gözden kaçırılmamalı veya atlanmamalıdır**
+- ✅ Çalışma sırasında tespit edilen her şey `master_next.md`'ye eklenmelidir
+- ✅ Mevcut çalışma dışı tespitler de eklenmelidir
+- ✅ Refactoring ihtiyaçları, iyileştirme fırsatları, kontrol edilmesi gerekenler eklenmelidir
+- ✅ Görevler öncelik sırasına göre eklenmelidir
+
+### Ne Zaman Eklenmeli?
+
+#### Çalışma Sırasında Tespit Edilenler
+- ✅ Kod standartlarını aşan dosyalar tespit edildiğinde
+- ✅ Dokümantasyon standartlarını aşan dosyalar tespit edildiğinde
+- ✅ Refactoring ihtiyacı tespit edildiğinde
+- ✅ İyileştirme fırsatları tespit edildiğinde
+- ✅ Kontrol edilmesi gereken durumlar tespit edildiğinde
+- ✅ Gözden geçirilmesi gereken kod/dokümantasyon tespit edildiğinde
+
+#### Analiz ve Audit Sonrası
+- ✅ Audit raporlarından çıkan aksiyonlar
+- ✅ Code review sonrası tespitler
+- ✅ Performance analizi sonrası iyileştirmeler
+- ✅ Security audit sonrası düzeltmeler
+
+#### Standart Kontrolü Sonrası
+- ✅ Dosya boyutu kontrolü sonrası tespitler
+- ✅ Satır sayısı kontrolü sonrası tespitler
+- ✅ Karmaşıklık analizi sonrası tespitler
+
+### Eklenme Formatı
+
+```markdown
+- [ ] **Görev:** [Görev başlığı]
+  - Açıklama: [Detaylı açıklama]
+  - Öncelik: [Yüksek/Orta/Düşük]
+  - Tahmini Süre: [Süre]
+  - Durum: [Durum bilgisi]
+  - Detaylar: [İlgili dokümantasyon linki]
+  - Durum: 📋 Bekliyor
+```
+
+### Örnekler
+
+#### Örnek 1: Standart Aşımı Tespiti
+```markdown
+- [ ] **Görev:** `api/main.py` router'lara bölme
+  - Açıklama: Uyarı eşiği (600 satır) yakın (591 satır). Router'lara bölünmeli
+  - Öncelik: Orta
+  - Tahmini Süre: 3-4 saat
+  - Durum: 🟡 Uyarı eşiği yakın
+  - Detaylar: `todo/REFACTORING_PLAN.md` dosyasına bakınız
+```
+
+#### Örnek 2: İyileştirme Fırsatı Tespiti
+```markdown
+- [ ] **Görev:** Event-driven architecture pattern implementasyonu
+  - Açıklama: Event Detection modülünde event-driven architecture pattern kullanılabilir
+  - Öncelik: Orta
+  - Tahmini Süre: 2-3 saat
+  - Durum: 💡 İyileştirme fırsatı
+```
+
+### Kontrol Checklist
+
+#### Her Çalışma Sonrası
+- [ ] Tespit edilen tüm durumlar `master_next.md`'ye eklendi mi?
+- [ ] Öncelikler doğru belirlendi mi?
+- [ ] Detaylar ve referanslar eklendi mi?
+- [ ] Görevler uygun faza yerleştirildi mi?
+
+#### Haftalık Review
+- [ ] Tüm tespitler gözden geçirildi mi?
+- [ ] Eksik görevler var mı?
+- [ ] Öncelikler güncel mi?
+
+### Kural İhlali Durumunda
+- Tespit edilen bir durum `master_next.md`'ye eklenmezse, **hemen eklenmelidir**
+- Gözden kaçırılan tespitler proje sağlığını olumsuz etkiler
+- Bu kural proaktif çalışma için kritiktir
+
 ## Otonom Proje Yönetimi ve Devam Etme Kuralları
 
 **KRİTİK:** Kullanıcı "projeye devam et" veya benzeri bir komut verdiğinde, Agent şu adımları takip etmelidir:
