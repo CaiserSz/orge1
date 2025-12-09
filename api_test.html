@@ -202,6 +202,38 @@
             margin-top: 10px;
         }
 
+        .curl-preview {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+
+        .curl-preview label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+
+        .curl-preview textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            min-height: 80px;
+            resize: vertical;
+            background: #2d2d2d;
+            color: #f8f8f2;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
         .section-title {
             color: #667eea;
             font-size: 0.9em;
@@ -312,7 +344,11 @@
                     <div class="endpoint-description">Şarj başlatma</div>
                     <div class="request-body">
                         <label>Request Body (JSON):</label>
-                        <textarea id="body-/api/charge/start" placeholder='{}'>{"test": true}</textarea>
+                        <textarea id="body-/api/charge/start" placeholder='{}' oninput="updateCurlPreview('POST', '/api/charge/start', 'body-/api/charge/start', 'curl-/api/charge/start')">{"test": true}</textarea>
+                    </div>
+                    <div class="curl-preview">
+                        <label>💻 cURL Command (Edit edilebilir):</label>
+                        <textarea id="curl-/api/charge/start"></textarea>
                     </div>
                     <button class="btn" onclick="testEndpoint('POST', '/api/charge/start', 'body-/api/charge/start')">Test Et</button>
                     <div class="response-section" id="response-/api/charge/start"></div>
@@ -326,7 +362,11 @@
                     <div class="endpoint-description">Şarj durdurma</div>
                     <div class="request-body">
                         <label>Request Body (JSON):</label>
-                        <textarea id="body-/api/charge/stop" placeholder='{}'>{"test": true}</textarea>
+                        <textarea id="body-/api/charge/stop" placeholder='{}' oninput="updateCurlPreview('POST', '/api/charge/stop', 'body-/api/charge/stop', 'curl-/api/charge/stop')">{"test": true}</textarea>
+                    </div>
+                    <div class="curl-preview">
+                        <label>💻 cURL Command (Edit edilebilir):</label>
+                        <textarea id="curl-/api/charge/stop"></textarea>
                     </div>
                     <button class="btn" onclick="testEndpoint('POST', '/api/charge/stop', 'body-/api/charge/stop')">Test Et</button>
                     <div class="response-section" id="response-/api/charge/stop"></div>
@@ -345,7 +385,11 @@
                     <div class="endpoint-description">Maksimum akım ayarlama (6-32A)</div>
                     <div class="request-body">
                         <label>Amperage:</label>
-                        <input type="number" id="body-/api/maxcurrent" placeholder="16" value="16" min="6" max="32">
+                        <input type="number" id="body-/api/maxcurrent" placeholder="16" value="16" min="6" max="32" oninput="updateCurlPreview('POST', '/api/maxcurrent', 'body-/api/maxcurrent', 'curl-/api/maxcurrent', true)">
+                    </div>
+                    <div class="curl-preview">
+                        <label>💻 cURL Command (Edit edilebilir):</label>
+                        <textarea id="curl-/api/maxcurrent"></textarea>
                     </div>
                     <button class="btn" onclick="testEndpoint('POST', '/api/maxcurrent', 'body-/api/maxcurrent', true)">Test Et</button>
                     <div class="response-section" id="response-/api/maxcurrent"></div>
@@ -357,6 +401,60 @@
     <script>
         // API base URL - Ngrok veya local
         const API_BASE_URL = window.location.origin;
+        let cachedApiKey = null;
+
+        // Initialize curl previews on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            cachedApiKey = await getApiKey();
+            updateCurlPreview('POST', '/api/charge/start', 'body-/api/charge/start', 'curl-/api/charge/start');
+            updateCurlPreview('POST', '/api/charge/stop', 'body-/api/charge/stop', 'curl-/api/charge/stop');
+            updateCurlPreview('POST', '/api/maxcurrent', 'body-/api/maxcurrent', 'curl-/api/maxcurrent', true);
+        });
+
+        async function updateCurlPreview(method, path, bodyElementId, curlElementId, isNumber = false) {
+            const curlElement = document.getElementById(curlElementId);
+            if (!curlElement) return;
+
+            // Get API key
+            if (!cachedApiKey) {
+                cachedApiKey = await getApiKey();
+            }
+
+            // Prepare request body
+            let requestBody = null;
+            let requestBodyDisplay = null;
+            
+            if (bodyElementId) {
+                const bodyElement = document.getElementById(bodyElementId);
+                if (isNumber) {
+                    // For number input (maxcurrent)
+                    const value = parseInt(bodyElement.value) || 16;
+                    requestBody = { amperage: value };
+                    requestBodyDisplay = JSON.stringify(requestBody, null, 2);
+                } else {
+                    // For textarea (JSON)
+                    const text = bodyElement.value.trim();
+                    if (text) {
+                        try {
+                            requestBody = JSON.parse(text);
+                            requestBodyDisplay = JSON.stringify(requestBody, null, 2);
+                        } catch (e) {
+                            // Invalid JSON, use raw text
+                            requestBodyDisplay = text;
+                        }
+                    } else {
+                        requestBody = {};
+                        requestBodyDisplay = '{}';
+                    }
+                }
+            } else {
+                requestBodyDisplay = 'null';
+            }
+
+            // Generate curl command
+            const curlCommand = generateCurlCommand(method, path, cachedApiKey, requestBodyDisplay);
+            curlElement.value = curlCommand;
+        }
 
         async function testEndpoint(method, path, bodyElementId, isNumber = false) {
             const responseSection = document.getElementById(`response-${path}`);
