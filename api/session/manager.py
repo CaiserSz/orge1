@@ -18,6 +18,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 from api.database import get_database
 from api.event_detector import ESP32State, EventType
 from api.logging_config import log_event, system_logger
+from api.session.metrics import SessionMetricsCalculator
 from api.session.session import ChargingSession
 from api.session.status import SessionStatus
 
@@ -76,6 +77,8 @@ class SessionManager:
             # Aktif session'a event ekle
             elif self.current_session:
                 self.current_session.add_event(event_type, event_data)
+                # Metrikleri güncelle (real-time)
+                self._update_session_metrics(event_data)
                 # Database'e kaydet
                 self.db.update_session(
                     session_id=self.current_session.session_id,
@@ -210,6 +213,9 @@ class SessionManager:
         """
         session.end_session(end_time, end_state, status)
 
+        # Final metrikleri hesapla
+        final_metrics = self._calculate_final_metrics(session, end_time)
+
         # Meter'dan bitiş enerji seviyesini oku (eğer meter varsa)
         if self.meter and self.meter.is_connected():
             try:
@@ -239,7 +245,7 @@ class SessionManager:
                 "calculated"  # Meter yok, hesaplanmış kullan
             )
 
-        # Database'e kaydet
+        # Database'e kaydet (metriklerle birlikte)
         self.db.update_session(
             session_id=session.session_id,
             end_time=end_time,
@@ -247,6 +253,7 @@ class SessionManager:
             status=status.value,
             events=session.events,
             metadata=session.metadata,
+            **final_metrics,  # Tüm metrikleri kaydet
         )
 
         system_logger.info(
@@ -387,6 +394,66 @@ class SessionManager:
         # Database'den al
         status_str = status.value if status else None
         return self.db.get_session_count(status=status_str)
+
+    def _update_session_metrics(self, event_data: Dict[str, Any]):
+        """
+        Session metriklerini real-time güncelle
+
+        Args:
+            event_data: Event data dict'i
+        """
+        if not self.current_session:
+            return
+
+        status = event_data.get("status", {})
+        current_a = status.get("CABLE") or status.get("CURRENT")
+        voltage_v = status.get("CPV") or status.get("PPV")
+
+        # Metrikleri metadata'da sakla (geçici, final hesaplamada kullanılacak)
+        if current_a is not None:
+            currents = self.current_session.metadata.get("_metrics_currents", [])
+            currents.append(float(current_a))
+            self.current_session.metadata["_metrics_currents"] = currents
+
+        if voltage_v is not None:
+            voltages = self.current_session.metadata.get("_metrics_voltages", [])
+            voltages.append(float(voltage_v))
+            self.current_session.metadata["_metrics_voltages"] = voltages
+
+        # Set current (MAX)
+        max_current = status.get("MAX")
+        if (
+            max_current is not None
+            and "set_current_a" not in self.current_session.metadata
+        ):
+            self.current_session.metadata["set_current_a"] = float(max_current)
+
+    def _calculate_final_metrics(
+        self, session: ChargingSession, end_time: datetime
+    ) -> Dict[str, Any]:
+        """
+        Session sonunda final metrikleri hesapla
+
+        Args:
+            session: Session objesi
+            end_time: Bitiş zamanı
+
+        Returns:
+            Metrikler dict'i
+        """
+        calculator = SessionMetricsCalculator()
+
+        # Tüm event'leri ekle
+        for event in session.events:
+            calculator.add_event(event)
+
+        # Metrikleri hesapla
+        metrics = calculator.calculate_metrics(session.start_time, end_time)
+
+        # Event count
+        metrics["event_count"] = len(session.events)
+
+        return metrics
 
     def register_with_event_detector(self, event_detector):
         """

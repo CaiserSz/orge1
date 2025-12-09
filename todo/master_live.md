@@ -6,17 +6,19 @@
 
 ## Aktif Görevler
 
-### Öncelik 0: Database Şema Güncellemesi (Şarj Metrikleri + Timestamp Migration)
-- **Görev:** Database şemasına şarj metrikleri ekleme ve timestamp migration
-- **Öncelik:** 0 (En Kritik)
+### Öncelik 1: Metrik Hesaplama Mantığı
+- **Görev:** Session metriklerini hesaplayan mantık ekleme
+- **Öncelik:** 1 (Acil)
 - **Tahmini Süre:** 2-3 saat
 - **Durum:** 🔄 Devam Ediyor
-- **Başlangıç:** 2025-12-10 07:15:00
+- **Başlangıç:** 2025-12-10 07:25:00
 - **Detaylar:**
-  - Database şemasına metrik kolonları ekleme
-  - Timestamp alanlarını TEXT → INTEGER migration
-  - Migration script yazma
-  - Mevcut verileri migrate etme
+  - SessionMetricsCalculator sınıfı oluşturma
+  - Event'lerden current, voltage bilgilerini çıkarma
+  - Güç hesaplama: P = V × I (kW)
+  - Enerji hesaplama: E = P × t (kWh)
+  - Real-time metrik güncelleme
+  - Final metrik hesaplama (session sonunda)
 
 ---
 
