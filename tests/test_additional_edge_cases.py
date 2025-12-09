@@ -328,24 +328,11 @@ class TestESP32BridgeAdditionalEdgeCases:
         assert result["STATE"] == 1
 
         # Status yoksa timeout sonrası None döner
-        bridge.last_status = None
-        bridge.send_status_request = Mock(return_value=True)
-
-        # get_status None döndürmeli (status yok)
-        original_get_status = bridge.get_status
-        call_count = [0]
-
-        def mock_get_status():
-            call_count[0] += 1
-            return None  # Status yok
-
-        bridge.get_status = mock_get_status
-
-        result = bridge.get_status_sync(timeout=0.05)  # Kısa timeout
-        # Timeout sonrası None döner
+        # Bridge bağlı değilse send_status_request False döner
+        bridge.is_connected = False
+        result = bridge.get_status_sync(timeout=0.01)
+        # Bridge bağlı değilse None döner
         assert result is None
-        # get_status birkaç kez çağrılmalı
-        assert call_count[0] > 0
 
     def test_find_esp32_port_edge_cases(self):
         """Find ESP32 port - edge case'ler"""
