@@ -155,6 +155,7 @@ def log_api_request(
     client_ip: Optional[str] = None,
     status_code: Optional[int] = None,
     response_time_ms: Optional[float] = None,
+    user_id: Optional[str] = None,
     **kwargs
 ):
     """
@@ -166,6 +167,7 @@ def log_api_request(
         client_ip: İstemci IP adresi
         status_code: HTTP durum kodu
         response_time_ms: Yanıt süresi (milisaniye)
+        user_id: Kullanıcı ID (opsiyonel, audit trail için)
         **kwargs: Ekstra alanlar
     """
     try:
@@ -179,12 +181,12 @@ def log_api_request(
             
             if client_ip:
                 extra_fields["client_ip"] = client_ip
-                if status_code:
-                    extra_fields["status_code"] = status_code
-                if response_time_ms is not None:
-                    extra_fields["response_time_ms"] = response_time_ms
-                if user_id:
-                    extra_fields["user_id"] = user_id
+            if status_code:
+                extra_fields["status_code"] = status_code
+            if response_time_ms is not None:
+                extra_fields["response_time_ms"] = response_time_ms
+            if user_id:
+                extra_fields["user_id"] = user_id
             
             # Log kaydına ekstra alanları ekle
             import inspect
