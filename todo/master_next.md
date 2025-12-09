@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-09 22:15:00
+**Son Güncelleme:** 2025-12-10 02:10:00
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -131,18 +131,24 @@
   - Notlar: ESP32 mesajlarını ve API isteklerini logla
   - Commit: 0284a21, 0c3838a
 
-### 📋 Event Detection (Yüksek Öncelik - Öncelik 1)
-- [ ] **Görev:** Event detector oluştur (`api/event_detector.py`)
+### ✅ Event Detection (Temel Implementasyon Tamamlandı - Öncelik 1)
+- [x] **Görev:** Event detector oluştur (`api/event_detector.py`)
   - Açıklama: State transition detection, event type classification
   - Öncelik: Yüksek
-  - Tahmini Süre: 2-3 gün
-  - Bağımlılıklar: ✅ Logging modülü (Tamamlandı)
-  - Notlar: Kablo takılma, araç bağlantı, şarj başlatma/durdurma event'leri
-  - İyileştirme Fırsatları:
+  - Durum: ✅ Temel implementasyon tamamlandı (2025-12-09 23:00:00)
+  - Tamamlanan:
+    - Event detector modülü oluşturuldu (`api/event_detector.py` - 272 satır)
+    - State transition detection implementasyonu
+    - Event type classification (9 event type)
+    - Event logging entegrasyonu
+    - API startup/shutdown entegrasyonu
+    - Thread-safe monitoring loop
+    - 19 unit test yazıldı (hepsi geçti)
+  - İyileştirme Fırsatları (Opsiyonel):
     - Event-driven architecture pattern
     - Event queue mekanizması
     - Event history tracking
-  - Durum: 📋 Bekliyor (master_live.md'ye taşınacak)
+  - Not: Temel Event Detection tamamlandı. İyileştirmeler opsiyonel.
 
 ### 📋 Session Management (Yüksek Öncelik - Öncelik 2)
 - [ ] **Görev:** Session manager oluştur (`api/session_manager.py`)
@@ -197,12 +203,13 @@
   - Durum: 📋 Bekliyor
 
 - [ ] **Görev:** `api/main.py` router'lara bölme
-  - Açıklama: Uyarı eşiği (600 satır) yakın (591 satır). Router'lara bölünmeli
-  - Öncelik: Orta
+  - Açıklama: Maksimum sınır (600 satır) aşıldı (638 satır). Router'lara bölünmeli (charge, status, current, vb.)
+  - Öncelik: Acil (Öncelik 0)
   - Tahmini Süre: 3-4 saat
-  - Durum: 🟡 Uyarı eşiği yakın
+  - Durum: 🔴 Maksimum sınır aşıldı
+  - Neden Önemli: Kod kalitesi ve bakım kolaylığı için kritik
   - Detaylar: `todo/REFACTORING_PLAN.md` dosyasına bakınız
-  - Durum: 📋 Bekliyor
+  - Durum: 📋 Bekliyor (Acil)
 
 - [ ] **Görev:** `MULTI_EXPERT_ANALYSIS.md` bölümleme
   - Açıklama: Uyarı eşiği (1000 satır) aşıldı (1115 satır). Bölümlere ayırılabilir
@@ -290,4 +297,6 @@
 - **Yeni:** Code Quality ve DevOps İyileştirmeleri fazı eklendi (2025-12-09)
 - **Güncelleme:** Genel durum değerlendirmesi ve iyileştirme fırsatları analizi yapıldı (2025-12-09 21:35:00)
 - **Güncelleme:** Kod ve dokümantasyon standartlarına uyum görevleri eklendi (2025-12-09 22:15:00)
+- **Güncelleme:** Event Detection tamamlandı bilgisi güncellendi, api/main.py önceliği acil olarak işaretlendi (2025-12-10 02:10:00)
+- **Güncelleme:** Workspace reorganizasyonu tamamlandı (2025-12-10 02:00:00)
 
