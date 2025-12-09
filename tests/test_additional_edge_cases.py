@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from api.event_detector import EventDetector, EventType, ESP32State
 from api.logging_config import JSONFormatter, thread_safe_log
 from esp32.bridge import ESP32Bridge
-from api.main import get_bridge
+from api.routers.dependencies import get_bridge
 
 
 class TestEventDetectorAdditionalEdgeCases:
@@ -380,7 +380,7 @@ class TestAPIMainAdditionalEdgeCases:
 
     def test_api_response_model_validation(self):
         """APIResponse model validation"""
-        from api.main import APIResponse
+        from api.models import APIResponse
 
         # Geçerli response
         response = APIResponse(

@@ -34,7 +34,7 @@ class TestAPIEdgeCases:
         self.mock_bridge.send_charge_stop = Mock(return_value=True)
         self.mock_bridge.send_current_set = Mock(return_value=True)
 
-    @patch('api.main.get_esp32_bridge')
+    @patch('api.routers.dependencies.get_bridge')
     def test_health_check_bridge_none(self, mock_get_bridge):
         """Health check - bridge None durumu"""
         mock_get_bridge.return_value = None
@@ -46,7 +46,7 @@ class TestAPIEdgeCases:
         assert data["success"] is True
         assert data["data"]["esp32_connected"] is False
 
-    @patch('api.main.get_esp32_bridge')
+    @patch('api.routers.dependencies.get_bridge')
     def test_health_check_bridge_not_connected(self, mock_get_bridge):
         """Health check - bridge bağlı değil"""
         self.mock_bridge.is_connected = False

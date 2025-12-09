@@ -42,65 +42,65 @@ def mock_bridge():
 @pytest.fixture
 def client(mock_bridge):
     """Test client"""
-    with patch('api.main.esp32_bridge', mock_bridge):
-        with patch('api.main.get_esp32_bridge', return_value=mock_bridge):
+    with patch('api.routers.dependencies.get_bridge', return_value=mock_bridge):
+        with patch('esp32.bridge.get_esp32_bridge', return_value=mock_bridge):
             yield TestClient(app)
 
 
 class TestStateLogicForStartCharge:
     """Start Charge için state mantığı testleri"""
-    
+
     def test_start_charge_state_1_idle_should_work(self, client, mock_bridge):
         """STATE=1 (IDLE) durumunda şarj başlatılabilir mi?"""
         mock_bridge.get_status.return_value = {'STATE': SARJ_STAT_IDLE}
-        
+
         response = client.post("/api/charge/start", json={"id_tag": "TEST"})
-        
+
         # Şu anki kod STATE >= 2 kontrolü yapıyor, bu yanlış!
         # STATE=1 IDLE durumunda şarj başlatılabilir olmalı
         print(f"\nSTATE=1 (IDLE) - Response: {response.status_code}")
         if response.status_code == 400:
             print("⚠️ MANTIK HATASI: STATE=1 IDLE durumunda şarj başlatılamıyor!")
-    
+
     def test_start_charge_state_2_cable_detect_should_work(self, client, mock_bridge):
         """STATE=2 (CABLE_DETECT) durumunda şarj başlatılabilir mi?"""
         mock_bridge.get_status.return_value = {'STATE': SARJ_CABLE_DETECT}
-        
+
         response = client.post("/api/charge/start", json={"id_tag": "TEST"})
-        
+
         # STATE=2 CABLE_DETECT durumunda şarj başlatılabilir olmalı
         print(f"\nSTATE=2 (CABLE_DETECT) - Response: {response.status_code}")
         if response.status_code == 400:
             print("⚠️ MANTIK HATASI: STATE=2 CABLE_DETECT durumunda şarj başlatılamıyor!")
-    
+
     def test_start_charge_state_3_ev_connected_should_work(self, client, mock_bridge):
         """STATE=3 (EV_CONNECTED) durumunda şarj başlatılabilir mi?"""
         mock_bridge.get_status.return_value = {'STATE': EV_CONNECTED}
-        
+
         response = client.post("/api/charge/start", json={"id_tag": "TEST"})
-        
+
         # STATE=3 EV_CONNECTED durumunda şarj başlatılabilir olmalı
         print(f"\nSTATE=3 (EV_CONNECTED) - Response: {response.status_code}")
         if response.status_code == 400:
             print("⚠️ MANTIK HATASI: STATE=3 EV_CONNECTED durumunda şarj başlatılamıyor!")
-    
+
     def test_start_charge_state_4_sarja_hazir_should_work(self, client, mock_bridge):
         """STATE=4 (SARJA_HAZIR) durumunda şarj başlatılabilir mi?"""
         mock_bridge.get_status.return_value = {'STATE': SARJA_HAZIR}
-        
+
         response = client.post("/api/charge/start", json={"id_tag": "TEST"})
-        
+
         # STATE=4 SARJA_HAZIR durumunda şarj başlatılabilir olmalı
         print(f"\nSTATE=4 (SARJA_HAZIR) - Response: {response.status_code}")
         if response.status_code == 400:
             print("⚠️ MANTIK HATASI: STATE=4 SARJA_HAZIR durumunda şarj başlatılamıyor!")
-    
+
     def test_start_charge_state_5_charging_should_fail(self, client, mock_bridge):
         """STATE=5 (SARJ_BASLADI) durumunda şarj başlatılamaz olmalı"""
         mock_bridge.get_status.return_value = {'STATE': SARJ_STAT_SARJ_BASLADI}
-        
+
         response = client.post("/api/charge/start", json={"id_tag": "TEST"})
-        
+
         # STATE=5 SARJ_BASLADI durumunda şarj başlatılamaz
         assert response.status_code == 400, "STATE=5 durumunda şarj başlatılamaz olmalı"
         print(f"\n✅ STATE=5 (SARJ_BASLADI) - Doğru: Reddedildi")
@@ -108,57 +108,57 @@ class TestStateLogicForStartCharge:
 
 class TestStateLogicForSetCurrent:
     """Set Current için state mantığı testleri"""
-    
+
     def test_set_current_state_1_idle_should_work(self, client, mock_bridge):
         """STATE=1 (IDLE) durumunda akım ayarlanabilir mi?"""
         mock_bridge.get_status.return_value = {'STATE': SARJ_STAT_IDLE}
-        
+
         response = client.post("/api/maxcurrent", json={"amperage": 16})
-        
+
         # STATE=1 IDLE durumunda akım ayarlanabilir olmalı
         print(f"\nSTATE=1 (IDLE) - Response: {response.status_code}")
         if response.status_code == 400:
             print("⚠️ MANTIK HATASI: STATE=1 IDLE durumunda akım ayarlanamıyor!")
-    
+
     def test_set_current_state_2_cable_detect_should_work(self, client, mock_bridge):
         """STATE=2 (CABLE_DETECT) durumunda akım ayarlanabilir mi?"""
         mock_bridge.get_status.return_value = {'STATE': SARJ_CABLE_DETECT}
-        
+
         response = client.post("/api/maxcurrent", json={"amperage": 16})
-        
+
         # STATE=2 CABLE_DETECT durumunda akım ayarlanabilir olmalı
         print(f"\nSTATE=2 (CABLE_DETECT) - Response: {response.status_code}")
         if response.status_code == 400:
             print("⚠️ MANTIK HATASI: STATE=2 CABLE_DETECT durumunda akım ayarlanamıyor!")
-    
+
     def test_set_current_state_3_ev_connected_should_work(self, client, mock_bridge):
         """STATE=3 (EV_CONNECTED) durumunda akım ayarlanabilir mi?"""
         mock_bridge.get_status.return_value = {'STATE': EV_CONNECTED}
-        
+
         response = client.post("/api/maxcurrent", json={"amperage": 16})
-        
+
         # STATE=3 EV_CONNECTED durumunda akım ayarlanabilir olmalı
         print(f"\nSTATE=3 (EV_CONNECTED) - Response: {response.status_code}")
         if response.status_code == 400:
             print("⚠️ MANTIK HATASI: STATE=3 EV_CONNECTED durumunda akım ayarlanamıyor!")
-    
+
     def test_set_current_state_4_sarja_hazir_should_work(self, client, mock_bridge):
         """STATE=4 (SARJA_HAZIR) durumunda akım ayarlanabilir mi?"""
         mock_bridge.get_status.return_value = {'STATE': SARJA_HAZIR}
-        
+
         response = client.post("/api/maxcurrent", json={"amperage": 16})
-        
+
         # STATE=4 SARJA_HAZIR durumunda akım ayarlanabilir olmalı
         print(f"\nSTATE=4 (SARJA_HAZIR) - Response: {response.status_code}")
         if response.status_code == 400:
             print("⚠️ MANTIK HATASI: STATE=4 SARJA_HAZIR durumunda akım ayarlanamıyor!")
-    
+
     def test_set_current_state_5_charging_should_fail(self, client, mock_bridge):
         """STATE=5 (SARJ_BASLADI) durumunda akım ayarlanamaz olmalı"""
         mock_bridge.get_status.return_value = {'STATE': SARJ_STAT_SARJ_BASLADI}
-        
+
         response = client.post("/api/maxcurrent", json={"amperage": 16})
-        
+
         # STATE=5 SARJ_BASLADI durumunda akım ayarlanamaz
         assert response.status_code == 400, "STATE=5 durumunda akım ayarlanamaz olmalı"
         print(f"\n✅ STATE=5 (SARJ_BASLADI) - Doğru: Reddedildi")

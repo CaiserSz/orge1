@@ -19,7 +19,8 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from api.main import app, startup_event, shutdown_event, APILoggingMiddleware, APIResponse, ChargeStartRequest, ChargeStopRequest, CurrentSetRequest
+from api.main import app, startup_event, shutdown_event, APILoggingMiddleware
+from api.models import APIResponse, ChargeStartRequest, ChargeStopRequest, CurrentSetRequest
 from api.event_detector import EventDetector, get_event_detector, ESP32State, EventType
 from api.logging_config import setup_logger, get_logger, thread_safe_log, JSONFormatter
 from api.auth import get_secret_api_key, verify_api_key
