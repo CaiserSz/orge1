@@ -43,8 +43,10 @@ sudo nano /boot/firmware/config.txt
 Dosyanın sonuna şu satırı ekleyin:
 
 ```
-dtoverlay=uart5
+dtoverlay=uart5,txd5_pin=12,rxd5_pin=13
 ```
+
+**NOT:** GPIO12 ve GPIO13 varsayılan olarak UART5'e map edilmiş olabilir, ancak açıkça belirtmek daha iyidir.
 
 **ÖNEMLİ:** Debian 13 (Trixie) için config dosyası `/boot/firmware/config.txt` konumundadır.
 
