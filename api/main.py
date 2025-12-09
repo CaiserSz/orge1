@@ -6,11 +6,11 @@ Version: 2.0.0
 Description: ESP32 kontrolü için REST API endpoint'leri
 """
 
-import sys
 import os
+import sys
 import time
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 # ESP32 bridge modülünü import etmek için path ekle
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -31,16 +31,16 @@ except ImportError:
                     key, value = line.split('=', 1)
                     os.environ[key.strip()] = value.strip()
 
-from fastapi import FastAPI, HTTPException, status, Request
-from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
-from esp32.bridge import get_esp32_bridge
-from api.logging_config import log_api_request, system_logger
-from api.event_detector import get_event_detector
 
+from api.event_detector import get_event_detector
+from api.logging_config import log_api_request, system_logger
 # Router'ları import et
-from api.routers import charge, status, current, station, test
+from api.routers import charge, current, station, status, test
+from esp32.bridge import get_esp32_bridge
 
 # FastAPI uygulaması
 app = FastAPI(

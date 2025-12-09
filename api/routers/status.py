@@ -42,7 +42,9 @@ async def get_status(bridge: ESP32Bridge = Depends(get_bridge)):
     ESP32 durum bilgisini al
 
     ESP32'den son durum bilgisini döndürür.
-    ESP32 her 5 saniyede bir otomatik olarak durum gönderir.
+    ESP32 her 7.5 saniyede bir otomatik olarak durum gönderir.
+
+    Stale data kontrolü: 10 saniyeden eski veri None döndürülür ve yeni veri istenir.
     """
     if not bridge or not bridge.is_connected:
         raise HTTPException(
@@ -50,16 +52,17 @@ async def get_status(bridge: ESP32Bridge = Depends(get_bridge)):
             detail="ESP32 bağlantısı yok"
         )
 
-    status_data = bridge.get_status()
+    # Önce cache'den kontrol et (stale data kontrolü ile)
+    status_data = bridge.get_status(max_age_seconds=10.0)
 
     if not status_data:
-        # Status komutu gönder ve bekle
+        # Cache'de veri yok veya çok eski - yeni veri iste
         status_data = bridge.get_status_sync(timeout=2.0)
 
     if not status_data:
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-            detail="ESP32'den durum bilgisi alınamadı"
+            detail="ESP32'den durum bilgisi alınamadı (timeout veya stale data)"
         )
 
     return APIResponse(

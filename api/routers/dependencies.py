@@ -7,7 +7,8 @@ Description: Common dependencies for API routers
 """
 
 from fastapi import Depends
-from esp32.bridge import get_esp32_bridge, ESP32Bridge
+
+from esp32.bridge import ESP32Bridge, get_esp32_bridge
 
 
 def get_bridge() -> ESP32Bridge:
