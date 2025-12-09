@@ -31,3 +31,7 @@ python-dotenv>=1.0.0
 # System Monitoring
 psutil>=5.9.0
 
+# Code Quality Tools (development)
+black>=24.0.0
+ruff>=0.14.0
+

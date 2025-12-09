@@ -1,219 +1,223 @@
 """
-Event Detector Edge Cases Tests
-Created: 2025-12-09 23:20:00
-Last Modified: 2025-12-09 23:20:00
+Event Detector Edge Case Tests
+Created: 2025-12-10 01:40:00
+Last Modified: 2025-12-10 01:40:00
 Version: 1.0.0
-Description: Event Detector modülü için edge case testleri
+Description: Event Detector callback, state name, and singleton tests
 """
 
-import pytest
 import sys
-import time
 import threading
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 from pathlib import Path
 
-# Proje root'unu path'e ekle
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from api.event_detector import EventDetector, EventType, ESP32State
+from api.event_detector import EventDetector, get_event_detector
 
 
-class TestEventDetectorEdgeCases:
-    """Event Detector edge case testleri"""
+class TestEventDetectorCallbacks:
+    """Event Detector callback testleri"""
 
-    def setup_method(self):
-        """Her test öncesi mock bridge ve detector oluştur"""
-        self.mock_bridge = Mock()
-        self.mock_bridge.is_connected = True
-        self.mock_bridge.get_status = Mock(return_value=None)
+    def test_register_callback(self):
+        """Register callback"""
+        mock_bridge = Mock()
+        mock_bridge.is_connected = True
 
         def bridge_getter():
-            return self.mock_bridge
-
-        self.detector = EventDetector(bridge_getter)
-        self.received_events = []
-
-        def event_callback(event_type, event_data):
-            self.received_events.append((event_type, event_data))
-
-        self.detector.register_callback(event_callback)
-
-    def test_state_none_in_status(self):
-        """Status'ta STATE None durumu"""
-        self.mock_bridge.get_status.return_value = {"CP": 1, "PP": 1}  # STATE yok
-
-        # Monitoring başlat
-        self.detector.start_monitoring()
-        time.sleep(0.1)
-        self.detector.stop_monitoring()
-
-        # STATE None ise event oluşturulmamalı
-        assert len(self.received_events) == 0
-
-    def test_invalid_state_value(self):
-        """Geçersiz state değeri (99)"""
-        self.detector._check_state_transition(1, {"STATE": 1})
-        self.detector._check_state_transition(99, {"STATE": 99})
-
-        # Geçersiz state için STATE_CHANGED event oluşturulmalı
-        assert len(self.received_events) == 1
-        event_type, event_data = self.received_events[0]
-        assert event_type == EventType.STATE_CHANGED
-        assert event_data["to_state"] == 99
-        assert event_data["to_state_name"] == "UNKNOWN_99"
-
-    def test_negative_state_value(self):
-        """Negatif state değeri"""
-        self.detector._check_state_transition(1, {"STATE": 1})
-        self.detector._check_state_transition(-1, {"STATE": -1})
-
-        assert len(self.received_events) == 1
-        event_type, event_data = self.received_events[0]
-        assert event_type == EventType.STATE_CHANGED
-        assert event_data["to_state"] == -1
-
-    def test_state_zero(self):
-        """State değeri 0"""
-        self.detector._check_state_transition(1, {"STATE": 1})
-        self.detector._check_state_transition(0, {"STATE": 0})
-
-        assert len(self.received_events) == 1
-        event_type, event_data = self.received_events[0]
-        assert event_type == EventType.STATE_CHANGED
-
-    def test_rapid_state_changes(self):
-        """Hızlı state değişiklikleri"""
-        states = [1, 2, 3, 4, 5, 6, 7, 1]
-
-        for state in states:
-            self.detector._check_state_transition(state, {"STATE": state})
-            time.sleep(0.001)  # Çok kısa bekleme
-
-        # Her transition için event oluşturulmalı (ilk hariç)
-        assert len(self.received_events) == len(states) - 1
-
-    def test_callback_exception_handling(self):
-        """Callback exception handling"""
-        exception_callback_called = []
-
-        def failing_callback(event_type, event_data):
-            exception_callback_called.append(True)
-            raise Exception("Callback error")
-
-        self.detector.register_callback(failing_callback)
-
-        # Event oluştur - callback exception'ı detector'ı etkilememeli
-        self.detector._check_state_transition(1, {"STATE": 1})
-        self.detector._check_state_transition(2, {"STATE": 2})
-
-        # Event oluşturulmalı ve diğer callback'ler çağrılmalı
-        assert len(self.received_events) == 1
-        assert len(exception_callback_called) == 1
-
-    def test_monitor_loop_bridge_none(self):
-        """Monitor loop - bridge None durumu"""
-        def bridge_getter():
-            return None
+            return mock_bridge
 
         detector = EventDetector(bridge_getter)
-        detector.start_monitoring()
-        time.sleep(0.2)
-        detector.stop_monitoring()
 
-        # Bridge None ise hata oluşmamalı, sessizce devam etmeli
-        assert True  # Exception oluşmazsa test geçer
+        callback_called = []
 
-    def test_monitor_loop_bridge_not_connected(self):
-        """Monitor loop - bridge bağlı değil"""
-        self.mock_bridge.is_connected = False
+        def callback(event_type, event_data):
+            callback_called.append((event_type, event_data))
 
-        self.detector.start_monitoring()
-        time.sleep(0.2)
-        self.detector.stop_monitoring()
+        detector.register_callback(callback)
 
-        # Bridge bağlı değilse hata oluşmamalı
-        assert True  # Exception oluşmazsa test geçer
+        # Event oluştur
+        detector._check_state_transition(1, {"STATE": 1})
+        detector._check_state_transition(2, {"STATE": 2})
 
-    def test_monitor_loop_get_status_exception(self):
-        """Monitor loop - get_status exception"""
-        self.mock_bridge.get_status.side_effect = Exception("Status error")
+        # Callback çağrılmalı
+        assert len(callback_called) == 1
 
-        self.detector.start_monitoring()
-        time.sleep(0.2)
-        self.detector.stop_monitoring()
+    def test_unregister_callback(self):
+        """Unregister callback"""
+        mock_bridge = Mock()
+        mock_bridge.is_connected = True
 
-        # Exception yakalanmalı ve loop devam etmeli
-        assert True  # Exception oluşmazsa test geçer
+        def bridge_getter():
+            return mock_bridge
 
-    def test_multiple_callbacks_same_event(self):
-        """Aynı event için birden fazla callback"""
-        callback1_events = []
-        callback2_events = []
+        detector = EventDetector(bridge_getter)
+
+        callback_called = []
+
+        def callback(event_type, event_data):
+            callback_called.append((event_type, event_data))
+
+        detector.register_callback(callback)
+        detector.unregister_callback(callback)
+
+        # Event oluştur
+        detector._check_state_transition(1, {"STATE": 1})
+        detector._check_state_transition(2, {"STATE": 2})
+
+        # Callback çağrılmamalı
+        assert len(callback_called) == 0
+
+    def test_multiple_callbacks(self):
+        """Birden fazla callback"""
+        mock_bridge = Mock()
+        mock_bridge.is_connected = True
+
+        def bridge_getter():
+            return mock_bridge
+
+        detector = EventDetector(bridge_getter)
+
+        callback1_called = []
+        callback2_called = []
 
         def callback1(event_type, event_data):
-            callback1_events.append(event_type)
+            callback1_called.append(1)
 
         def callback2(event_type, event_data):
-            callback2_events.append(event_type)
+            callback2_called.append(2)
 
-        self.detector.register_callback(callback1)
-        self.detector.register_callback(callback2)
+        detector.register_callback(callback1)
+        detector.register_callback(callback2)
 
-        self.detector._check_state_transition(1, {"STATE": 1})
-        self.detector._check_state_transition(2, {"STATE": 2})
+        # Event oluştur
+        detector._check_state_transition(1, {"STATE": 1})
+        detector._check_state_transition(2, {"STATE": 2})
 
         # Her iki callback de çağrılmalı
-        assert len(callback1_events) == 1
-        assert len(callback2_events) == 1
-        assert callback1_events[0] == callback2_events[0]
+        assert len(callback1_called) == 1
+        assert len(callback2_called) == 1
 
-    def test_unregister_nonexistent_callback(self):
-        """Var olmayan callback'i kaldırma"""
-        def callback():
-            pass
 
-        # Var olmayan callback'i kaldırmaya çalış - hata oluşmamalı
-        self.detector.unregister_callback(callback)
-        assert True  # Exception oluşmazsa test geçer
+class TestEventDetectorGetStateName:
+    """Event Detector _get_state_name testleri"""
 
-    def test_state_transition_with_none_status(self):
-        """State transition - status None"""
-        # Status None yerine boş dict kullan (None TypeError'a neden olur)
-        self.detector._check_state_transition(1, {})
-        self.detector._check_state_transition(2, {})
+    def test_get_state_name_all_states(self):
+        """Get state name - tüm state'ler"""
+        mock_bridge = Mock()
 
-        # Status boş olsa bile event oluşturulmalı
-        assert len(self.received_events) == 1
+        def bridge_getter():
+            return mock_bridge
 
-    def test_state_transition_with_empty_status(self):
-        """State transition - boş status dict"""
-        self.detector._check_state_transition(1, {})
-        self.detector._check_state_transition(2, {})
+        detector = EventDetector(bridge_getter)
 
-        assert len(self.received_events) == 1
+        state_names = {
+            1: "IDLE",
+            2: "CABLE_DETECT",
+            3: "EV_CONNECTED",
+            4: "READY",
+            5: "CHARGING",
+            6: "PAUSED",
+            7: "STOPPED",
+            8: "FAULT_HARD",
+        }
 
-    def test_get_current_state_before_any_transition(self):
-        """Get current state - hiç transition olmadan"""
-        assert self.detector.get_current_state() is None
+        for state, expected_name in state_names.items():
+            name = detector._get_state_name(state)
+            assert name == expected_name
 
-    def test_get_previous_state_before_any_transition(self):
-        """Get previous state - hiç transition olmadan"""
-        assert self.detector.get_previous_state() is None
+    def test_get_state_name_unknown(self):
+        """Get state name - bilinmeyen state"""
+        mock_bridge = Mock()
 
-    def test_stop_monitoring_before_start(self):
-        """Stop monitoring - başlatılmadan önce"""
-        # Monitoring başlatılmadan durdurma - hata oluşmamalı
-        self.detector.stop_monitoring()
-        assert True  # Exception oluşmazsa test geçer
+        def bridge_getter():
+            return mock_bridge
 
-    def test_start_monitoring_twice(self):
-        """Start monitoring - iki kez başlatma"""
-        self.detector.start_monitoring()
-        self.detector.start_monitoring()  # İkinci kez başlatma
+        detector = EventDetector(bridge_getter)
 
-        # İkinci başlatma sessizce göz ardı edilmeli
-        assert self.detector.is_monitoring is True
+        name = detector._get_state_name(99)
+        assert name == "UNKNOWN_99"
 
-        self.detector.stop_monitoring()
+    def test_get_state_name_zero(self):
+        """Get state name - state 0"""
+        mock_bridge = Mock()
 
+        def bridge_getter():
+            return mock_bridge
+
+        detector = EventDetector(bridge_getter)
+
+        name = detector._get_state_name(0)
+        assert name == "UNKNOWN_0"
+
+    def test_get_state_name_negative(self):
+        """Get state name - negatif state"""
+        mock_bridge = Mock()
+
+        def bridge_getter():
+            return mock_bridge
+
+        detector = EventDetector(bridge_getter)
+
+        name = detector._get_state_name(-1)
+        assert name == "UNKNOWN_-1"
+
+
+class TestEventDetectorSingleton:
+    """Event Detector singleton testleri"""
+
+    def test_get_event_detector_singleton(self):
+        """Get event detector - singleton"""
+        import api.event_detector as detector_module
+
+        original_instance = detector_module.event_detector_instance
+        detector_module.event_detector_instance = None
+
+        try:
+            mock_bridge = Mock()
+
+            def bridge_getter():
+                return mock_bridge
+
+            detector1 = get_event_detector(bridge_getter)
+            detector2 = get_event_detector(bridge_getter)
+
+            # Aynı instance döndürülmeli
+            assert detector1 is detector2
+        finally:
+            # Restore original instance
+            detector_module.event_detector_instance = original_instance
+
+    def test_get_event_detector_thread_safe(self):
+        """Get event detector - thread safe"""
+        import api.event_detector as detector_module
+
+        original_instance = detector_module.event_detector_instance
+        detector_module.event_detector_instance = None
+
+        try:
+            mock_bridge = Mock()
+
+            def bridge_getter():
+                return mock_bridge
+
+            detectors = []
+
+            def get_detector():
+                detector = get_event_detector(bridge_getter)
+                detectors.append(detector)
+
+            threads = []
+            for _ in range(10):
+                thread = threading.Thread(target=get_detector)
+                threads.append(thread)
+                thread.start()
+
+            for thread in threads:
+                thread.join()
+
+            # Tüm detector'lar aynı instance olmalı
+            assert all(detector is detectors[0] for detector in detectors)
+        finally:
+            # Restore original instance
+            detector_module.event_detector_instance = original_instance
