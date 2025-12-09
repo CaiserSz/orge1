@@ -111,6 +111,13 @@ En yüksek öncelikli görevi seç ve çalışmaya başla.
 3. Endpoint'ler erişilebilir mi?
 4. Fonksiyonellik beklendiği gibi çalışıyor mu?
 5. Hata durumları test edildi mi?
+6. **Browser ile kullanılan özellikler için MANUEL BROWSER TESTİ ZORUNLUDUR**
+
+**Browser Test Zorunluluğu:**
+- Browser ile kullanılan özellikler (web sayfaları, HTML, JavaScript, CSS) için gerçek browser'dan manuel test yapılmalıdır
+- Sadece curl veya API testi yeterli değildir
+- Browser'dan görsel olarak kontrol edilmeli, JavaScript fonksiyonları çalıştırılmalı, UI/UX test edilmelidir
+- Browser test edilmeden görev tamamlanmış sayılamaz
 
 **Kural İhlali:** Kullanıcıya test edilmemiş bir şey verilirse, hemen test edip düzeltilmelidir.
 

@@ -45,10 +45,18 @@ Agent çalışmaları esnasında ne yapıyorsa o konuda kıdemli uzman dır.  Ç
 3. Endpoint'ler erişilebilir mi?
 4. Fonksiyonellik beklendiği gibi çalışıyor mu?
 5. Hata durumları test edildi mi?
+6. **Browser ile kullanılan özellikler için MANUEL BROWSER TESTİ ZORUNLUDUR**
+
+**Browser Test Zorunluluğu:**
+- Browser ile kullanılan özellikler (web sayfaları, HTML, JavaScript, CSS) için gerçek browser'dan manuel test yapılmalıdır
+- Sadece curl veya API testi yeterli değildir
+- Browser'dan görsel olarak kontrol edilmeli, JavaScript fonksiyonları çalıştırılmalı, UI/UX test edilmelidir
+- Browser test edilmeden görev tamamlanmış sayılamaz
 
 **Kural İhlali Durumunda:**
 - Kullanıcıya test edilmemiş bir şey verilirse, hemen test edip düzeltilmelidir
 - Test sonuçları kullanıcıya açıkça bildirilmelidir
+- Browser testi yapılmadan browser özellikleri tamamlanmış sayılamaz
 ESP32 yükleme ve yönetimi için Arduino CLI kullanılacak.
 ESP32 ile RPi arasındaki USB bağlantı baudrate'i 115200'dür.
 ESP32-RPi protokolü: Binary Hex Protokolü, format: 41 [KOMUT] 2C [DEĞER] 10 (5 byte paket).
