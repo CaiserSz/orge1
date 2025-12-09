@@ -94,9 +94,9 @@ async def startup_event():
 async def shutdown_event():
     """Uygulama kapanışında ESP32 bridge'i kapat"""
     global esp32_bridge
-        if esp32_bridge:
-            esp32_bridge.disconnect()
-            system_logger.info("ESP32 bridge kapatıldı")
+    if esp32_bridge:
+        esp32_bridge.disconnect()
+        system_logger.info("ESP32 bridge kapatıldı")
 
 
 # Request/Response modelleri
