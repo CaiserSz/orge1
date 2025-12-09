@@ -422,3 +422,131 @@ Session Management modülü başarıyla implement edildi. Kod kalitesi yüksek, 
   - Detaylar: `docs/SESSION_MANAGEMENT_AUDIT_20251210.md` dosyasına bakınız
   - Durum: 📋 Bekliyor
 
+---
+
+## Şarj Metrikleri Analizi Bulguları (2025-12-10)
+
+### 🔴 Kritik Eksiklik: Şarj Metrikleri Yok
+
+**Kullanıcı Geri Bildirimi:** "Şarj ile ilgili, süre, şarj sonu tüketilen enerji miktarı, şarj esnasındaki maksimum güç, vb. başka bilgiler hem session sırasında hem de session sonunda önemli değil mi?"
+
+**Mevcut Durum:** 🔴 Kritik metrikler eksik
+
+### 🔴 Kritik Eksik Metrikler
+
+#### Öncelik 0: Şarj Metrikleri Database Şeması
+- [ ] **Görev:** Database şemasına şarj metrikleri ekleme
+  - Açıklama: Süre, enerji, güç, akım, voltaj metrikleri database'de yok
+  - Öncelik: 0 (En Kritik)
+  - Tahmini Süre: 2-3 saat
+  - Durum: 🔴 Kritik eksiklik
+  - Eksik Metrikler:
+    - ❌ Süre metrikleri (duration_seconds, charging_duration_seconds)
+    - ❌ Enerji metrikleri (total_energy_kwh, start_energy_kwh, end_energy_kwh)
+    - ❌ Güç metrikleri (max_power_kw, avg_power_kw, min_power_kw)
+    - ❌ Akım metrikleri (max_current_a, avg_current_a, min_current_a, set_current_a)
+    - ❌ Voltaj metrikleri (max_voltage_v, avg_voltage_v, min_voltage_v)
+  - Çözüm:
+    - Database şemasına metrik kolonları ekle
+    - Migration script yaz
+    - Mevcut verileri migrate et
+  - Detaylar: `docs/SESSION_CHARGING_METRICS_ANALYSIS_20251210.md` dosyasına bakınız
+  - Durum: 📋 Bekliyor
+
+#### Öncelik 1: Metrik Hesaplama Mantığı
+- [ ] **Görev:** Session metriklerini hesaplayan mantık ekleme
+  - Açıklama: Event'lerden metrik çıkarma ve hesaplama mantığı yok
+  - Öncelik: 1 (Acil)
+  - Tahmini Süre: 2-3 saat
+  - Durum: 🔴 Kritik eksiklik
+  - Gerekli Mantık:
+    - Güç hesaplama: P = V × I (kW)
+    - Enerji hesaplama: E = P × t (kWh)
+    - Real-time metrik güncelleme
+    - Final metrik hesaplama (session sonunda)
+  - Çözüm:
+    - `SessionMetricsCalculator` sınıfı oluştur
+    - Event'lerden current, voltage bilgilerini çıkar
+    - Güç ve enerji hesapla
+    - Metrikleri database'e kaydet
+  - Detaylar: `docs/SESSION_CHARGING_METRICS_ANALYSIS_20251210.md` dosyasına bakınız
+  - Durum: 📋 Bekliyor
+
+#### Öncelik 2: SessionManager Metrik Entegrasyonu
+- [ ] **Görev:** SessionManager'a metrik entegrasyonu
+  - Açıklama: Event'lerden metrik çıkarma ve real-time güncelleme
+  - Öncelik: 2 (Yüksek)
+  - Tahmini Süre: 2-3 saat
+  - Durum: 🟡 Yüksek öncelik
+  - Gerekli Özellikler:
+    - Event'lerden current, voltage bilgilerini çıkar
+    - Real-time metrik güncelleme
+    - Session sonunda final metrik hesaplama
+    - Database'e metrik kaydetme
+  - ESP32 Status Bilgileri:
+    - `CABLE` - Cable current (A) - gerçek akım
+    - `CPV` - Control Pilot Voltage (V)
+    - `PPV` - Pilot Point Voltage (V)
+    - `MAX` - Maximum current (A)
+  - Detaylar: `docs/SESSION_CHARGING_METRICS_ANALYSIS_20251210.md` dosyasına bakınız
+  - Durum: 📋 Bekliyor
+
+#### Öncelik 3: API Endpoint'leri
+- [ ] **Görev:** Metrik endpoint'leri ekleme
+  - Açıklama: Session metriklerini döndüren API endpoint'leri
+  - Öncelik: 3 (Yüksek)
+  - Tahmini Süre: 1-2 saat
+  - Durum: 🟡 Yüksek öncelik
+  - Önerilen Endpoint'ler:
+    - `GET /api/sessions/{session_id}/metrics` - Session metrikleri
+    - `GET /api/sessions/stats/energy` - Enerji istatistikleri
+    - `GET /api/sessions/stats/power` - Güç istatistikleri
+  - Detaylar: `docs/SESSION_CHARGING_METRICS_ANALYSIS_20251210.md` dosyasına bakınız
+  - Durum: 📋 Bekliyor
+
+### 📊 Önerilen Database Şeması (Metriklerle)
+
+```sql
+CREATE TABLE sessions (
+    session_id TEXT PRIMARY KEY,
+    start_time INTEGER NOT NULL,
+    end_time INTEGER,
+    status TEXT NOT NULL,
+    
+    -- Süre metrikleri
+    duration_seconds INTEGER,
+    charging_duration_seconds INTEGER,
+    idle_duration_seconds INTEGER,
+    
+    -- Enerji metrikleri
+    total_energy_kwh REAL,
+    start_energy_kwh REAL,
+    end_energy_kwh REAL,
+    
+    -- Güç metrikleri
+    max_power_kw REAL,
+    avg_power_kw REAL,
+    min_power_kw REAL,
+    
+    -- Akım metrikleri
+    max_current_a REAL,
+    avg_current_a REAL,
+    min_current_a REAL,
+    set_current_a REAL,
+    
+    -- Voltaj metrikleri
+    max_voltage_v REAL,
+    avg_voltage_v REAL,
+    min_voltage_v REAL,
+    
+    -- Diğer alanlar
+    event_count INTEGER DEFAULT 0,
+    events TEXT NOT NULL DEFAULT '[]',
+    metadata TEXT NOT NULL DEFAULT '{}',
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+)
+```
+
+**Detaylar:** `docs/SESSION_CHARGING_METRICS_ANALYSIS_20251210.md` dosyasına bakınız
+
