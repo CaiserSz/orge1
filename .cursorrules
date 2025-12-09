@@ -85,6 +85,67 @@ Agent sistem sağlık kontrollerini düzenli yapacaktır.
 Varsayımlarla değil gerçek verilerle hareket edilecektir.
 Sistemde birşey yapılması gerektiğinde erişilemez veya SSH gerekli gibi varsayılmayacaktır. Direkt terminalden herşey yapılabilir durumdadır.
 
+## KRİTİK KURAL: Kod ve Dokümantasyon Boyut Standartları
+
+**ÖNEMLİ:** Tüm kod ve dokümantasyon dosyaları belirlenen boyut ve satır sayısı sınırlamalarına uymalıdır.
+
+### Kod Dosyaları Standartları
+
+#### Python Dosyaları (.py)
+- **Modül Dosyası:** İdeal 100-300 satır, Uyarı 400 satır, Maksimum 500 satır
+- **API Endpoint Dosyası:** İdeal 150-400 satır, Uyarı 500 satır, Maksimum 600 satır
+- **Test Dosyası:** İdeal 100-300 satır, Uyarı 400 satır, Maksimum 500 satır
+- **Utility/Helper:** İdeal 50-200 satır, Uyarı 300 satır, Maksimum 400 satır
+- **Dosya Boyutu:** İdeal < 20 KB, Uyarı 30 KB, Maksimum 50 KB
+
+#### Fonksiyon/Metod Standartları
+- **Satır Sayısı:** İdeal 10-30 satır, Uyarı 50 satır, Maksimum 100 satır
+- **Cyclomatic Complexity:** İdeal 1-5, Uyarı 10, Maksimum 15
+- **Parametre Sayısı:** İdeal 0-3, Uyarı 5, Maksimum 7
+
+#### Sınıf (Class) Standartları
+- **Satır Sayısı:** İdeal 50-200 satır, Uyarı 300 satır, Maksimum 500 satır
+- **Metod Sayısı:** İdeal 3-10, Uyarı 15, Maksimum 20
+
+### Dokümantasyon Standartları
+
+#### Markdown Dosyaları (.md)
+- **Ana Dokümantasyon:** İdeal 300-800 satır, Uyarı 1000 satır, Maksimum 1200 satır
+- **Teknik Dokümantasyon:** İdeal 200-600 satır, Uyarı 800 satır, Maksimum 1000 satır
+- **API Dokümantasyonu:** İdeal 100-400 satır, Uyarı 600 satır, Maksimum 800 satır
+- **Audit/Report:** İdeal 300-700 satır, Uyarı 900 satır, Maksimum 1100 satır
+- **README:** İdeal 50-200 satır, Uyarı 300 satır, Maksimum 400 satır
+- **Dosya Boyutu:** İdeal < 50 KB, Uyarı 80 KB, Maksimum 100 KB
+
+### Uygulama Kuralları
+
+#### Yeni Dosya Oluştururken
+- ✅ Dosya boyutunu ve satır sayısını kontrol et
+- ✅ İdeal sınırlar içinde tutmaya çalış
+- ✅ Uyarı eşiğini aşmamaya dikkat et
+- ✅ Maksimum sınırı ASLA aşma
+
+#### Mevcut Dosyaları Güncellerken
+- ✅ Satır sayısını kontrol et (`wc -l`)
+- ✅ Uyarı eşiğine yaklaşıyorsa refactor planla
+- ✅ Maksimum sınırı aşmışsa hemen refactor yap
+
+#### Refactoring Kriterleri
+- 🔴 **Maksimum sınır aşıldı:** Acil refactor gerekli
+- 🟡 **Uyarı eşiği aşıldı:** Yakın zamanda refactor planlanmalı
+- 🟢 **İdeal sınırlar içinde:** Devam edilebilir
+
+### Kontrol ve İzleme
+
+#### Her Commit Öncesi
+1. ✅ Dosya boyutunu kontrol et (`wc -l`, `du -h`)
+2. ✅ Standartlara uygunluğu kontrol et
+3. ✅ Gerekirse refactor yap
+
+#### Detaylı Standartlar
+- Detaylı standartlar için `CODE_DOCUMENTATION_STANDARDS.md` dosyasına bakınız
+- Bu dosya proje boyunca referans olarak kullanılacaktır
+
 ## Otonom Proje Yönetimi ve Devam Etme Kuralları
 
 **KRİTİK:** Kullanıcı "projeye devam et" veya benzeri bir komut verdiğinde, Agent şu adımları takip etmelidir:
