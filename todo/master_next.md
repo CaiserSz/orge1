@@ -286,6 +286,54 @@
 
 ---
 
+## Audit Bulguları (2025-12-10)
+
+### 🔴 Kritik Sorunlar (Acil Müdahale Gerekli)
+
+#### Öncelik 0: Test Dosyası Refactoring (Acil)
+- [ ] **Görev:** `tests/test_missing_unit_tests.py` bölünmeli
+  - Açıklama: Dosya boyutu 691 satır (Limit: 500) - maksimum sınır aşıldı
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 2-3 saat
+  - Durum: 🔴 Maksimum sınır aşıldı
+  - Aksiyon: Test suite'lere bölünmeli
+  - Detaylar: `docs/AUDIT_REPORT_20251210.md` dosyasına bakınız
+
+### 🟡 Uyarılar (Yakında Çözülmeli)
+
+#### Öncelik 3: Test Dosyaları Refactoring (Orta)
+- [ ] **Görev:** Test dosyaları refactoring
+  - Açıklama: 2 test dosyası uyarı eşiğinde
+    - `tests/test_additional_edge_cases.py`: 471 satır (Limit: 500)
+    - `tests/test_api_edge_cases.py`: 476 satır (Limit: 500)
+  - Öncelik: 3 (Orta)
+  - Tahmini Süre: 2-4 saat (her biri için 1-2 saat)
+  - Durum: 🟡 Uyarı eşiği yakın
+  - Aksiyon: Test suite'lere bölünmeli
+  - Detaylar: `docs/AUDIT_REPORT_20251210.md` dosyasına bakınız
+
+#### Öncelik 5: Workspace Temizliği (Düşük)
+- [ ] **Görev:** Workspace temizliği
+  - Açıklama: Workspace boyutu 81.75 MB (İdeal: < 80 MB) - uyarı eşiğinde
+  - Öncelik: 5 (Düşük)
+  - Tahmini Süre: 1 saat
+  - Durum: 🟡 Uyarı eşiğinde
+  - Aksiyon: Log dosyaları kontrol edilmeli, gereksiz dosyalar temizlenmeli
+  - Detaylar: `docs/AUDIT_REPORT_20251210.md` dosyasına bakınız
+
+### 🟢 Opsiyonel İyileştirmeler
+
+#### Öncelik 7: Kod Kalitesi Araçları (Opsiyonel)
+- [ ] **Görev:** Kod kalitesi araçları kurulumu
+  - Açıklama: Black formatter ve Ruff linter kurulu değil (opsiyonel)
+  - Öncelik: 7 (Opsiyonel)
+  - Tahmini Süre: 2-3 saat
+  - Durum: 🟢 Opsiyonel
+  - Aksiyon: Black ve Ruff kurulumu, pre-commit hook'larına entegrasyon
+  - Detaylar: `docs/AUDIT_REPORT_20251210.md` dosyasına bakınız
+
+---
+
 ## Genel Notlar
 
 - Görevler öncelik sırasına göre sıralanmıştır
@@ -294,8 +342,10 @@
 - Görevler proje planlamasına göre fazlara ayrılmıştır
 - **Yeni:** Loglama ve Session Yönetimi fazı eklendi (2025-12-09)
 - **Yeni:** Code Quality ve DevOps İyileştirmeleri fazı eklendi (2025-12-09)
+- **Yeni:** Audit bulguları eklendi (2025-12-10)
 - **Güncelleme:** Genel durum değerlendirmesi ve iyileştirme fırsatları analizi yapıldı (2025-12-09 21:35:00)
 - **Güncelleme:** Kod ve dokümantasyon standartlarına uyum görevleri eklendi (2025-12-09 22:15:00)
 - **Güncelleme:** Event Detection tamamlandı bilgisi güncellendi, api/main.py önceliği acil olarak işaretlendi (2025-12-10 02:10:00)
+- **Güncelleme:** Genel audit raporu eklendi, audit bulguları master_next.md'ye eklendi (2025-12-10 01:35:00)
 - **Güncelleme:** Workspace reorganizasyonu tamamlandı (2025-12-10 02:00:00)
 
