@@ -380,16 +380,6 @@
 - **İçerik:** End-to-end testler, hata kurtarma akışları
 - **Ne Zaman:** Deep dive kontrolleri sırasında oluşturuldu (2025-12-09)
 
-#### `tests/TEST_RESULTS.md`
-- **Ne:** Test sonuçları dokümantasyonu
-- **Amaç:** Test sonuçlarının özeti ve analizi
-- **İçerik:** Test coverage, başarılı/başarısız testler, öneriler
-
-#### `tests/DEEPDIVE_RESULTS.md`
-- **Ne:** Deep dive test sonuçları
-- **Amaç:** Deep dive kontrollerinin sonuçları
-- **İçerik:** 81 test sonucu, coverage bilgileri, kritik bulgular
-
 ---
 
 ### `todo/` - Proje Yönetimi
