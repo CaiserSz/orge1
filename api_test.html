@@ -429,11 +429,15 @@
                     responseBody = responseText;
                 }
 
+                // Get API key for display
+                const apiKey = await getApiKey();
+                
                 // Display response
                 displayResponse(responseSection, {
                     method,
                     path,
                     requestBody: requestBodyDisplay,
+                    apiKey: apiKey,
                     status: response.status,
                     statusText: response.statusText,
                     responseTime,
@@ -441,11 +445,15 @@
                 });
 
             } catch (error) {
+                // Get API key for display
+                const apiKey = await getApiKey();
+                
                 // Display error
                 displayResponse(responseSection, {
                     method,
                     path,
                     requestBody: requestBodyDisplay || 'null',
+                    apiKey: apiKey,
                     status: 'ERROR',
                     statusText: error.message,
                     responseTime: null,
@@ -469,9 +477,32 @@
             }
         }
 
-        function displayResponse(section, data) {
+        function generateCurlCommand(method, path, apiKey, requestBody) {
+            const url = `${API_BASE_URL}${path}`;
+            let curlCmd = `curl -X ${method} "${url}"`;
+            
+            // Add headers
+            curlCmd += ` \\\n  -H "Content-Type: application/json"`;
+            curlCmd += ` \\\n  -H "X-API-Key: ${apiKey}"`;
+            
+            // Add body if exists
+            if (requestBody && requestBody !== 'null' && requestBody.trim() !== '') {
+                const bodyStr = typeof requestBody === 'string' ? requestBody : JSON.stringify(requestBody);
+                // Escape single quotes and newlines for shell
+                const escapedBody = bodyStr.replace(/'/g, "'\\''").replace(/\n/g, '\\n');
+                curlCmd += ` \\\n  -d '${escapedBody}'`;
+            }
+            
+            return curlCmd;
+        }
+
+        async function displayResponse(section, data) {
             const statusClass = data.status >= 200 && data.status < 300 ? 'success' : 
                                data.status === 'ERROR' ? 'error' : 'info';
+            
+            // Use provided API key or get it
+            const apiKey = data.apiKey || await getApiKey();
+            const curlCommand = generateCurlCommand(data.method, data.path, apiKey, data.requestBody);
             
             section.innerHTML = `
                 <div class="response-header">
@@ -482,9 +513,12 @@
                     </div>
                 </div>
                 
+                <div class="section-title">💻 cURL Command</div>
+                <div class="request-display">${escapeHtml(curlCommand)}</div>
+                
                 <div class="section-title">📤 Request</div>
                 <div class="request-display">${escapeHtml(data.method)} ${escapeHtml(data.path)}
-${data.requestBody ? escapeHtml(data.requestBody) : 'No body'}</div>
+${data.requestBody && data.requestBody !== 'null' ? escapeHtml(data.requestBody) : 'No body'}</div>
                 
                 <div class="section-title">📥 Response</div>
                 <div class="response-display">${escapeHtml(data.responseBody)}</div>
