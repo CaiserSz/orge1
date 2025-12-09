@@ -119,6 +119,13 @@ En yüksek öncelikli görevi seç ve çalışmaya başla.
 - Browser'dan görsel olarak kontrol edilmeli, JavaScript fonksiyonları çalıştırılmalı, UI/UX test edilmelidir
 - Browser test edilmeden görev tamamlanmış sayılamaz
 
+**External Erişim Test Zorunluluğu:**
+- Dışarıdan erişilebilir özellikler için external erişim testi zorunludur
+- Sadece localhost testi yeterli değildir
+- Ngrok veya dışarıdan erişim URL'i üzerinden test edilmelidir
+- External erişim test edilmeden görev tamamlanmış sayılamaz
+- Test sonuçları (URL, response, status code) dokümante edilmelidir
+
 **Kural İhlali:** Kullanıcıya test edilmemiş bir şey verilirse, hemen test edip düzeltilmelidir.
 
 ---
