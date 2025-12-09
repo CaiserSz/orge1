@@ -37,6 +37,19 @@ class SessionManager:
         self.sessions_lock = threading.Lock()
         self.max_sessions = 1000  # Maksimum saklanacak session sayısı
 
+        # Meter entegrasyonu için hazırlık
+        try:
+            from api.meter import get_meter
+
+            self.meter = get_meter()
+            # Meter bağlantısını dene (başarısız olursa sorun değil)
+            try:
+                self.meter.connect()
+            except Exception:
+                pass  # Meter yok, sorun değil
+        except ImportError:
+            self.meter = None
+
         # Startup'ta aktif session'ı restore et
         self._restore_active_session()
 
@@ -106,6 +119,21 @@ class SessionManager:
 
             session = ChargingSession(session_id, start_time, start_state)
             session.add_event(EventType.CHARGE_STARTED, event_data)
+
+            # Meter'dan başlangıç enerji seviyesini oku (eğer meter varsa)
+            if self.meter and self.meter.is_connected():
+                try:
+                    meter_reading = self.meter.read_all()
+                    if meter_reading and meter_reading.is_valid:
+                        session.metadata["start_energy_kwh"] = meter_reading.energy_kwh
+                        session.metadata["meter_available"] = True
+                except Exception as e:
+                    system_logger.warning(
+                        f"Meter okuma hatası (session başlangıcı): {e}"
+                    )
+                    session.metadata["meter_available"] = False
+            else:
+                session.metadata["meter_available"] = False
 
             # Database'e kaydet
             self.db.create_session(
@@ -181,6 +209,35 @@ class SessionManager:
             status: Session durumu
         """
         session.end_session(end_time, end_state, status)
+
+        # Meter'dan bitiş enerji seviyesini oku (eğer meter varsa)
+        if self.meter and self.meter.is_connected():
+            try:
+                meter_reading = self.meter.read_all()
+                if meter_reading and meter_reading.is_valid:
+                    end_energy = meter_reading.energy_kwh
+                    start_energy = session.metadata.get("start_energy_kwh")
+
+                    if start_energy is not None:
+                        # Gerçek enerji tüketimi = bitiş - başlangıç
+                        total_energy = end_energy - start_energy
+                        session.metadata["end_energy_kwh"] = end_energy
+                        session.metadata["total_energy_kwh"] = max(
+                            0, total_energy
+                        )  # Negatif olamaz
+                        session.metadata["energy_source"] = "meter"
+                    else:
+                        # Başlangıç enerjisi yoksa sadece bitiş enerjisini kaydet
+                        session.metadata["end_energy_kwh"] = end_energy
+            except Exception as e:
+                system_logger.warning(f"Meter okuma hatası (session bitişi): {e}")
+                session.metadata["energy_source"] = (
+                    "calculated"  # Fallback: hesaplanmış
+                )
+        else:
+            session.metadata["energy_source"] = (
+                "calculated"  # Meter yok, hesaplanmış kullan
+            )
 
         # Database'e kaydet
         self.db.update_session(
