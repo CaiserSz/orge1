@@ -42,3 +42,13 @@ Thumbs.db
 *.bak
 *.tmp
 
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Secrets
+*.key
+*.pem
+secrets/
+

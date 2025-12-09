@@ -306,6 +306,19 @@ def log_event(
 _log_lock = threading.Lock()
 
 
+def get_logger(name: str) -> logging.Logger:
+    """
+    Logger instance'ı al (convenience function)
+    
+    Args:
+        name: Logger adı
+        
+    Returns:
+        Logger instance
+    """
+    return logging.getLogger(name)
+
+
 def thread_safe_log(logger: logging.Logger, level: int, message: str, **kwargs):
     """
     Thread-safe log yazma
