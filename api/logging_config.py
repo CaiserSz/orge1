@@ -179,10 +179,12 @@ def log_api_request(
             
             if client_ip:
                 extra_fields["client_ip"] = client_ip
-            if status_code:
-                extra_fields["status_code"] = status_code
-            if response_time_ms is not None:
-                extra_fields["response_time_ms"] = response_time_ms
+                if status_code:
+                    extra_fields["status_code"] = status_code
+                if response_time_ms is not None:
+                    extra_fields["response_time_ms"] = response_time_ms
+                if user_id:
+                    extra_fields["user_id"] = user_id
             
             # Log kaydına ekstra alanları ekle
             import inspect

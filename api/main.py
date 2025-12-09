@@ -39,8 +39,9 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel, Field
 from esp32.bridge import get_esp32_bridge, ESP32Bridge
 from api.station_info import save_station_info, get_station_info
-from api.logging_config import api_logger, log_api_request, system_logger
+from api.logging_config import api_logger, log_api_request, system_logger, log_event
 from api.auth import verify_api_key
+import logging
 
 # FastAPI uygulaması
 app = FastAPI(
@@ -72,6 +73,9 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
         # İstemci IP adresini al
         client_ip = request.client.host if request.client else None
         
+        # User ID'yi environment variable'dan al (audit trail için)
+        user_id = os.getenv("TEST_API_USER_ID", None)
+        
         # İsteği işle
         response = await call_next(request)
         
@@ -86,7 +90,8 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
                     path=request.url.path,
                     client_ip=client_ip,
                     status_code=response.status_code,
-                    response_time_ms=process_time
+                    response_time_ms=process_time,
+                    user_id=user_id
                 )
             except Exception as e:
                 # Logging hatası API response'u etkilememeli
@@ -242,6 +247,21 @@ async def start_charge(
     
     ESP32'ye authorization komutu gönderir ve şarj izni verir.
     """
+    # User ID'yi al (audit trail için)
+    user_id = os.getenv("TEST_API_USER_ID", None)
+    
+    # Kritik işlemleri logla (şarj başlatma)
+    if user_id:
+        log_event(
+            event_type="charge_start",
+            event_data={
+                "user_id": user_id,
+                "api_key": api_key[:10] + "..." if api_key else None,
+                "timestamp": datetime.now().isoformat()
+            },
+            level=logging.INFO
+        )
+    
     if not bridge or not bridge.is_connected:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -291,6 +311,21 @@ async def stop_charge(
     
     ESP32'ye charge stop komutu gönderir ve şarjı sonlandırır.
     """
+    # User ID'yi al (audit trail için)
+    user_id = os.getenv("TEST_API_USER_ID", None)
+    
+    # Kritik işlemleri logla (şarj durdurma)
+    if user_id:
+        log_event(
+            event_type="charge_stop",
+            event_data={
+                "user_id": user_id,
+                "api_key": api_key[:10] + "..." if api_key else None,
+                "timestamp": datetime.now().isoformat()
+            },
+            level=logging.INFO
+        )
+    
     if not bridge or not bridge.is_connected:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -329,6 +364,22 @@ async def set_current(
     
     Geçerli akım aralığı: 6-32 amper (herhangi bir tam sayı)
     """
+    # User ID'yi al (audit trail için)
+    user_id = os.getenv("TEST_API_USER_ID", None)
+    
+    # Kritik işlemleri logla (akım ayarlama)
+    if user_id:
+        log_event(
+            event_type="current_set",
+            event_data={
+                "user_id": user_id,
+                "amperage": request.amperage,
+                "api_key": api_key[:10] + "..." if api_key else None,
+                "timestamp": datetime.now().isoformat()
+            },
+            level=logging.INFO
+        )
+    
     if not bridge or not bridge.is_connected:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
