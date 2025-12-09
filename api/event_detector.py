@@ -21,6 +21,7 @@ from api.logging_config import system_logger, log_event
 # ESP32 State değerleri (ESP32 firmware'den)
 class ESP32State(Enum):
     """ESP32 state değerleri"""
+    HARDFAULT_END = 0  # ESP32 firmware'de tanımlı (Commercial_08122025.ino:197)
     IDLE = 1
     CABLE_DETECT = 2
     EV_CONNECTED = 3
@@ -151,10 +152,18 @@ class EventDetector:
             (ESP32State.PAUSED.value, ESP32State.STOPPED.value): EventType.CHARGE_STOPPED,
             (ESP32State.CABLE_DETECT.value, ESP32State.IDLE.value): EventType.CABLE_DISCONNECTED,
             (ESP32State.EV_CONNECTED.value, ESP32State.IDLE.value): EventType.CABLE_DISCONNECTED,
+            # PAUSED → READY transition (ESP32 firmware gerçek davranışı)
+            # NOT: ESP32 firmware'de bu transition mantık hatası olabilir (CHARGING olmalı)
+            # Ancak gerçek davranış bu olduğu için RPi tarafı buna uyum sağlamalı
+            (ESP32State.PAUSED.value, ESP32State.READY.value): EventType.STATE_CHANGED,
+            # Fault handling transitions
+            (ESP32State.FAULT_HARD.value, ESP32State.HARDFAULT_END.value): EventType.FAULT_DETECTED,
+            (ESP32State.HARDFAULT_END.value, ESP32State.IDLE.value): EventType.STATE_CHANGED,
         }
 
         # Fault detection (herhangi bir state'den FAULT_HARD'a geçiş)
-        if to_state == ESP32State.FAULT_HARD.value:
+        # NOT: FAULT_HARD → HARDFAULT_END transition'ı yukarıda tanımlı
+        if to_state == ESP32State.FAULT_HARD.value and from_state != ESP32State.HARDFAULT_END.value:
             return EventType.FAULT_DETECTED
 
         # Bilinen transition
@@ -209,6 +218,7 @@ class EventDetector:
             State adı
         """
         state_names = {
+            0: "HARDFAULT_END",
             1: "IDLE",
             2: "CABLE_DETECT",
             3: "EV_CONNECTED",
