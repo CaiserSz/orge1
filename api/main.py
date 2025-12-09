@@ -16,6 +16,22 @@ from datetime import datetime
 # ESP32 bridge modülünü import etmek için path ekle
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+# .env dosyasından environment variable'ları yükle
+try:
+    from dotenv import load_dotenv
+    env_path = Path(__file__).parent.parent / '.env'
+    load_dotenv(dotenv_path=env_path)
+except ImportError:
+    # python-dotenv yüklü değilse, manuel olarak .env dosyasını oku
+    env_path = Path(__file__).parent.parent / '.env'
+    if env_path.exists():
+        with open(env_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    os.environ[key.strip()] = value.strip()
+
 from fastapi import FastAPI, HTTPException, status, Request, Depends
 from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
