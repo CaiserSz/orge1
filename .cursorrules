@@ -48,6 +48,8 @@ Agent çalışmaları esnasında ne yapıyorsa o konuda kıdemli uzman dır.  Ç
 6. **Browser ile kullanılan özellikler için MANUEL BROWSER TESTİ ZORUNLUDUR**
 7. **Todo dosyaları tutarlılık kontrolü yapıldı mı?** (`python3 scripts/todo_auto_check.py`)
 8. **Workspace standartları kontrolü yapıldı mı?** (`python3 scripts/workspace_auto_check.py`)
+9. **Standart kontrolü yapıldı mı?** (`python3 scripts/standards_auto_check.py`)
+10. **Kod kalitesi kontrolü yapıldı mı?** (`python3 scripts/code_quality_auto_check.py`)
 
 **Browser Test Zorunluluğu:**
 - Browser ile kullanılan özellikler (web sayfaları, HTML, JavaScript, CSS) için gerçek browser'dan manuel test yapılmalıdır
