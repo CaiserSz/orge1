@@ -19,17 +19,9 @@ async def get_test_api_key():
     """
     Test sayfası için API key'i döndürür
 
-    NOT: Bu endpoint sadece test amaçlıdır. Production'da devre dışı bırakılmalıdır.
+    NOT: Bu endpoint test sayfası için gereklidir. Ngrok üzerinden erişim için aktif tutulmalıdır.
     """
-    # Production'da bu endpoint'i devre dışı bırak
-    environment = os.getenv("ENVIRONMENT", "production").lower()
-    if environment == "production":
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Not found"
-        )
-
-    # Test amaçlı - sadece development ortamında kullanılmalı
+    # Test sayfası için API key gerekli - Ngrok üzerinden erişim için aktif
     api_key = os.getenv("SECRET_API_KEY", "")
     if not api_key:
         raise HTTPException(
@@ -40,7 +32,7 @@ async def get_test_api_key():
     return {
         "api_key": api_key,
         "user_id": os.getenv("TEST_API_USER_ID", ""),
-        "note": "This endpoint is for testing purposes only. Disabled in production."
+        "note": "This endpoint is for testing purposes only."
     }
 
 
