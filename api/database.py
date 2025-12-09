@@ -51,23 +51,60 @@ class Database:
             try:
                 cursor = conn.cursor()
 
-                # Sessions tablosu
+                # Sessions tablosu (güncellenmiş şema: INTEGER timestamps + metrikler)
                 cursor.execute(
                     """
                     CREATE TABLE IF NOT EXISTS sessions (
                         session_id TEXT PRIMARY KEY,
-                        start_time TEXT NOT NULL,
-                        end_time TEXT,
-                        start_state INTEGER NOT NULL,
-                        end_state INTEGER,
-                        status TEXT NOT NULL,
-                        events TEXT NOT NULL,
-                        metadata TEXT NOT NULL,
-                        created_at TEXT NOT NULL,
-                        updated_at TEXT NOT NULL
+                        start_time INTEGER NOT NULL,
+                        end_time INTEGER,
+                        start_state INTEGER NOT NULL CHECK(start_state >= 0 AND start_state <= 8),
+                        end_state INTEGER CHECK(end_state IS NULL OR (end_state >= 0 AND end_state <= 8)),
+                        status TEXT NOT NULL CHECK(status IN ('ACTIVE', 'COMPLETED', 'CANCELLED', 'FAULTED')),
+
+                        -- Süre metrikleri
+                        duration_seconds INTEGER CHECK(duration_seconds IS NULL OR duration_seconds >= 0),
+                        charging_duration_seconds INTEGER CHECK(charging_duration_seconds IS NULL OR charging_duration_seconds >= 0),
+                        idle_duration_seconds INTEGER CHECK(idle_duration_seconds IS NULL OR idle_duration_seconds >= 0),
+
+                        -- Enerji metrikleri
+                        total_energy_kwh REAL CHECK(total_energy_kwh IS NULL OR total_energy_kwh >= 0),
+                        start_energy_kwh REAL CHECK(start_energy_kwh IS NULL OR start_energy_kwh >= 0),
+                        end_energy_kwh REAL CHECK(end_energy_kwh IS NULL OR end_energy_kwh >= 0),
+
+                        -- Güç metrikleri
+                        max_power_kw REAL CHECK(max_power_kw IS NULL OR max_power_kw >= 0),
+                        avg_power_kw REAL CHECK(avg_power_kw IS NULL OR avg_power_kw >= 0),
+                        min_power_kw REAL CHECK(min_power_kw IS NULL OR min_power_kw >= 0),
+
+                        -- Akım metrikleri
+                        max_current_a REAL CHECK(max_current_a IS NULL OR max_current_a >= 0),
+                        avg_current_a REAL CHECK(avg_current_a IS NULL OR avg_current_a >= 0),
+                        min_current_a REAL CHECK(min_current_a IS NULL OR min_current_a >= 0),
+                        set_current_a REAL CHECK(set_current_a IS NULL OR set_current_a >= 0),
+
+                        -- Voltaj metrikleri
+                        max_voltage_v REAL CHECK(max_voltage_v IS NULL OR max_voltage_v >= 0),
+                        avg_voltage_v REAL CHECK(avg_voltage_v IS NULL OR avg_voltage_v >= 0),
+                        min_voltage_v REAL CHECK(min_voltage_v IS NULL OR min_voltage_v >= 0),
+
+                        -- Event ve metadata
+                        event_count INTEGER DEFAULT 0 CHECK(event_count >= 0),
+                        events TEXT NOT NULL DEFAULT '[]',
+                        metadata TEXT NOT NULL DEFAULT '{}',
+
+                        -- Audit fields (INTEGER timestamps)
+                        created_at INTEGER NOT NULL,
+                        updated_at INTEGER NOT NULL
                     )
                     """
                 )
+
+                # Migration: Eski TEXT timestamp kolonları varsa migrate et
+                self._migrate_timestamp_columns(cursor)
+
+                # Migration: Yeni metrik kolonlarını ekle (eğer yoksa)
+                self._migrate_metrics_columns(cursor)
 
                 # Index'ler (performans için)
                 cursor.execute(
@@ -88,6 +125,19 @@ class Database:
                     ON sessions(end_time DESC)
                     """
                 )
+                # Composite index'ler (performans iyileştirmesi)
+                cursor.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_sessions_status_start_time
+                    ON sessions(status, start_time DESC)
+                    """
+                )
+                cursor.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_sessions_status_end_time
+                    ON sessions(status, end_time DESC)
+                    """
+                )
 
                 conn.commit()
                 system_logger.info(f"Database initialized: {self.db_path}")
@@ -99,6 +149,144 @@ class Database:
                 raise
             finally:
                 conn.close()
+
+    def _migrate_timestamp_columns(self, cursor):
+        """
+        Eski TEXT timestamp kolonlarını INTEGER'a migrate et
+
+        Args:
+            cursor: Database cursor
+        """
+        try:
+            # Mevcut kolonları kontrol et
+            cursor.execute("PRAGMA table_info(sessions)")
+            columns = {row[1]: row[2] for row in cursor.fetchall()}
+
+            # Eğer start_time TEXT ise, INTEGER'a çevir
+            if columns.get("start_time") == "TEXT":
+                system_logger.info(
+                    "Migrating timestamp columns from TEXT to INTEGER..."
+                )
+
+                # Yeni tablo oluştur
+                cursor.execute(
+                    """
+                    CREATE TABLE sessions_new (
+                        session_id TEXT PRIMARY KEY,
+                        start_time INTEGER NOT NULL,
+                        end_time INTEGER,
+                        start_state INTEGER NOT NULL,
+                        end_state INTEGER,
+                        status TEXT NOT NULL,
+                        events TEXT NOT NULL,
+                        metadata TEXT NOT NULL,
+                        created_at INTEGER NOT NULL,
+                        updated_at INTEGER NOT NULL
+                    )
+                    """
+                )
+
+                # Mevcut verileri migrate et
+                cursor.execute("SELECT * FROM sessions")
+                rows = cursor.fetchall()
+
+                for row in rows:
+                    # TEXT timestamp'leri INTEGER'a çevir
+                    start_time_int = int(
+                        datetime.fromisoformat(row["start_time"]).timestamp()
+                    )
+                    end_time_int = (
+                        int(datetime.fromisoformat(row["end_time"]).timestamp())
+                        if row["end_time"]
+                        else None
+                    )
+                    created_at_int = int(
+                        datetime.fromisoformat(row["created_at"]).timestamp()
+                    )
+                    updated_at_int = int(
+                        datetime.fromisoformat(row["updated_at"]).timestamp()
+                    )
+
+                    cursor.execute(
+                        """
+                        INSERT INTO sessions_new
+                        (session_id, start_time, end_time, start_state, end_state,
+                         status, events, metadata, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            row["session_id"],
+                            start_time_int,
+                            end_time_int,
+                            row["start_state"],
+                            row["end_state"],
+                            row["status"],
+                            row["events"],
+                            row["metadata"],
+                            created_at_int,
+                            updated_at_int,
+                        ),
+                    )
+
+                # Eski tabloyu sil ve yenisini yeniden adlandır
+                cursor.execute("DROP TABLE sessions")
+                cursor.execute("ALTER TABLE sessions_new RENAME TO sessions")
+
+                system_logger.info("Timestamp migration completed successfully")
+        except Exception as e:
+            # Migration hatası kritik değil (yeni database için)
+            system_logger.debug(
+                f"Timestamp migration skipped (new database or already migrated): {e}"
+            )
+
+    def _migrate_metrics_columns(self, cursor):
+        """
+        Yeni metrik kolonlarını ekle (eğer yoksa)
+
+        Args:
+            cursor: Database cursor
+        """
+        try:
+            # Mevcut kolonları kontrol et
+            cursor.execute("PRAGMA table_info(sessions)")
+            existing_columns = {row[1] for row in cursor.fetchall()}
+
+            # Eklenecek metrik kolonları
+            metrics_columns = [
+                ("duration_seconds", "INTEGER"),
+                ("charging_duration_seconds", "INTEGER"),
+                ("idle_duration_seconds", "INTEGER"),
+                ("total_energy_kwh", "REAL"),
+                ("start_energy_kwh", "REAL"),
+                ("end_energy_kwh", "REAL"),
+                ("max_power_kw", "REAL"),
+                ("avg_power_kw", "REAL"),
+                ("min_power_kw", "REAL"),
+                ("max_current_a", "REAL"),
+                ("avg_current_a", "REAL"),
+                ("min_current_a", "REAL"),
+                ("set_current_a", "REAL"),
+                ("max_voltage_v", "REAL"),
+                ("avg_voltage_v", "REAL"),
+                ("min_voltage_v", "REAL"),
+                ("event_count", "INTEGER DEFAULT 0"),
+            ]
+
+            # Eksik kolonları ekle
+            for col_name, col_type in metrics_columns:
+                if col_name not in existing_columns:
+                    try:
+                        cursor.execute(
+                            f"ALTER TABLE sessions ADD COLUMN {col_name} {col_type}"
+                        )
+                        system_logger.debug(f"Added column: {col_name}")
+                    except sqlite3.OperationalError as e:
+                        # Kolon zaten var veya başka bir hata
+                        system_logger.debug(
+                            f"Column {col_name} already exists or error: {e}"
+                        )
+        except Exception as e:
+            system_logger.warning(f"Metrics columns migration error: {e}")
 
     def _get_connection(self) -> sqlite3.Connection:
         """
@@ -136,7 +324,8 @@ class Database:
             conn = self._get_connection()
             try:
                 cursor = conn.cursor()
-                now = datetime.now().isoformat()
+                now_timestamp = int(datetime.now().timestamp())
+                start_time_timestamp = int(start_time.timestamp())
 
                 cursor.execute(
                     """
@@ -147,15 +336,15 @@ class Database:
                     """,
                     (
                         session_id,
-                        start_time.isoformat(),
+                        start_time_timestamp,
                         None,
                         start_state,
                         None,
                         "ACTIVE",
                         json.dumps(events),
                         json.dumps(metadata),
-                        now,
-                        now,
+                        now_timestamp,
+                        now_timestamp,
                     ),
                 )
 
@@ -180,6 +369,24 @@ class Database:
         status: Optional[str] = None,
         events: Optional[List[Dict[str, Any]]] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        # Metrikler
+        duration_seconds: Optional[int] = None,
+        charging_duration_seconds: Optional[int] = None,
+        idle_duration_seconds: Optional[int] = None,
+        total_energy_kwh: Optional[float] = None,
+        start_energy_kwh: Optional[float] = None,
+        end_energy_kwh: Optional[float] = None,
+        max_power_kw: Optional[float] = None,
+        avg_power_kw: Optional[float] = None,
+        min_power_kw: Optional[float] = None,
+        max_current_a: Optional[float] = None,
+        avg_current_a: Optional[float] = None,
+        min_current_a: Optional[float] = None,
+        set_current_a: Optional[float] = None,
+        max_voltage_v: Optional[float] = None,
+        avg_voltage_v: Optional[float] = None,
+        min_voltage_v: Optional[float] = None,
+        event_count: Optional[int] = None,
     ) -> bool:
         """
         Session güncelle
@@ -215,7 +422,7 @@ class Database:
 
                 if end_time is not None:
                     update_fields.append("end_time = ?")
-                    update_values.append(end_time.isoformat())
+                    update_values.append(int(end_time.timestamp()))
 
                 if end_state is not None:
                     update_fields.append("end_state = ?")
@@ -239,8 +446,34 @@ class Database:
                     # Mevcut metadata'yı koru
                     pass
 
+                # Metrikleri ekle
+                metrics = {
+                    "duration_seconds": duration_seconds,
+                    "charging_duration_seconds": charging_duration_seconds,
+                    "idle_duration_seconds": idle_duration_seconds,
+                    "total_energy_kwh": total_energy_kwh,
+                    "start_energy_kwh": start_energy_kwh,
+                    "end_energy_kwh": end_energy_kwh,
+                    "max_power_kw": max_power_kw,
+                    "avg_power_kw": avg_power_kw,
+                    "min_power_kw": min_power_kw,
+                    "max_current_a": max_current_a,
+                    "avg_current_a": avg_current_a,
+                    "min_current_a": min_current_a,
+                    "set_current_a": set_current_a,
+                    "max_voltage_v": max_voltage_v,
+                    "avg_voltage_v": avg_voltage_v,
+                    "min_voltage_v": min_voltage_v,
+                    "event_count": event_count,
+                }
+
+                for metric_name, metric_value in metrics.items():
+                    if metric_value is not None:
+                        update_fields.append(f"{metric_name} = ?")
+                        update_values.append(metric_value)
+
                 update_fields.append("updated_at = ?")
-                update_values.append(datetime.now().isoformat())
+                update_values.append(int(datetime.now().timestamp()))
                 update_values.append(session_id)
 
                 # UPDATE sorgusu
@@ -403,28 +636,58 @@ class Database:
         Returns:
             Session dict'i
         """
-        return {
+        # Timestamp'leri datetime'a çevir (INTEGER → datetime)
+        start_time_dt = datetime.fromtimestamp(row["start_time"])
+        end_time_dt = (
+            datetime.fromtimestamp(row["end_time"]) if row["end_time"] else None
+        )
+        created_at_dt = datetime.fromtimestamp(row["created_at"])
+        updated_at_dt = datetime.fromtimestamp(row["updated_at"])
+
+        result = {
             "session_id": row["session_id"],
-            "start_time": row["start_time"],
-            "end_time": row["end_time"],
+            "start_time": start_time_dt.isoformat(),
+            "end_time": end_time_dt.isoformat() if end_time_dt else None,
             "start_state": row["start_state"],
             "end_state": row["end_state"],
             "status": row["status"],
             "events": json.loads(row["events"]),
             "metadata": json.loads(row["metadata"]),
-            "created_at": row["created_at"],
-            "updated_at": row["updated_at"],
+            "created_at": created_at_dt.isoformat(),
+            "updated_at": updated_at_dt.isoformat(),
             # Hesaplanan alanlar
             "duration_seconds": (
-                (
-                    datetime.fromisoformat(row["end_time"])
-                    - datetime.fromisoformat(row["start_time"])
-                ).total_seconds()
-                if row["end_time"]
-                else None
+                (end_time_dt - start_time_dt).total_seconds() if end_time_dt else None
             ),
             "event_count": len(json.loads(row["events"])),
         }
+
+        # Metrikleri ekle (eğer varsa)
+        metric_fields = [
+            "duration_seconds",
+            "charging_duration_seconds",
+            "idle_duration_seconds",
+            "total_energy_kwh",
+            "start_energy_kwh",
+            "end_energy_kwh",
+            "max_power_kw",
+            "avg_power_kw",
+            "min_power_kw",
+            "max_current_a",
+            "avg_current_a",
+            "min_current_a",
+            "set_current_a",
+            "max_voltage_v",
+            "avg_voltage_v",
+            "min_voltage_v",
+            "event_count",
+        ]
+
+        for field in metric_fields:
+            if field in row.keys() and row[field] is not None:
+                result[field] = row[field]
+
+        return result
 
     def cleanup_old_sessions(self, max_sessions: int = 1000) -> int:
         """

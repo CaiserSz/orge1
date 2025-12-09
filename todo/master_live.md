@@ -6,9 +6,17 @@
 
 ## Aktif Görevler
 
-_(Şu anda aktif görev yok)_
-
-**Not:** Session Management Modülü Implementasyonu tamamlandı (2025-12-10 03:45:00). Yeni görev seçilebilir.
+### Öncelik 0: Database Şema Güncellemesi (Şarj Metrikleri + Timestamp Migration)
+- **Görev:** Database şemasına şarj metrikleri ekleme ve timestamp migration
+- **Öncelik:** 0 (En Kritik)
+- **Tahmini Süre:** 2-3 saat
+- **Durum:** 🔄 Devam Ediyor
+- **Başlangıç:** 2025-12-10 07:15:00
+- **Detaylar:**
+  - Database şemasına metrik kolonları ekleme
+  - Timestamp alanlarını TEXT → INTEGER migration
+  - Migration script yazma
+  - Mevcut verileri migrate etme
 
 ---
 
