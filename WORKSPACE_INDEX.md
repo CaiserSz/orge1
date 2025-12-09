@@ -209,6 +209,23 @@
 - **Ne Zaman:** API geliştirme sırasında oluşturuldu
 - **İlgili Dosyalar:** `api/main.py` (`/form` endpoint), `api/station_info.py`
 
+#### `api_test.html`
+- **Ne:** API test web sayfası
+- **Amaç:** Dışarıdan API'leri test etmek için modern, responsive web arayüzü
+- **İçerik:**
+  - Modern responsive UI (gradient arka plan, modern butonlar)
+  - Tüm endpoint'ler için test butonları (System, Charge Control, Current Control)
+  - Request/response body görüntüleme (JSON format)
+  - Edit edilebilir cURL komut önizleme
+  - Auto API key loading (backend'den)
+  - Debounce optimizasyonu (300ms)
+  - Input validation (amperage 6-32A)
+  - Shell command injection koruması (escapeShellString)
+- **Ne Zaman:** 2025-12-09'da oluşturuldu
+- **Versiyon:** 1.0.0
+- **İlgili Dosyalar:** `api/main.py` (`/test` endpoint), `api/auth.py`
+- **Endpoint:** `GET /test` (https://lixhium.ngrok.app/test)
+
 ---
 
 ## 📂 Klasör Detayları
