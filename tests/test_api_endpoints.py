@@ -201,7 +201,8 @@ class TestAPIEndpoints:
         
         response = client.post(
             "/api/maxcurrent",
-            json={"amperage": 24}
+            json={"amperage": 24},
+            headers={"X-API-Key": "test-api-key"}
         )
         assert response.status_code == 400
         assert "aktifken" in response.json()['detail'].lower()

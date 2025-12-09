@@ -207,14 +207,18 @@ curl -s https://lixhium.ngrok.app/api/current/available | python3 -m json.tool
 
 ### 5. Şarj Başlatma
 
+**ÖNEMLİ:** Bu endpoint için API key gereklidir (`X-API-Key` header).
+
 ```bash
 # Şarj başlat
 curl -X POST https://lixhium.ngrok.app/api/charge/start \
+  -H "X-API-Key: your-secret-api-key-here" \
   -H "Content-Type: application/json" \
   -d '{}'
 
 # JSON formatında
 curl -s -X POST https://lixhium.ngrok.app/api/charge/start \
+  -H "X-API-Key: your-secret-api-key-here" \
   -H "Content-Type: application/json" \
   -d '{}' | python3 -m json.tool
 ```
@@ -223,14 +227,18 @@ curl -s -X POST https://lixhium.ngrok.app/api/charge/start \
 
 ### 6. Şarj Durdurma
 
+**ÖNEMLİ:** Bu endpoint için API key gereklidir (`X-API-Key` header).
+
 ```bash
 # Şarj durdur
 curl -X POST https://lixhium.ngrok.app/api/charge/stop \
+  -H "X-API-Key: your-secret-api-key-here" \
   -H "Content-Type: application/json" \
   -d '{}'
 
 # JSON formatında
 curl -s -X POST https://lixhium.ngrok.app/api/charge/stop \
+  -H "X-API-Key: your-secret-api-key-here" \
   -H "Content-Type: application/json" \
   -d '{}' | python3 -m json.tool
 ```
@@ -247,6 +255,7 @@ curl -s https://lixhium.ngrok.app/api/status | python3 -m json.tool
 
 # 2. Eğer STATE=0 ise (şarj aktif değil), akım ayarla
 curl -s -X POST https://lixhium.ngrok.app/api/maxcurrent \
+  -H "X-API-Key: your-secret-api-key-here" \
   -H "Content-Type: application/json" \
   -d '{"amperage": 16}' | python3 -m json.tool
 
@@ -259,16 +268,19 @@ curl -s https://lixhium.ngrok.app/api/status | python3 -m json.tool
 ```bash
 # 10A ayarla
 curl -s -X POST https://lixhium.ngrok.app/api/maxcurrent \
+  -H "X-API-Key: your-secret-api-key-here" \
   -H "Content-Type: application/json" \
   -d '{"amperage": 10}' | python3 -m json.tool
 
 # 20A ayarla
 curl -s -X POST https://lixhium.ngrok.app/api/maxcurrent \
+  -H "X-API-Key: your-secret-api-key-here" \
   -H "Content-Type: application/json" \
   -d '{"amperage": 20}' | python3 -m json.tool
 
 # 25A ayarla
 curl -s -X POST https://lixhium.ngrok.app/api/maxcurrent \
+  -H "X-API-Key: your-secret-api-key-here" \
   -H "Content-Type: application/json" \
   -d '{"amperage": 25}' | python3 -m json.tool
 ```
@@ -315,5 +327,5 @@ curl -s -X POST https://lixhium.ngrok.app/api/maxcurrent \
 
 ---
 
-**Son Güncelleme:** 2025-12-08 18:15:00
+**Son Güncelleme:** 2025-12-09 17:30:00
 
