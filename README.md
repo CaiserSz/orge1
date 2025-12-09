@@ -33,6 +33,31 @@ cat todo/project_state.md
 
 ---
 
+## ✨ Yeni Özellikler (2025-12-09)
+
+### Structured Logging Sistemi
+- ✅ JSON formatında structured logging
+- ✅ Log rotation (10MB, 5 yedek dosya)
+- ✅ Thread-safe logging mekanizması
+- ✅ ESP32 mesajları loglanıyor (tx/rx, komutlar, status)
+- ✅ API istekleri loglanıyor (middleware ile otomatik)
+- ✅ 3 ayrı log dosyası: `logs/api.log`, `logs/esp32.log`, `logs/system.log`
+
+### Kod Kalitesi İyileştirmeleri
+- ✅ Singleton pattern thread-safety (double-check locking)
+- ✅ Dependency injection pattern (FastAPI Depends)
+- ✅ Robust error handling (monitor loop exception handling)
+- ✅ Security hardening (exception handler information leakage düzeltildi)
+
+### Test Altyapısı
+- ✅ pytest kurulumu ve yapılandırması
+- ✅ 8 test dosyası (~70% coverage)
+- ✅ Unit testler, integration testler, thread safety testleri
+
+**Detaylı Bilgi:** `LOGGING_AUDIT.md`, `PRE_LOGGING_AUDIT.md`
+
+---
+
 ## 📁 Proje Yapısı
 
 ```

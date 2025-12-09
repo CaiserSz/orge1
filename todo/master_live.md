@@ -1,41 +1,39 @@
 # Aktif Görevler (Şu Anda Yapılanlar)
 
-**Son Güncelleme:** 2025-12-08 19:30:00
+**Son Güncelleme:** 2025-12-09 16:10:00
 
 ---
 
 ## Aktif Görevler
 
-### 🔄 Test Altyapısı Kurulumu (Kritik Öncelik)
+### 🔄 Event Detection Modülü (Yüksek Öncelik)
 
-**Görev ID:** TASK-001  
-**Başlangıç Tarihi:** 2025-12-08 19:30:00  
-**Durum:** 🔄 Devam Ediyor  
-**Öncelik:** Kritik
+**Görev ID:** TASK-006  
+**Başlangıç Tarihi:** 2025-12-09 16:10:00  
+**Durum:** 📋 Bekliyor  
+**Öncelik:** Yüksek
 
 #### Açıklama
-Proje için test altyapısı kurulması gerekiyor. Şu anda hiç test yok ve bu regresyon hatalarına yol açabilir.
+State transition detection ve event classification modülü oluşturulması gerekiyor. Logging sistemi kuruldu, şimdi event detection eklenmeli.
 
 #### Alt Görevler
-- [ ] pytest kurulumu ve yapılandırması
-- [ ] Test dizin yapısı oluşturma (`tests/` klasörü)
-- [ ] Test konfigürasyon dosyası (`pytest.ini` veya `pyproject.toml`)
-- [ ] İlk test örnekleri (ESP32 bridge testleri)
-- [ ] API endpoint testleri (mock ESP32 ile)
-- [ ] Test coverage raporlama kurulumu
-- [ ] CI/CD için test entegrasyonu hazırlığı
+- [ ] Event detector modülü oluştur (`api/event_detector.py`)
+- [ ] State transition detection implementasyonu
+- [ ] Event type classification (kablo takılma, araç bağlantı, şarj başlatma/durdurma)
+- [ ] Event logging entegrasyonu
+- [ ] Unit testler yazılması
 
 #### Tahmini Süre
-2-3 saat
+2-3 gün
 
 #### Bağımlılıklar
-- Virtual environment (`env/`)
-- Mevcut kod yapısı
+- Logging sistemi ✅ (Tamamlandı)
+- ESP32 bridge modülü ✅ (Mevcut)
 
 #### Notlar
-- pytest profesyonel Python projelerinde standart test framework'ü
-- Test coverage hedefi: %70+
-- Mock kullanarak ESP32 bağlantısı olmadan test yapılabilir
+- Event'ler state transition'lara göre tespit edilecek
+- Event'ler structured logging ile loglanacak
+- Event types: CABLE_CONNECTED, EV_CONNECTED, CHARGE_STARTED, CHARGE_STOPPED, CABLE_DISCONNECTED
 
 ---
 

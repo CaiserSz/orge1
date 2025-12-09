@@ -1,8 +1,8 @@
 # Workspace Index - Proje Yapısı ve Dosya Açıklamaları
 
 **Oluşturulma Tarihi:** 2025-12-09 02:45:00  
-**Son Güncelleme:** 2025-12-09 04:35:00  
-**Version:** 1.1.0  
+**Son Güncelleme:** 2025-12-09 16:15:00  
+**Version:** 1.2.0  
 **Amaç:** Workspace'teki tüm dosya ve klasörlerin hızlı referansı ve açıklamaları
 
 ---
@@ -48,6 +48,39 @@
 - **Ne:** Proje genel tanıtımı ve hızlı başlangıç kılavuzu
 - **Amaç:** Projeye yeni başlayanlar için genel bakış ve kurulum talimatları
 - **İçerik:** Proje açıklaması, kurulum, kullanım, dokümantasyon linkleri
+- **Ne Zaman:** 2025-12-08'de oluşturuldu, güncellenmeli
+
+#### `LOGGING_AUDIT.md`
+- **Ne:** Logging sistemi audit raporu
+- **Amaç:** Logging sisteminin uzman gözüyle değerlendirilmesi ve iyileştirme önerileri
+- **İçerik:**
+  - Güçlü yönler
+  - Kritik sorunlar ve çözümleri
+  - Kod kalitesi değerlendirmesi
+  - İyileştirme önerileri
+- **Ne Zaman:** 2025-12-09'da oluşturuldu
+- **İlgili Dosyalar:** `api/logging_config.py`, `api/main.py`
+
+#### `PRE_LOGGING_AUDIT.md`
+- **Ne:** Logging öncesi çalışmalar audit raporu
+- **Amaç:** ESP32 Bridge, API Endpoints, Test Sistemi audit'i
+- **İçerik:**
+  - Modül bazında audit (ESP32 Bridge, API Endpoints, Test Sistemi, Meter Modülü)
+  - Kritik sorunlar ve çözümleri
+  - Kod kalitesi değerlendirmesi
+  - İyileştirme önerileri
+- **Ne Zaman:** 2025-12-09'da oluşturuldu
+- **İlgili Dosyalar:** `esp32/bridge.py`, `api/main.py`, `tests/`
+
+#### `DOCUMENTATION_AUDIT.md`
+- **Ne:** Dokümantasyon ve proje yönetimi dosyaları audit raporu
+- **Amaç:** Todo sistemi, project_info, .cursorrules dosyalarının güncellik kontrolü
+- **İçerik:**
+  - Dosya bazında audit
+  - Güncelleme ihtiyaçları
+  - Öncelik sıralaması
+- **Ne Zaman:** 2025-12-09'da oluşturuldu
+- **İlgili Dosyalar:** `todo/`, `project_info_20251208_145614.md`, `.cursorrules`
 - **Ne Zaman:** Proje başlangıcında oluşturuldu
 
 #### `DOCUMENTATION.md`
