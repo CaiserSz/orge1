@@ -34,9 +34,24 @@
             text-align: center;
         }
 
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .header-logo {
+            height: 50px;
+            width: auto;
+            object-fit: contain;
+            background: transparent;
+        }
+
         .header h1 {
             font-size: 2em;
-            margin-bottom: 10px;
+            margin: 0;
         }
 
         .header p {
@@ -84,6 +99,12 @@
             flex-shrink: 0;
         }
 
+        /* STATE item için dinamik genişlik */
+        #statusState {
+            min-width: auto;
+            width: auto;
+        }
+
         .status-item.changed {
             animation: highlight 0.6s ease;
             box-shadow: 0 0 10px rgba(255,255,255,0.3);
@@ -106,15 +127,15 @@
             font-size: 0.85em;
         }
 
-        /* STATE renkleri (ESP32 kodundan) */
-        .status-state-1 { background: #ffffff; color: #000; border-color: #ccc; } /* IDLE - Beyaz */
-        .status-state-2 { background: rgb(0, 150, 150); color: white; } /* CABLE_DETECT - Turkuaz */
-        .status-state-3 { background: rgb(10, 10, 255); color: white; } /* EV_CONNECTED - Mavi */
-        .status-state-4 { background: rgb(10, 10, 255); color: white; } /* SARJA_HAZIR - Mavi */
-        .status-state-5 { background: #4CAF50; color: white; } /* SARJ_BASLADI - Yeşil */
-        .status-state-6 { background: rgb(255, 250, 0); color: #000; } /* SARJ_DURAKLATILDI - Sarı */
-        .status-state-7 { background: rgb(255, 20, 70); color: white; } /* SARJ_BITIR - Lila */
-        .status-state-8 { background: #F44336; color: white; } /* FAULT_HARD - Kırmızı */
+        /* STATE renkleri (ESP32 kodundan) - Görünürlük iyileştirmeleri */
+        .status-state-1 { background: #e8e8e8; color: #333; border-color: #bbb; } /* IDLE - Açık Gri */
+        .status-state-2 { background: rgb(0, 180, 180); color: white; border-color: rgb(0, 150, 150); } /* CABLE_DETECT - Turkuaz */
+        .status-state-3 { background: rgb(30, 30, 255); color: white; border-color: rgb(10, 10, 255); } /* EV_CONNECTED - Mavi */
+        .status-state-4 { background: rgb(50, 100, 255); color: white; border-color: rgb(30, 30, 255); } /* SARJA_HAZIR - Açık Mavi */
+        .status-state-5 { background: #2e7d32; color: white; border-color: #1b5e20; } /* SARJ_BASLADI - Koyu Yeşil */
+        .status-state-6 { background: rgb(255, 193, 7); color: #000; border-color: rgb(255, 152, 0); } /* SARJ_DURAKLATILDI - Altın Sarı */
+        .status-state-7 { background: rgb(200, 50, 100); color: white; border-color: rgb(180, 40, 90); } /* SARJ_BITIR - Koyu Lila */
+        .status-state-8 { background: #c62828; color: white; border-color: #b71c1c; } /* FAULT_HARD - Koyu Kırmızı */
 
         .status-indicator {
             width: 6px;
@@ -394,13 +415,16 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🔌 Charger Station API Test Sayfası</h1>
-            <p>API endpoint'lerini test etmek için kullanın</p>
+            <div class="header-content">
+                <img src="/static/logo/AC_Round_1.jpeg" alt="ORGE Logo" class="header-logo">
+                <h1>ORGE ROUND Commercial v1 Test Page</h1>
+            </div>
+            <p>for testing use only</p>
         </div>
-        
+
         <!-- ESP32 Real-Time Status Bar -->
         <div class="status-bar" id="statusBar">
-            <span class="status-bar-title">ESP32 Status:</span>
+            <span class="status-bar-title">Real-time EV Charging Values:</span>
             <div class="status-item" id="statusIndicator">
                 <span class="status-indicator" id="statusDot"></span>
                 <span class="status-label">Bağlantı</span>
@@ -440,7 +464,7 @@
         <div class="content">
             <div class="info-box">
                 <p>
-                    <strong>ℹ️ Bilgi:</strong> Bu sayfa test amaçlıdır. Tüm istekler otomatik olarak API key ile gönderilir. 
+                    <strong>ℹ️ Bilgi:</strong> Bu sayfa test amaçlıdır. Tüm istekler otomatik olarak API key ile gönderilir.
                     Request ve Response body'leri aşağıda görüntülenir.
                 </p>
             </div>
@@ -448,7 +472,7 @@
             <!-- Health Check -->
             <div class="endpoint-group">
                 <h2>System Endpoints</h2>
-                
+
                 <div class="endpoint">
                     <div class="endpoint-header">
                         <span class="method get">GET</span>
@@ -493,7 +517,7 @@
             <!-- Charge Control -->
             <div class="endpoint-group">
                 <h2>Charge Control (Authentication Required)</h2>
-                
+
                 <div class="endpoint">
                     <div class="endpoint-header">
                         <span class="method post">POST</span>
@@ -534,7 +558,7 @@
             <!-- Current Control -->
             <div class="endpoint-group">
                 <h2>Current Control (Authentication Required)</h2>
-                
+
                 <div class="endpoint">
                     <div class="endpoint-header">
                         <span class="method post">POST</span>
@@ -571,12 +595,12 @@
         // STATE açıklamaları
         const STATE_MEANINGS = {
             1: 'IDLE',
-            2: 'CABLE_DETECT',
-            3: 'EV_CONNECTED',
-            4: 'SARJA_HAZIR',
-            5: 'SARJ_BASLADI',
-            6: 'SARJ_DURAKLATILDI',
-            7: 'SARJ_BITIR',
+            2: 'CABLE DETECT',
+            3: 'EV CONNECTED',
+            4: 'READY TO CHARGE',
+            5: 'EV CHARGING',
+            6: 'SUSPENDED EV',
+            7: 'FINISHING',
             8: 'FAULT_HARD'
         };
 
@@ -586,7 +610,7 @@
             updateCurlPreview('POST', '/api/charge/start', 'body-/api/charge/start', 'curl-/api/charge/start');
             updateCurlPreview('POST', '/api/charge/stop', 'body-/api/charge/stop', 'curl-/api/charge/stop');
             updateCurlPreview('POST', '/api/maxcurrent', 'body-/api/maxcurrent', 'curl-/api/maxcurrent', true);
-            
+
             // Start ESP32 status polling
             startStatusPolling();
         });
@@ -594,7 +618,7 @@
         async function startStatusPolling() {
             // İlk güncelleme
             await updateESP32Status();
-            
+
             // Her 3 saniyede bir güncelle (ESP32 5 saniyede bir gönderiyor)
             statusUpdateInterval = setInterval(updateESP32Status, 3000);
         }
@@ -605,7 +629,7 @@
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
                 }
-                
+
                 const data = await response.json();
                 if (data.success && data.data) {
                     updateStatusBar(data.data);
@@ -623,13 +647,14 @@
         function updateStatusBar(data) {
             const now = new Date();
             const timeStr = now.toLocaleTimeString('tr-TR');
-            
+
             // Son güncelleme zamanı
             document.getElementById('lastUpdate').textContent = `Son güncelleme: ${timeStr}`;
-            
-            // STATE güncelleme (renk değişimi ile)
-            updateStatusItem('stateValue', data.STATE, STATE_MEANINGS[data.STATE] || 'UNKNOWN', 'statusState', `status-state-${data.STATE}`);
-            
+
+            // STATE güncelleme (renk değişimi ile) - Format: "STATE: 1-IDLE"
+            const stateText = `${data.STATE}-${STATE_MEANINGS[data.STATE] || 'UNKNOWN'}`;
+            updateStatusItem('stateValue', data.STATE, stateText, 'statusState', `status-state-${data.STATE}`);
+
             // Diğer değerler
             updateStatusItem('cpValue', data.CP, data.CP);
             updateStatusItem('ppValue', data.PP, data.PP);
@@ -642,16 +667,16 @@
         function updateStatusItem(elementId, newValue, displayValue, containerId = null, stateClass = null) {
             const element = document.getElementById(elementId);
             const container = containerId ? document.getElementById(containerId) : element.parentElement;
-            
+
             if (!element) return;
-            
+
             const oldValue = lastStatusData[elementId];
             const hasChanged = oldValue !== undefined && oldValue !== newValue;
-            
+
             // Değeri güncelle
             element.textContent = displayValue;
             lastStatusData[elementId] = newValue;
-            
+
             // STATE için renk sınıfını güncelle
             if (stateClass && container) {
                 // Eski state sınıflarını kaldır
@@ -659,7 +684,7 @@
                 // Yeni state sınıfını ekle
                 container.classList.add('status-item', stateClass);
             }
-            
+
             // Değişiklik varsa highlight animasyonu
             if (hasChanged && container) {
                 container.classList.add('changed');
@@ -702,7 +727,7 @@
             // Prepare request body
             let requestBody = null;
             let requestBodyDisplay = null;
-            
+
             if (bodyElementId) {
                 const bodyElement = document.getElementById(bodyElementId);
                     if (isNumber) {
@@ -744,19 +769,19 @@
             const responseSection = document.getElementById(`response-${path}`);
             const button = event.target;
             const originalText = button.textContent;
-            
+
             // Loading state
             button.disabled = true;
             button.innerHTML = originalText + '<span class="loading"></span>';
-            
+
             // Hide previous response
             responseSection.classList.remove('show');
-            
+
             try {
                 // Prepare request body
                 let requestBody = null;
                 let requestBodyDisplay = null;
-                
+
                 if (bodyElementId) {
                     const bodyElement = document.getElementById(bodyElementId);
                     if (isNumber) {
@@ -813,7 +838,7 @@
 
                 // Get API key for display
                 const apiKey = await getApiKey();
-                
+
                 // Display response
                 displayResponse(responseSection, {
                     method,
@@ -829,11 +854,11 @@
             } catch (error) {
                 // Get API key for display
                 const apiKey = await getApiKey();
-                
+
                 // User-friendly error messages
                 let errorMessage = error.message || 'Unknown error occurred';
                 let userFriendlyMessage = errorMessage;
-                
+
                 if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
                     userFriendlyMessage = 'Network error: Could not connect to API server. Please check if the server is running.';
                 } else if (errorMessage.includes('Invalid JSON')) {
@@ -841,7 +866,7 @@
                 } else if (errorMessage.includes('Invalid amperage')) {
                     userFriendlyMessage = errorMessage;
                 }
-                
+
                 // Display error
                 displayResponse(responseSection, {
                     method,
@@ -889,11 +914,11 @@
         function generateCurlCommand(method, path, apiKey, requestBody) {
             const url = `${API_BASE_URL}${path}`;
             let curlCmd = `curl -X ${method} "${url}"`;
-            
+
             // Add headers
             curlCmd += ` \\\n  -H "Content-Type: application/json"`;
             curlCmd += ` \\\n  -H "X-API-Key: ${escapeShellString(apiKey)}"`;
-            
+
             // Add body if exists
             if (requestBody && requestBody !== 'null' && requestBody.trim() !== '') {
                 const bodyStr = typeof requestBody === 'string' ? requestBody : JSON.stringify(requestBody);
@@ -901,18 +926,18 @@
                 const escapedBody = escapeShellString(bodyStr);
                 curlCmd += ` \\\n  -d '${escapedBody}'`;
             }
-            
+
             return curlCmd;
         }
 
         async function displayResponse(section, data) {
-            const statusClass = data.status >= 200 && data.status < 300 ? 'success' : 
+            const statusClass = data.status >= 200 && data.status < 300 ? 'success' :
                                data.status === 'ERROR' ? 'error' : 'info';
-            
+
             // Use provided API key or get it
             const apiKey = data.apiKey || await getApiKey();
             const curlCommand = generateCurlCommand(data.method, data.path, apiKey, data.requestBody);
-            
+
             section.innerHTML = `
                 <div class="response-header">
                     <h3>Response</h3>
@@ -921,18 +946,18 @@
                         ${data.responseTime ? `<span style="margin-left: 10px; color: #666; font-size: 0.85em;">${data.responseTime}ms</span>` : ''}
                     </div>
                 </div>
-                
+
                 <div class="section-title">💻 cURL Command</div>
                 <div class="request-display">${escapeHtml(curlCommand)}</div>
-                
+
                 <div class="section-title">📤 Request</div>
                 <div class="request-display">${escapeHtml(data.method)} ${escapeHtml(data.path)}
 ${data.requestBody && data.requestBody !== 'null' ? escapeHtml(data.requestBody) : 'No body'}</div>
-                
+
                 <div class="section-title">📥 Response</div>
                 <div class="response-display">${escapeHtml(data.responseBody)}</div>
             `;
-            
+
             section.classList.add('show');
         }
 

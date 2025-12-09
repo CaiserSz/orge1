@@ -57,7 +57,7 @@ app = FastAPI(
 def get_bridge() -> ESP32Bridge:
     """
     ESP32 bridge instance'ı dependency injection için
-    
+
     Returns:
         ESP32Bridge instance
     """
@@ -67,22 +67,22 @@ def get_bridge() -> ESP32Bridge:
 # API Request Logging Middleware
 class APILoggingMiddleware(BaseHTTPMiddleware):
     """API isteklerini loglayan middleware"""
-    
+
     async def dispatch(self, request: Request, call_next):
         start_time = time.time()
-        
+
         # İstemci IP adresini al
         client_ip = request.client.host if request.client else None
-        
+
         # User ID'yi environment variable'dan al (audit trail için)
         user_id = os.getenv("TEST_API_USER_ID", None)
-        
+
         # İsteği işle
         response = await call_next(request)
-        
+
         # Yanıt süresini hesapla
         process_time = (time.time() - start_time) * 1000  # milisaniye
-        
+
         # Logla (şarj başlatma/bitirme hariç)
         if request.url.path not in ["/api/charge/start", "/api/charge/stop"]:
             try:
@@ -98,12 +98,16 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
                 # Logging hatası API response'u etkilememeli
                 # Sessizce geç (veya fallback logging)
                 pass
-        
+
         return response
 
 
 # Middleware'i ekle
 app.add_middleware(APILoggingMiddleware)
+
+# Static files için mount (logo ve diğer statik dosyalar için)
+static_dir = Path(__file__).parent.parent
+app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 
 @app.on_event("startup")
@@ -190,13 +194,13 @@ async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
         "esp32_connected": False,
         "esp32_status": None
     }
-    
+
     if bridge:
         health_data["esp32_connected"] = bridge.is_connected
         if bridge.is_connected:
             status_data = bridge.get_status()
             health_data["esp32_status"] = "available" if status_data else "no_status"
-    
+
     return APIResponse(
         success=True,
         message="System health check",
@@ -208,8 +212,8 @@ async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
 async def get_status(bridge: ESP32Bridge = Depends(get_bridge)):
     """
     ESP32 durum bilgisini al
-    
-    ESP32'den son durum bilgisini döndürür. 
+
+    ESP32'den son durum bilgisini döndürür.
     ESP32 her 5 saniyede bir otomatik olarak durum gönderir.
     """
     if not bridge or not bridge.is_connected:
@@ -217,19 +221,19 @@ async def get_status(bridge: ESP32Bridge = Depends(get_bridge)):
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="ESP32 bağlantısı yok"
         )
-    
+
     status_data = bridge.get_status()
-    
+
     if not status_data:
         # Status komutu gönder ve bekle
         status_data = bridge.get_status_sync(timeout=2.0)
-    
+
     if not status_data:
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
             detail="ESP32'den durum bilgisi alınamadı"
         )
-    
+
     return APIResponse(
         success=True,
         message="Status retrieved successfully",
@@ -245,12 +249,12 @@ async def start_charge(
 ):
     """
     Şarj başlatma
-    
+
     ESP32'ye authorization komutu gönderir ve şarj izni verir.
     """
     # User ID'yi al (audit trail için)
     user_id = os.getenv("TEST_API_USER_ID", None)
-    
+
     # Kritik işlemleri logla (şarj başlatma)
     if user_id:
         log_event(
@@ -262,13 +266,13 @@ async def start_charge(
             },
             level=logging.INFO
         )
-    
+
     if not bridge or not bridge.is_connected:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="ESP32 bağlantısı yok"
         )
-    
+
     # Mevcut durumu kontrol et
     current_status = bridge.get_status()
     if current_status:
@@ -284,16 +288,16 @@ async def start_charge(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Şarj başlatılamaz (State: {state}). Şarj zaten aktif veya hata durumunda."
             )
-    
+
     # Authorization komutu gönder
     success = bridge.send_authorization()
-    
+
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Şarj başlatma komutu gönderilemedi"
         )
-    
+
     return APIResponse(
         success=True,
         message="Şarj başlatma komutu gönderildi",
@@ -309,12 +313,12 @@ async def stop_charge(
 ):
     """
     Şarj durdurma
-    
+
     ESP32'ye charge stop komutu gönderir ve şarjı sonlandırır.
     """
     # User ID'yi al (audit trail için)
     user_id = os.getenv("TEST_API_USER_ID", None)
-    
+
     # Kritik işlemleri logla (şarj durdurma)
     if user_id:
         log_event(
@@ -326,22 +330,22 @@ async def stop_charge(
             },
             level=logging.INFO
         )
-    
+
     if not bridge or not bridge.is_connected:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="ESP32 bağlantısı yok"
         )
-    
+
     # Charge stop komutu gönder
     success = bridge.send_charge_stop()
-    
+
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Şarj durdurma komutu gönderilemedi"
         )
-    
+
     return APIResponse(
         success=True,
         message="Şarj durdurma komutu gönderildi",
@@ -357,17 +361,17 @@ async def set_current(
 ):
     """
     Maksimum akım ayarlama
-    
+
     ESP32'ye maksimum akım değerini ayarlar.
-    
+
     **ÖNEMLİ:** Akım ayarlama sadece aktif şarj başlamadan yapılabilir.
     Şarj esnasında akım değiştirilemez (güvenlik nedeniyle).
-    
+
     Geçerli akım aralığı: 6-32 amper (herhangi bir tam sayı)
     """
     # User ID'yi al (audit trail için)
     user_id = os.getenv("TEST_API_USER_ID", None)
-    
+
     # Kritik işlemleri logla (akım ayarlama)
     if user_id:
         log_event(
@@ -380,13 +384,13 @@ async def set_current(
             },
             level=logging.INFO
         )
-    
+
     if not bridge or not bridge.is_connected:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="ESP32 bağlantısı yok"
         )
-    
+
     # Mevcut durumu kontrol et
     current_status = bridge.get_status()
     if current_status:
@@ -402,16 +406,16 @@ async def set_current(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Şarj aktifken akım değiştirilemez (State: {state})"
             )
-    
+
     # Akım set komutu gönder
     success = bridge.send_current_set(request.amperage)
-    
+
     if not success:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Akım ayarlama komutu gönderilemedi ({request.amperage}A)"
         )
-    
+
     return APIResponse(
         success=True,
         message=f"Akım ayarlandı: {request.amperage}A",
@@ -423,7 +427,7 @@ async def set_current(
 async def get_available_currents():
     """
     Kullanılabilir akım değerlerini listele
-    
+
     ESP32'de ayarlanabilir akım aralığını döndürür.
     """
     return APIResponse(
@@ -447,17 +451,17 @@ async def get_available_currents():
 async def get_station_info_endpoint():
     """
     Şarj istasyonu bilgilerini al
-    
+
     Formdan girilen istasyon bilgilerini döndürür.
     """
     station_info = get_station_info()
-    
+
     if not station_info:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="İstasyon bilgisi bulunamadı. Lütfen önce formu doldurun."
         )
-    
+
     return APIResponse(
         success=True,
         message="İstasyon bilgisi alındı",
@@ -469,7 +473,7 @@ async def get_station_info_endpoint():
 async def save_station_info_endpoint(station_data: Dict[str, Any]):
     """
     Şarj istasyonu bilgilerini kaydet
-    
+
     Formdan girilen istasyon bilgilerini kaydeder.
     """
     if save_station_info(station_data):
@@ -498,13 +502,13 @@ async def save_station_info_endpoint(station_data: Dict[str, Any]):
 async def global_exception_handler(request, exc):
     """
     Global hata yakalayıcı
-    
+
     Production'da detaylı hata mesajları gizlenir (güvenlik).
     DEBUG mode aktifse detaylı bilgi gösterilir.
     """
     # DEBUG mode kontrolü
     is_debug = os.getenv("DEBUG", "false").lower() == "true"
-    
+
     # Detaylı hata bilgisini logla (her zaman)
     system_logger.error(
         f"Unhandled exception: {type(exc).__name__}: {exc}",
@@ -515,7 +519,7 @@ async def global_exception_handler(request, exc):
             "client_ip": request.client.host if request.client else None
         }
     )
-    
+
     # Kullanıcıya gösterilecek mesaj
     if is_debug:
         # DEBUG mode: Detaylı hata mesajı
@@ -523,7 +527,7 @@ async def global_exception_handler(request, exc):
     else:
         # Production: Genel hata mesajı
         message = "Internal server error occurred"
-    
+
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
@@ -538,7 +542,7 @@ async def global_exception_handler(request, exc):
 async def get_test_api_key():
     """
     Test sayfası için API key'i döndürür
-    
+
     NOT: Bu endpoint sadece test amaçlıdır. Production'da devre dışı bırakılmalıdır.
     """
     # Production'da bu endpoint'i devre dışı bırak
@@ -548,7 +552,7 @@ async def get_test_api_key():
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Not found"
         )
-    
+
     # Test amaçlı - sadece development ortamında kullanılmalı
     api_key = os.getenv("SECRET_API_KEY", "")
     if not api_key:
@@ -556,7 +560,7 @@ async def get_test_api_key():
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="API key not configured"
         )
-    
+
     return {
         "api_key": api_key,
         "user_id": os.getenv("TEST_API_USER_ID", ""),
@@ -568,7 +572,7 @@ async def get_test_api_key():
 async def api_test_page():
     """
     API test sayfası
-    
+
     Dışarıdan API'leri test etmek için web arayüzü
     """
     test_page_path = Path(__file__).parent.parent / "api_test.html"
