@@ -6,17 +6,17 @@
 
 ## Aktif Görevler
 
-### Öncelik 0: User ID Entegrasyonu
-- **Görev:** user_id database şemasına ekleme ve API entegrasyonu
-- **Öncelik:** 0 (Kritik)
-- **Tahmini Süre:** 2-3 saat
+### Öncelik 2: Connection Management İyileştirmesi
+- **Görev:** Persistent connection + WAL mode
+- **Öncelik:** 2 (Acil)
+- **Tahmini Süre:** 1-2 saat
 - **Durum:** 🔄 Devam Ediyor
-- **Başlangıç:** 2025-12-10 08:00:00
+- **Başlangıç:** 2025-12-10 08:20:00
 - **Detaylar:**
-  - Database şemasına user_id ekleme (sessions ve session_events)
-  - SessionManager user_id entegrasyonu
-  - API endpoint user_id filtreleri
-  - User sessions endpoint (GET /api/users/{user_id}/sessions)
+  - Persistent connection implementasyonu
+  - WAL mode aktif etme (PRAGMA journal_mode=WAL)
+  - Cache size optimize etme (PRAGMA cache_size=10000)
+  - Connection pool yönetimi
 
 ---
 

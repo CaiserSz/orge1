@@ -42,6 +42,8 @@ class Database:
 
         self.db_path = db_path
         self.lock = threading.Lock()
+        self._connection: Optional[sqlite3.Connection] = None
+        self._connection_lock = threading.Lock()
         self._initialize_database()
 
     def _initialize_database(self):
@@ -234,8 +236,7 @@ class Database:
                 )
                 conn.rollback()
                 raise
-            finally:
-                conn.close()
+            # Connection persistent - close gerekmez
 
     def _migrate_timestamp_columns(self, cursor):
         """
@@ -401,14 +402,62 @@ class Database:
 
     def _get_connection(self) -> sqlite3.Connection:
         """
-        Database connection al
+        Database connection al (persistent connection)
 
         Returns:
             SQLite connection
         """
-        conn = sqlite3.connect(self.db_path, check_same_thread=False)
-        conn.row_factory = sqlite3.Row  # Dict-like row access
-        return conn
+        with self._connection_lock:
+            if self._connection is None:
+                self._connection = sqlite3.connect(
+                    self.db_path, check_same_thread=False
+                )
+                self._connection.row_factory = sqlite3.Row  # Dict-like row access
+
+                # WAL mode aktif et (Write-Ahead Logging - daha iyi concurrency)
+                try:
+                    self._connection.execute("PRAGMA journal_mode=WAL")
+                    system_logger.debug("WAL mode activated")
+                except Exception as e:
+                    system_logger.warning(f"WAL mode activation failed: {e}")
+
+                # Cache size optimize et (10MB cache)
+                try:
+                    self._connection.execute(
+                        "PRAGMA cache_size=-10000"
+                    )  # -10000 = ~10MB
+                    system_logger.debug("Cache size optimized")
+                except Exception as e:
+                    system_logger.warning(f"Cache size optimization failed: {e}")
+
+                # Foreign keys aktif et
+                try:
+                    self._connection.execute("PRAGMA foreign_keys=ON")
+                    system_logger.debug("Foreign keys enabled")
+                except Exception as e:
+                    system_logger.warning(f"Foreign keys activation failed: {e}")
+
+                # Synchronous mode optimize et (NORMAL - güvenlik ve performans dengesi)
+                try:
+                    self._connection.execute("PRAGMA synchronous=NORMAL")
+                    system_logger.debug("Synchronous mode set to NORMAL")
+                except Exception as e:
+                    system_logger.warning(f"Synchronous mode optimization failed: {e}")
+
+            return self._connection
+
+    def _close_connection(self):
+        """
+        Database connection'ı kapat
+        """
+        with self._connection_lock:
+            if self._connection:
+                try:
+                    self._connection.close()
+                except Exception:
+                    pass
+                    # Connection persistent - close gerekmez
+                    self._connection = None
 
     def create_session(
         self,
@@ -471,8 +520,7 @@ class Database:
                 system_logger.error(f"Create session error: {e}", exc_info=True)
                 conn.rollback()
                 return False
-            finally:
-                conn.close()
+            # Connection persistent - close gerekmez
 
     def update_session(
         self,
@@ -599,8 +647,7 @@ class Database:
                 system_logger.error(f"Update session error: {e}", exc_info=True)
                 conn.rollback()
                 return False
-            finally:
-                conn.close()
+            # Connection persistent - close gerekmez
 
     def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -627,8 +674,6 @@ class Database:
             except Exception as e:
                 system_logger.error(f"Get session error: {e}", exc_info=True)
                 return None
-            finally:
-                conn.close()
 
     def get_sessions(
         self,
@@ -684,8 +729,7 @@ class Database:
             except Exception as e:
                 system_logger.error(f"Get sessions error: {e}", exc_info=True)
                 return []
-            finally:
-                conn.close()
+            # Connection persistent - close gerekmez
 
     def get_session_count(
         self, status: Optional[str] = None, user_id: Optional[str] = None
@@ -727,8 +771,7 @@ class Database:
             except Exception as e:
                 system_logger.error(f"Get session count error: {e}", exc_info=True)
                 return 0
-            finally:
-                conn.close()
+            # Connection persistent - close gerekmez
 
     def get_current_session(self) -> Optional[Dict[str, Any]]:
         """
@@ -757,8 +800,7 @@ class Database:
             except Exception as e:
                 system_logger.error(f"Get current session error: {e}", exc_info=True)
                 return None
-            finally:
-                conn.close()
+            # Connection persistent - close gerekmez
 
     def _row_to_dict(self, row: sqlite3.Row) -> Dict[str, Any]:
         """
@@ -908,8 +950,7 @@ class Database:
                 system_logger.error(f"Create event error: {e}", exc_info=True)
                 conn.rollback()
                 return False
-            finally:
-                conn.close()
+            # Connection persistent - close gerekmez
 
     def get_session_events(
         self,
@@ -966,8 +1007,7 @@ class Database:
             except Exception as e:
                 system_logger.error(f"Get session events error: {e}", exc_info=True)
                 return []
-            finally:
-                conn.close()
+            # Connection persistent - close gerekmez
 
     def _event_row_to_dict(self, row: sqlite3.Row) -> Dict[str, Any]:
         """
@@ -1080,8 +1120,7 @@ class Database:
                 system_logger.error(f"Migrate events error: {e}", exc_info=True)
                 conn.rollback()
                 return 0
-            finally:
-                conn.close()
+            # Connection persistent - close gerekmez
 
     def cleanup_old_sessions(self, max_sessions: int = 1000) -> int:
         """
@@ -1131,8 +1170,7 @@ class Database:
                 system_logger.error(f"Cleanup old sessions error: {e}", exc_info=True)
                 conn.rollback()
                 return 0
-            finally:
-                conn.close()
+            # Connection persistent - close gerekmez
 
 
 # Singleton instance
