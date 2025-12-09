@@ -48,12 +48,12 @@
         .status-bar {
             background: #1a1a1a;
             color: white;
-            padding: 15px 20px;
+            padding: 10px 15px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: flex-start;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 8px;
             border-bottom: 3px solid #333;
             position: sticky;
             top: 0;
@@ -63,24 +63,25 @@
 
         .status-bar-title {
             font-weight: bold;
-            font-size: 0.9em;
+            font-size: 0.85em;
             color: #888;
-            margin-right: 10px;
+            margin-right: 8px;
+            white-space: nowrap;
         }
 
         .status-item {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 0.85em;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
             font-weight: 500;
             background: #2a2a2a;
             border: 1px solid #444;
             transition: all 0.3s ease;
-            min-width: 80px;
-            justify-content: center;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
 
         .status-item.changed {
@@ -96,12 +97,13 @@
 
         .status-label {
             color: #aaa;
-            font-size: 0.8em;
+            font-size: 0.75em;
         }
 
         .status-value {
             font-weight: bold;
             color: white;
+            font-size: 0.85em;
         }
 
         /* STATE renkleri (ESP32 kodundan) */
@@ -115,11 +117,12 @@
         .status-state-8 { background: #F44336; color: white; } /* FAULT_HARD - Kırmızı */
 
         .status-indicator {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
             background: #4CAF50;
             animation: pulse 2s infinite;
+            flex-shrink: 0;
         }
 
         .status-indicator.offline {
@@ -133,9 +136,10 @@
         }
 
         .status-last-update {
-            font-size: 0.75em;
+            font-size: 0.7em;
             color: #888;
             margin-left: auto;
+            white-space: nowrap;
         }
 
         .content {
@@ -425,7 +429,7 @@
             <div class="status-item" id="statusMAX">
                 <span class="status-label">MAX:</span>
                 <span class="status-value" id="maxValue">-</span>
-                <span style="font-size: 0.75em; margin-left: 3px;">A</span>
+                <span style="font-size: 0.7em; margin-left: 2px;">A</span>
             </div>
             <div class="status-item" id="statusAUTH">
                 <span class="status-label">AUTH:</span>
