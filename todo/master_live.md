@@ -1,16 +1,17 @@
 # Aktif Görevler (Şu Anda Yapılanlar)
 
-**Son Güncelleme:** 2025-12-09 16:10:00
+**Son Güncelleme:** 2025-12-09 21:35:00
 
 ---
 
 ## Aktif Görevler
 
-### 🔄 Event Detection Modülü (Yüksek Öncelik)
+### 🔄 Event Detection Modülü (Yüksek Öncelik - Öncelik 1)
 
 **Görev ID:** TASK-006  
 **Başlangıç Tarihi:** 2025-12-09 16:10:00  
-**Durum:** 📋 Bekliyor  
+**Güncelleme Tarihi:** 2025-12-09 21:35:00  
+**Durum:** 📋 Bekliyor (Hazırlanıyor)  
 **Öncelik:** Yüksek
 
 #### Açıklama
@@ -34,6 +35,16 @@ State transition detection ve event classification modülü oluşturulması gere
 - Event'ler state transition'lara göre tespit edilecek
 - Event'ler structured logging ile loglanacak
 - Event types: CABLE_CONNECTED, EV_CONNECTED, CHARGE_STARTED, CHARGE_STOPPED, CABLE_DISCONNECTED
+
+#### İyileştirme Fırsatları (Multi-Expert Analizi)
+- **Architecture Expert:** Event-driven architecture pattern kullanılabilir
+- **Performance Expert:** Event queue mekanizması eklenebilir
+- **Code Quality Expert:** Event history tracking eklenebilir
+- **Testing Expert:** Event detection unit testleri yazılmalı
+
+#### Sonraki Görevler
+- Session Management (Event Detection tamamlandıktan sonra)
+- Session Summary Generation (Session Management tamamlandıktan sonra)
 
 ---
 
