@@ -181,6 +181,45 @@ async def station_form():
         )
 
 
+@app.get("/test", tags=["Test"], response_class=HTMLResponse)
+async def api_test_page():
+    """API test sayfası"""
+    test_path = Path(__file__).parent.parent / "api_test.html"
+    if test_path.exists():
+        return FileResponse(test_path)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Test sayfası bulunamadı"
+        )
+
+
+@app.get("/api/test/config", tags=["Test"])
+async def get_test_config():
+    """
+    Test sayfası için konfigürasyon bilgileri
+    
+    Güvenlik: Bu endpoint sadece test için kullanılmalıdır.
+    Production'da devre dışı bırakılabilir.
+    """
+    # API key ve user ID'yi environment variable'lardan al
+    api_key = os.getenv("SECRET_API_KEY", "")
+    user_id = os.getenv("TEST_API_USER_ID", "")
+    
+    # Base URL'i belirle (ngrok veya local)
+    base_url = os.getenv("API_BASE_URL", "https://lixhium.ngrok.app")
+    
+    return APIResponse(
+        success=True,
+        message="Test configuration",
+        data={
+            "api_key": api_key,
+            "user_id": user_id,
+            "base_url": base_url
+        }
+    )
+
+
 @app.get("/api/health", tags=["Health"])
 async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
     """Sistem sağlık kontrolü"""
