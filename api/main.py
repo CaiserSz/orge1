@@ -39,7 +39,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from api.event_detector import get_event_detector
 from api.logging_config import log_api_request, system_logger
-from api.session_manager import get_session_manager
+from api.session import get_session_manager
 
 # Router'ları import et
 from api.routers import (

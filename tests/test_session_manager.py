@@ -8,7 +8,7 @@ Description: Session Manager modülü için unit testler
 
 from datetime import datetime
 from unittest.mock import Mock
-from api.session_manager import (
+from api.session import (
     SessionManager,
     ChargingSession,
     SessionStatus,

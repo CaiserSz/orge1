@@ -8,7 +8,7 @@ Description: Session yönetimi için REST API endpoint'leri
 
 from fastapi import APIRouter, HTTPException, Query, status
 from typing import Optional
-from api.session_manager import get_session_manager, SessionStatus
+from api.session import get_session_manager, SessionStatus
 from api.logging_config import system_logger
 
 router = APIRouter(prefix="/api/sessions", tags=["Sessions"])
