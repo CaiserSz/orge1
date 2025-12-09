@@ -42,6 +42,7 @@ from esp32.bridge import get_esp32_bridge, ESP32Bridge
 from api.station_info import save_station_info, get_station_info
 from api.logging_config import api_logger, log_api_request, system_logger, log_event
 from api.auth import verify_api_key
+from api.event_detector import get_event_detector
 import logging
 
 # FastAPI uygulaması
@@ -112,27 +113,41 @@ app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 @app.on_event("startup")
 async def startup_event():
-    """Uygulama başlangıcında ESP32 bridge'i başlat"""
+    """Uygulama başlangıcında ESP32 bridge'i başlat ve event detector'ı başlat"""
     try:
         bridge = get_esp32_bridge()
         if not bridge.is_connected:
             system_logger.warning("ESP32 bağlantısı başlatılamadı")
         else:
             system_logger.info("ESP32 bridge başarıyla başlatıldı")
+
+        # Event detector'ı başlat
+        event_detector = get_event_detector(get_esp32_bridge)
+        event_detector.start_monitoring()
+        system_logger.info("Event detector başlatıldı")
     except Exception as e:
-        system_logger.error(f"ESP32 bridge başlatma hatası: {e}", exc_info=True)
+        system_logger.error(f"Startup hatası: {e}", exc_info=True)
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    """Uygulama kapanışında ESP32 bridge'i kapat"""
+    """Uygulama kapanışında event detector'ı durdur ve ESP32 bridge'i kapat"""
     try:
+        # Event detector'ı durdur
+        try:
+            event_detector = get_event_detector(get_esp32_bridge)
+            event_detector.stop_monitoring()
+            system_logger.info("Event detector durduruldu")
+        except Exception as e:
+            system_logger.warning(f"Event detector durdurma hatası: {e}")
+
+        # ESP32 bridge'i kapat
         bridge = get_esp32_bridge()
         if bridge and bridge.is_connected:
             bridge.disconnect()
             system_logger.info("ESP32 bridge kapatıldı")
     except Exception as e:
-        system_logger.error(f"ESP32 bridge kapatma hatası: {e}", exc_info=True)
+        system_logger.error(f"Shutdown hatası: {e}", exc_info=True)
 
 
 # Request/Response modelleri
