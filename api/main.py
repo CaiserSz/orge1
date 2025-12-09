@@ -541,6 +541,14 @@ async def get_test_api_key():
     
     NOT: Bu endpoint sadece test amaçlıdır. Production'da devre dışı bırakılmalıdır.
     """
+    # Production'da bu endpoint'i devre dışı bırak
+    environment = os.getenv("ENVIRONMENT", "production").lower()
+    if environment == "production":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Not found"
+        )
+    
     # Test amaçlı - sadece development ortamında kullanılmalı
     api_key = os.getenv("SECRET_API_KEY", "")
     if not api_key:
@@ -549,11 +557,10 @@ async def get_test_api_key():
             detail="API key not configured"
         )
     
-    # İlk 10 karakteri göster (güvenlik için)
     return {
         "api_key": api_key,
-        "masked_key": api_key[:10] + "..." if len(api_key) > 10 else api_key,
-        "note": "This endpoint is for testing purposes only"
+        "user_id": os.getenv("TEST_API_USER_ID", ""),
+        "note": "This endpoint is for testing purposes only. Disabled in production."
     }
 
 
