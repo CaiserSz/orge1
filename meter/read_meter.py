@@ -18,7 +18,7 @@ import logging
 # GPIO 13 (RX) <- MAX13487 Pin 1 (RO)
 # UART5 -> /dev/ttyAMA4 (dtoverlay=uart5 sonrası)
 
-UART5_DEVICE = "/dev/ttyAMA5"  # UART5 cihaz dosyası (Raspberry Pi 5'te ttyAMA5 olabilir)
+UART5_DEVICE = "/dev/ttyAMA4"  # UART5 cihaz dosyası (dtoverlay=uart5 sonrası)
 DEFAULT_BAUDRATE = 9600  # ABB meter için tipik baudrate (model'e göre değişebilir)
 DEFAULT_SLAVE_ID = 1  # Modbus slave ID (meter'a göre ayarlanmalı)
 DEFAULT_TIMEOUT = 1.0  # Timeout (saniye)
