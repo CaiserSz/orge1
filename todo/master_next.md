@@ -453,24 +453,16 @@ Session Management modülü başarıyla implement edildi. Kod kalitesi yüksek, 
   - Detaylar: `docs/SESSION_CHARGING_METRICS_ANALYSIS_20251210.md` dosyasına bakınız
   - Durum: 📋 Bekliyor
 
-#### Öncelik 1: Metrik Hesaplama Mantığı
-- [ ] **Görev:** Session metriklerini hesaplayan mantık ekleme
-  - Açıklama: Event'lerden metrik çıkarma ve hesaplama mantığı yok
-  - Öncelik: 1 (Acil)
-  - Tahmini Süre: 2-3 saat
-  - Durum: 🔴 Kritik eksiklik
-  - Gerekli Mantık:
-    - Güç hesaplama: P = V × I (kW)
-    - Enerji hesaplama: E = P × t (kWh)
-    - Real-time metrik güncelleme
-    - Final metrik hesaplama (session sonunda)
-  - Çözüm:
-    - `SessionMetricsCalculator` sınıfı oluştur
-    - Event'lerden current, voltage bilgilerini çıkar
-    - Güç ve enerji hesapla
-    - Metrikleri database'e kaydet
+#### ✅ Metrik Hesaplama Mantığı (Tamamlandı)
+- [x] **Görev:** Session metriklerini hesaplayan mantık ekleme ✅ Tamamlandı
+  - Durum: ✅ Tamamlandı (2025-12-10 07:30:00)
+  - Sonuç:
+    - `api/session/metrics.py` oluşturuldu (SessionMetricsCalculator)
+    - SessionManager'a metrik entegrasyonu eklendi
+    - Real-time metrik güncelleme çalışıyor
+    - Final metrik hesaplama çalışıyor
+    - Metrikler database'e kaydediliyor
   - Detaylar: `docs/SESSION_CHARGING_METRICS_ANALYSIS_20251210.md` dosyasına bakınız
-  - Durum: 📋 Bekliyor
 
 #### Öncelik 2: SessionManager Metrik Entegrasyonu
 - [ ] **Görev:** SessionManager'a metrik entegrasyonu
