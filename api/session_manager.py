@@ -18,6 +18,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from api.logging_config import system_logger, log_event
 from api.event_detector import EventType, ESP32State
+from api.database import get_database
 
 
 class SessionStatus(Enum):
@@ -122,10 +123,13 @@ class SessionManager:
 
     def __init__(self):
         """Session Manager başlatıcı"""
-        self.sessions: Dict[str, ChargingSession] = {}
+        self.db = get_database()
         self.current_session: Optional[ChargingSession] = None
         self.sessions_lock = threading.Lock()
         self.max_sessions = 1000  # Maksimum saklanacak session sayısı
+
+        # Startup'ta aktif session'ı restore et
+        self._restore_active_session()
 
     def _on_event(self, event_type: EventType, event_data: Dict[str, Any]):
         """
@@ -147,6 +151,12 @@ class SessionManager:
             # Aktif session'a event ekle
             elif self.current_session:
                 self.current_session.add_event(event_type, event_data)
+                # Database'e kaydet
+                self.db.update_session(
+                    session_id=self.current_session.session_id,
+                    events=self.current_session.events,
+                    metadata=self.current_session.metadata,
+                )
 
             # Fault durumunda session'ı fault olarak işaretle
             elif event_type == EventType.FAULT_DETECTED:
@@ -185,8 +195,16 @@ class SessionManager:
             session = ChargingSession(session_id, start_time, start_state)
             session.add_event(EventType.CHARGE_STARTED, event_data)
 
+            # Database'e kaydet
+            self.db.create_session(
+                session_id=session_id,
+                start_time=start_time,
+                start_state=start_state,
+                events=session.events,
+                metadata=session.metadata,
+            )
+
             self.current_session = session
-            self.sessions[session_id] = session
 
             # Maksimum session sayısını kontrol et
             self._cleanup_old_sessions()
@@ -252,6 +270,16 @@ class SessionManager:
         """
         session.end_session(end_time, end_state, status)
 
+        # Database'e kaydet
+        self.db.update_session(
+            session_id=session.session_id,
+            end_time=end_time,
+            end_state=end_state,
+            status=status.value,
+            events=session.events,
+            metadata=session.metadata,
+        )
+
         system_logger.info(
             f"Session sonlandırıldı: {session.session_id}",
             extra={
@@ -287,22 +315,41 @@ class SessionManager:
                 # (CABLE_DISCONNECTED veya CHARGE_STOPPED event'i gelecek)
                 self.current_session.status = SessionStatus.FAULTED
 
+                # Database'e kaydet
+                self.db.update_session(
+                    session_id=self.current_session.session_id,
+                    status=SessionStatus.FAULTED.value,
+                    events=self.current_session.events,
+                    metadata=self.current_session.metadata,
+                )
+
     def _cleanup_old_sessions(self):
         """Eski session'ları temizle (maksimum session sayısını aşmamak için)"""
-        if len(self.sessions) > self.max_sessions:
-            # En eski session'ları bul ve sil
-            sessions_by_time = sorted(
-                self.sessions.items(), key=lambda x: x[1].start_time
-            )
+        self.db.cleanup_old_sessions(self.max_sessions)
 
-            # İlk %10'unu sil (en eski session'lar)
-            to_remove = int(len(self.sessions) * 0.1)
-            for session_id, _ in sessions_by_time[:to_remove]:
-                del self.sessions[session_id]
+    def _restore_active_session(self):
+        """Startup'ta aktif session'ı database'den restore et"""
+        try:
+            db_session = self.db.get_current_session()
+            if db_session:
+                # Database'den aktif session'ı yükle
+                start_time = datetime.fromisoformat(db_session["start_time"])
+                session = ChargingSession(
+                    db_session["session_id"],
+                    start_time,
+                    db_session["start_state"],
+                )
+                session.events = db_session["events"]
+                session.metadata = db_session["metadata"]
+                session.status = SessionStatus(db_session["status"])
 
-            system_logger.info(
-                f"Eski session'lar temizlendi: {to_remove} session silindi"
-            )
+                self.current_session = session
+                system_logger.info(
+                    f"Aktif session restore edildi: {session.session_id}",
+                    extra={"session_id": session.session_id},
+                )
+        except Exception as e:
+            system_logger.error(f"Active session restore error: {e}", exc_info=True)
 
     def get_current_session(self) -> Optional[Dict[str, Any]]:
         """
@@ -314,6 +361,10 @@ class SessionManager:
         with self.sessions_lock:
             if self.current_session:
                 return self.current_session.to_dict()
+            # Database'den kontrol et
+            db_session = self.db.get_current_session()
+            if db_session:
+                return db_session
             return None
 
     def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
@@ -327,10 +378,11 @@ class SessionManager:
             Session dict'i veya None
         """
         with self.sessions_lock:
-            session = self.sessions.get(session_id)
-            if session:
-                return session.to_dict()
-            return None
+            # Önce memory'de kontrol et (aktif session)
+            if self.current_session and self.current_session.session_id == session_id:
+                return self.current_session.to_dict()
+            # Database'den al
+            return self.db.get_session(session_id)
 
     def get_sessions(
         self, limit: int = 100, offset: int = 0, status: Optional[SessionStatus] = None
@@ -346,18 +398,9 @@ class SessionManager:
         Returns:
             Session listesi
         """
-        with self.sessions_lock:
-            sessions = list(self.sessions.values())
-
-            # Status filtresi
-            if status:
-                sessions = [s for s in sessions if s.status == status]
-
-            # Zaman sırasına göre sırala (en yeni önce)
-            sessions.sort(key=lambda x: x.start_time, reverse=True)
-
-            # Pagination
-            return [s.to_dict() for s in sessions[offset : offset + limit]]
+        # Database'den al
+        status_str = status.value if status else None
+        return self.db.get_sessions(limit=limit, offset=offset, status=status_str)
 
     def get_session_count(self, status: Optional[SessionStatus] = None) -> int:
         """
@@ -369,10 +412,9 @@ class SessionManager:
         Returns:
             Session sayısı
         """
-        with self.sessions_lock:
-            if status:
-                return sum(1 for s in self.sessions.values() if s.status == status)
-            return len(self.sessions)
+        # Database'den al
+        status_str = status.value if status else None
+        return self.db.get_session_count(status=status_str)
 
     def register_with_event_detector(self, event_detector):
         """

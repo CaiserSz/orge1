@@ -75,6 +75,10 @@ secrets/
 # Data files (sensitive)
 data/*.json.backup
 data/*.tmp
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
 
 # Temporary files
 tmp/
