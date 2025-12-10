@@ -6,16 +6,9 @@
 
 ## Aktif Görevler
 
-### Öncelik 1: Duplicate Görevleri Temizle
-- **Görev:** Duplicate görevleri temizle
-- **Öncelik:** 1 (Yüksek)
-- **Tahmini Süre:** 1-2 saat
-- **Durum:** 🔄 Devam Ediyor
-- **Başlangıç:** 2025-12-10 09:45:00
-- **Detaylar:**
-  - Aynı görevlerin farklı yerlerde tekrarını bul
-  - Duplicate görevleri birleştir veya kaldır
-  - Tek bir kaynak olarak tut
+_(Şu anda aktif görev yok)_
+
+**Not:** Duplicate görevler temizlendi (2025-12-10 09:50:00). Yeni görev seçilebilir.
 
 ---
 
