@@ -863,7 +863,7 @@
                         <label>💻 cURL Command (Edit edilebilir):</label>
                         <textarea id="curl-/api/maxcurrent"></textarea>
                     </div>
-                    <button class="btn" onclick="testEndpoint('POST', '/api/maxcurrent', 'body-/api/maxcurrent', true, event)">Test Et</button>
+                    <button class="btn" id="btn-maxcurrent" onclick="testEndpoint('POST', '/api/maxcurrent', 'body-/api/maxcurrent', true, event)">Test Et</button>
                     <div class="response-section" id="response-/api/maxcurrent"></div>
                 </div>
             </div>
@@ -1471,9 +1471,30 @@
 
         async function testEndpoint(method, path, bodyElementId, isNumber = false, event = null) {
             const responseSection = document.getElementById(`response-${path}`);
-            const button = event ? event.target : (event || window.event)?.target || document.querySelector(`button[onclick*="${path}"]`);
+            // Button'u bul - önce event'ten, sonra ID'den, sonra onclick handler'dan
+            let button = null;
+            if (event && event.target) {
+                button = event.target;
+            } else if (window.event && window.event.target) {
+                button = window.event.target;
+            } else {
+                // Özel ID'lerden button'u bul
+                if (path === '/api/maxcurrent') {
+                    button = document.getElementById('btn-maxcurrent');
+                }
+                if (!button) {
+                    // onclick handler'dan button'u bul
+                    button = document.querySelector(`button[onclick*="${path}"]`);
+                }
+                if (!button) {
+                    // Son çare: response section'a en yakın button'u bul
+                    const parent = responseSection?.closest('.endpoint');
+                    button = parent?.querySelector('button.btn');
+                }
+            }
             if (!button) {
                 console.error(`Button not found for path: ${path}`);
+                alert(`Button bulunamadı: ${path}`);
                 return;
             }
             const originalText = button.textContent;
