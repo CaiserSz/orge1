@@ -50,6 +50,7 @@ from api.session import get_session_manager
 from api.routers import (
     charge,
     current,
+    meter,
     station,
     status as status_router,
     test,
@@ -70,6 +71,7 @@ app = FastAPI(
 app.include_router(charge.router)
 app.include_router(status_router.router)
 app.include_router(current.router)
+app.include_router(meter.router)
 app.include_router(station.router)
 app.include_router(test.router)
 app.include_router(sessions.router)

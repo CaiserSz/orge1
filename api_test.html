@@ -703,6 +703,38 @@
                 </div>
             </div>
 
+            <!-- Meter Endpoints -->
+            <div class="endpoint-group">
+                <h2>Meter Endpoints (Test)</h2>
+                <p style="color: #888; font-size: 0.9em; margin-bottom: 15px;">
+                    ⚠️ Meter modülü henüz aktif değil. Bu endpoint'ler test amaçlıdır ve meter aktif olduğunda çalışacaktır.
+                </p>
+
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/api/meter/status</span>
+                    </div>
+                    <div class="endpoint-description">
+                        Meter durum bilgisi ve bağlantı durumu
+                    </div>
+                    <button class="btn" onclick="testEndpoint('GET', '/api/meter/status', null)">Test Et</button>
+                    <div class="response-section" id="response-/api/meter/status"></div>
+                </div>
+
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/api/meter/reading</span>
+                    </div>
+                    <div class="endpoint-description">
+                        Son meter okuması (Voltage, Current, Power, Energy, vb.)
+                    </div>
+                    <button class="btn" onclick="testEndpoint('GET', '/api/meter/reading', null)">Test Et</button>
+                    <div class="response-section" id="response-/api/meter/reading"></div>
+                </div>
+            </div>
+
             <!-- Charge Control -->
             <div class="endpoint-group">
                 <h2>Charge Control (Authentication Required)</h2>
@@ -892,6 +924,8 @@
             updateCurlPreviewForPathParam('GET', '/api/sessions/{session_id}', 'param-/api/sessions/{session_id}', 'curl-/api/sessions/{session_id}');
             updateCurlPreviewForPathParam('GET', '/api/sessions/users/{user_id}/current', 'param-/api/sessions/users/{user_id}/current', 'curl-/api/sessions/users/{user_id}/current');
             updateCurlPreviewForPathParam('GET', '/api/sessions/users/{user_id}/sessions', 'param-/api/sessions/users/{user_id}/sessions', 'curl-/api/sessions/users/{user_id}/sessions');
+            updateCurlPreview('GET', '/api/meter/status', null, 'curl-/api/meter/status');
+            updateCurlPreview('GET', '/api/meter/reading', null, 'curl-/api/meter/reading');
 
             // Start ESP32 status polling
             startStatusPolling();
