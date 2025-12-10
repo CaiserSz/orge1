@@ -132,7 +132,7 @@
             padding: 10px 15px;
             display: flex;
             align-items: center;
-            justify-content: flex-start;
+            justify-content: space-between;
             flex-wrap: wrap;
             gap: 8px;
             border-bottom: 3px solid #333;
@@ -310,7 +310,7 @@
             padding: 8px 15px;
             display: flex;
             align-items: center;
-            justify-content: flex-start;
+            justify-content: space-between;
             flex-wrap: wrap;
             gap: 8px;
             border-bottom: 2px solid #444;
@@ -686,26 +686,28 @@
 
         <!-- System Metrics Bar -->
         <div class="system-metrics-bar" id="systemMetricsBar">
-            <span class="system-metrics-bar-title">System Metrics:</span>
-            <div class="metric-item metric-normal" id="metricCPU">
-                <span class="metric-label">CPU:</span>
-                <span class="metric-value" id="cpuValue">-</span>
-            </div>
-            <div class="metric-item metric-normal" id="metricRAM">
-                <span class="metric-label">RAM:</span>
-                <span class="metric-value" id="ramValue">-</span>
-            </div>
-            <div class="metric-item metric-normal" id="metricSSD">
-                <span class="metric-label">SSD:</span>
-                <span class="metric-value" id="ssdValue">-</span>
-            </div>
-            <div class="metric-item metric-normal" id="metricTemp">
-                <span class="metric-label">Temp:</span>
-                <span class="metric-value" id="tempValue">-</span>
-            </div>
-            <div class="metric-item metric-normal" id="metricNetwork">
-                <span class="metric-label">Network:</span>
-                <span class="metric-value" id="networkValue">-</span>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span class="system-metrics-bar-title">System Metrics:</span>
+                <div class="metric-item metric-normal" id="metricCPU">
+                    <span class="metric-label">CPU:</span>
+                    <span class="metric-value" id="cpuValue">-</span>
+                </div>
+                <div class="metric-item metric-normal" id="metricRAM">
+                    <span class="metric-label">RAM:</span>
+                    <span class="metric-value" id="ramValue">-</span>
+                </div>
+                <div class="metric-item metric-normal" id="metricSSD">
+                    <span class="metric-label">SSD:</span>
+                    <span class="metric-value" id="ssdValue">-</span>
+                </div>
+                <div class="metric-item metric-normal" id="metricTemp">
+                    <span class="metric-label">Temp:</span>
+                    <span class="metric-value" id="tempValue">-</span>
+                </div>
+                <div class="metric-item metric-normal" id="metricNetwork">
+                    <span class="metric-label">Network:</span>
+                    <span class="metric-value" id="networkValue">-</span>
+                </div>
             </div>
             <button class="bar-action-btn bar-stop-btn" onclick="quickStopCharge()" title="Şarjı durdur">Stop</button>
         </div>
