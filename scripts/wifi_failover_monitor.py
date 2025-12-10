@@ -28,14 +28,14 @@ logger = logging.getLogger(__name__)
 # WiFi ağları priority sırasına göre (yüksekten düşüğe)
 WIFI_NETWORKS = [
     ("ORGE_ARGE", 10),
-    ("ORGE_DEPO", 9),
-    ("ORGE_EV", 8),
+    ("ORGE_DEPO", 8),
+    ("ORGE_EV", 9),
     ("ERTAC", 7),
 ]
 
 # Internet kontrol parametreleri
-INTERNET_CHECK_TIMEOUT = 20  # saniye
-INTERNET_CHECK_INTERVAL = 5  # saniye
+INTERNET_CHECK_TIMEOUT = 90  # saniye
+INTERNET_CHECK_INTERVAL = 20  # saniye
 INTERNET_CHECK_HOSTS = ["8.8.8.8", "1.1.1.1", "google.com"]
 PING_COUNT = 2
 PING_TIMEOUT = 3

@@ -252,6 +252,76 @@
             white-space: nowrap;
         }
 
+        /* System Metrics Bar */
+        .system-metrics-bar {
+            background: #2a2a2a;
+            color: white;
+            padding: 8px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            gap: 8px;
+            border-bottom: 2px solid #444;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .system-metrics-bar-title {
+            font-weight: bold;
+            font-size: 0.8em;
+            color: #aaa;
+            margin-right: 8px;
+            white-space: nowrap;
+        }
+
+        .metric-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: 500;
+            background: #333;
+            border: 1px solid #555;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        /* Metric renkleri: Normal (green), Riskli (yellow), Tehlikeli (red) */
+        .metric-normal {
+            background: #2e7d32;
+            border-color: #1b5e20;
+            color: white;
+        }
+
+        .metric-warning {
+            background: #f57c00;
+            border-color: #e65100;
+            color: white;
+        }
+
+        .metric-danger {
+            background: #c62828;
+            border-color: #b71c1c;
+            color: white;
+        }
+
+        .metric-label {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.85em;
+        }
+
+        .metric-value {
+            font-weight: bold;
+            color: white;
+            font-size: 0.9em;
+        }
+
         .content {
             padding: 30px;
         }
@@ -555,6 +625,27 @@
             <div class="status-last-update" id="lastUpdate">Son güncelleme: -</div>
         </div>
 
+        <!-- System Metrics Bar -->
+        <div class="system-metrics-bar" id="systemMetricsBar">
+            <span class="system-metrics-bar-title">System Metrics:</span>
+            <div class="metric-item metric-normal" id="metricCPU">
+                <span class="metric-label">CPU:</span>
+                <span class="metric-value" id="cpuValue">-</span>
+            </div>
+            <div class="metric-item metric-normal" id="metricRAM">
+                <span class="metric-label">RAM:</span>
+                <span class="metric-value" id="ramValue">-</span>
+            </div>
+            <div class="metric-item metric-normal" id="metricSSD">
+                <span class="metric-label">SSD:</span>
+                <span class="metric-value" id="ssdValue">-</span>
+            </div>
+            <div class="metric-item metric-normal" id="metricTemp">
+                <span class="metric-label">Temp:</span>
+                <span class="metric-value" id="tempValue">-</span>
+            </div>
+        </div>
+
         <div class="content">
             <div class="info-box">
                 <p>
@@ -725,7 +816,9 @@
 
         // ESP32 Status Tracking
         let lastStatusData = {};
+        let lastSystemMetrics = {};
         let statusUpdateInterval = null;
+        let systemMetricsInterval = null;
         let statusErrorCount = 0;  // Ardışık hata sayacı
 
         // STATE açıklamaları
@@ -759,6 +852,10 @@
 
             // Her 3 saniyede bir güncelle (ESP32 5 saniyede bir gönderiyor)
             statusUpdateInterval = setInterval(updateESP32Status, 3000);
+
+            // Sistem metriklerini güncelle (her 5 saniyede bir)
+            systemMetricsInterval = setInterval(updateSystemMetrics, 5000);
+            updateSystemMetrics(); // İlk güncelleme
         }
 
         async function updateESP32Status() {
@@ -860,10 +957,161 @@
             }
         }
 
+        // Sistem metriklerini güncelle
+        async function updateSystemMetrics() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/health`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (data.success && data.data) {
+                    updateSystemMetricsBar(data.data);
+                } else {
+                    throw new Error('Invalid response format');
+                }
+            } catch (error) {
+                console.error('System metrics update error:', error);
+                // Hata durumunda metrikleri temizle
+                clearSystemMetrics();
+            }
+        }
+
+        function updateSystemMetricsBar(data) {
+            // CPU güncelleme
+            const cpuPercent = data.cpu_percent !== null && data.cpu_percent !== undefined
+                ? data.cpu_percent.toFixed(1)
+                : (data.system_cpu_percent !== null && data.system_cpu_percent !== undefined
+                    ? data.system_cpu_percent.toFixed(1)
+                    : null);
+
+            if (cpuPercent !== null) {
+                updateMetric('cpuValue', cpuPercent + '%', 'metricCPU', cpuPercent, 0, 50, 80);
+            } else {
+                document.getElementById('cpuValue').textContent = 'N/A';
+                document.getElementById('metricCPU').className = 'metric-item metric-normal';
+            }
+
+            // RAM güncelleme
+            const ramPercent = data.memory_percent !== null && data.memory_percent !== undefined
+                ? data.memory_percent
+                : (data.system_memory_percent !== null && data.system_memory_percent !== undefined
+                    ? data.system_memory_percent
+                    : null);
+
+            const ramUsed = data.memory_mb !== null && data.memory_mb !== undefined
+                ? data.memory_mb.toFixed(1)
+                : null;
+
+            const ramTotal = data.system_memory_total_mb !== null && data.system_memory_total_mb !== undefined
+                ? data.system_memory_total_mb.toFixed(0)
+                : null;
+
+            if (ramPercent !== null) {
+                let ramDisplay = ramPercent.toFixed(1) + '%';
+                if (ramUsed !== null && ramTotal !== null) {
+                    ramDisplay = `${ramUsed}MB/${ramTotal}MB (${ramPercent.toFixed(1)}%)`;
+                }
+                updateMetric('ramValue', ramDisplay, 'metricRAM', ramPercent, 0, 70, 85);
+            } else {
+                document.getElementById('ramValue').textContent = 'N/A';
+                document.getElementById('metricRAM').className = 'metric-item metric-normal';
+            }
+
+            // SSD güncelleme
+            const ssdPercent = data.disk_percent !== null && data.disk_percent !== undefined
+                ? data.disk_percent
+                : null;
+
+            const ssdUsed = data.disk_used_gb !== null && data.disk_used_gb !== undefined
+                ? data.disk_used_gb.toFixed(1)
+                : null;
+
+            const ssdTotal = data.disk_total_gb !== null && data.disk_total_gb !== undefined
+                ? data.disk_total_gb.toFixed(1)
+                : null;
+
+            if (ssdPercent !== null) {
+                let ssdDisplay = ssdPercent.toFixed(1) + '%';
+                if (ssdUsed !== null && ssdTotal !== null) {
+                    ssdDisplay = `${ssdUsed}GB/${ssdTotal}GB (${ssdPercent.toFixed(1)}%)`;
+                }
+                updateMetric('ssdValue', ssdDisplay, 'metricSSD', ssdPercent, 0, 80, 90);
+            } else {
+                document.getElementById('ssdValue').textContent = 'N/A';
+                document.getElementById('metricSSD').className = 'metric-item metric-normal';
+            }
+
+            // Temperature güncelleme
+            const tempCelsius = data.cpu_temperature_celsius !== null && data.cpu_temperature_celsius !== undefined
+                ? data.cpu_temperature_celsius
+                : null;
+
+            if (tempCelsius !== null) {
+                const tempDisplay = tempCelsius.toFixed(1) + '°C';
+                updateMetric('tempValue', tempDisplay, 'metricTemp', tempCelsius, 0, 70, 80);
+            } else {
+                document.getElementById('tempValue').textContent = 'N/A';
+                document.getElementById('metricTemp').className = 'metric-item metric-normal';
+            }
+        }
+
+        function updateMetric(elementId, displayValue, containerId, value, normalThreshold, warningThreshold, dangerThreshold) {
+            const element = document.getElementById(elementId);
+            const container = document.getElementById(containerId);
+
+            if (!element || !container) return;
+
+            const oldValue = lastSystemMetrics[elementId];
+            const hasChanged = oldValue !== undefined && oldValue !== displayValue;
+
+            // Değeri güncelle
+            element.textContent = displayValue;
+            lastSystemMetrics[elementId] = displayValue;
+
+            // Renk kodlaması: Normal (green), Riskli (yellow), Tehlikeli (red)
+            let metricClass = 'metric-normal';
+            if (value >= dangerThreshold) {
+                metricClass = 'metric-danger';
+            } else if (value >= warningThreshold) {
+                metricClass = 'metric-warning';
+            }
+
+            // Renk sınıfını güncelle
+            container.className = `metric-item ${metricClass}`;
+
+            // Değişiklik varsa highlight animasyonu
+            if (hasChanged) {
+                container.classList.add('changed');
+                setTimeout(() => {
+                    container.classList.remove('changed');
+                }, 600);
+            }
+        }
+
+        function clearSystemMetrics() {
+            document.getElementById('cpuValue').textContent = '-';
+            document.getElementById('ramValue').textContent = '-';
+            document.getElementById('ssdValue').textContent = '-';
+            document.getElementById('tempValue').textContent = '-';
+
+            // Varsayılan renkleri geri yükle
+            document.getElementById('metricCPU').className = 'metric-item metric-normal';
+            document.getElementById('metricRAM').className = 'metric-item metric-normal';
+            document.getElementById('metricSSD').className = 'metric-item metric-normal';
+            document.getElementById('metricTemp').className = 'metric-item metric-normal';
+
+            lastSystemMetrics = {};
+        }
+
         // Sayfa kapatılırken polling'i durdur
         window.addEventListener('beforeunload', () => {
             if (statusUpdateInterval) {
                 clearInterval(statusUpdateInterval);
+            }
+            if (systemMetricsInterval) {
+                clearInterval(systemMetricsInterval);
             }
         });
 
@@ -1145,7 +1393,7 @@
 
             // Replace path parameters
             const actualPath = replacePathParams(pathTemplate, paramValue);
-            
+
             // Response section ID (use template path for consistency)
             const responseSection = document.getElementById(`response-${pathTemplate}`);
             const button = event.target;

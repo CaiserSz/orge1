@@ -91,14 +91,14 @@ async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
             with open("/proc/stat", "r") as f:
                 cpu_line = f.readline()
                 cpu_fields = cpu_line.split()
-                total_jiffies = sum(int(x) for x in cpu_fields[1:])
+                sum(int(x) for x in cpu_fields[1:])
 
             with open(f"/proc/{pid}/stat", "r") as f:
                 proc_stat = f.read().split()
                 # utime + stime (14 ve 15. alanlar, 0-indexed: 13 ve 14)
                 proc_utime = int(proc_stat[13])
                 proc_stime = int(proc_stat[14])
-                proc_total = proc_utime + proc_stime
+                proc_utime + proc_stime
 
             # Basit CPU% hesaplama (yaklaşık)
             # Not: Bu gerçek zamanlı değil, process'in toplam CPU kullanımı
@@ -208,12 +208,29 @@ async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
                     health_data["cpu_temperature_status"] = "normal"
         except Exception:
             pass  # CPU sıcaklığı alınamadı
+
+        # Disk kullanımı (SSD/HDD)
+        try:
+            import shutil
+
+            disk_usage = shutil.disk_usage("/")
+            disk_total_gb = round(disk_usage.total / (1024**3), 2)
+            disk_used_gb = round(disk_usage.used / (1024**3), 2)
+            disk_free_gb = round(disk_usage.free / (1024**3), 2)
+            disk_percent = round((disk_usage.used / disk_usage.total) * 100, 2)
+
+            health_data["disk_total_gb"] = disk_total_gb
+            health_data["disk_used_gb"] = disk_used_gb
+            health_data["disk_free_gb"] = disk_free_gb
+            health_data["disk_percent"] = disk_percent
+        except Exception:
+            pass  # Disk bilgisi alınamadı
     except Exception as e:
         # Metrik toplama hatası - kritik değil, devam et
         health_data["metrics_error"] = str(e)
 
     # Genel sağlık durumu
-    is_healthy = (
+    (
         health_data["api"] == "healthy"
         and health_data["esp32_connected"]
         and health_data["esp32_status"] == "available"
@@ -237,7 +254,7 @@ async def get_status(request: Request, bridge: ESP32Bridge = Depends(get_bridge)
     Stale data kontrolü: 10 saniyeden eski veri None döndürülür ve yeni veri istenir.
     """
     # Service layer kullan
-    status_service = StatusService(bridge)
+    StatusService(bridge)
 
     if not bridge or not bridge.is_connected:
         raise HTTPException(
