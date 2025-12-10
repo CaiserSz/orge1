@@ -6,7 +6,7 @@ Version: 1.0.0
 Description: Charge control endpoints (start/stop)
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from api.auth import verify_api_key
 from api.exceptions import ESP32ConnectionError
