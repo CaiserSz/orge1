@@ -235,6 +235,39 @@ async def get_user_current_session(user_id: str):
         )
 
 
+@router.get("/users/{user_id}/current")
+@cache_response(ttl=10, key_prefix="user_current_session")  # 10 saniye cache
+async def get_user_current_session(user_id: str):
+    """
+    Belirli bir kullanıcının aktif session'ını döndür
+
+    Args:
+        user_id: User ID
+
+    Returns:
+        Aktif session dict'i veya null
+    """
+    try:
+        session_manager = get_session_manager()
+        current_session = session_manager.get_current_session()
+
+        # Aktif session varsa ve user_id eşleşiyorsa döndür
+        if current_session and current_session.get("user_id") == user_id:
+            return {"success": True, "session": current_session}
+        else:
+            return {
+                "success": True,
+                "session": None,
+                "message": f"User {user_id} için aktif session yok",
+            }
+    except Exception as e:
+        system_logger.error(f"User current session get error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Session bilgisi alınamadı: {str(e)}",
+        )
+
+
 @router.get("/users/{user_id}/sessions")
 @cache_response(
     ttl=30, key_prefix="user_sessions", exclude_query_params=["offset"]
