@@ -33,6 +33,31 @@
   - Test Coverage: ~70%
   - Test Dosyaları: 8 (test_esp32_bridge.py, test_api_endpoints.py, test_state_logic.py, test_error_handling.py, test_thread_safety.py, test_status_parsing.py, test_integration.py)
 
+### Öncelik 1: API Test İyileştirmeleri (API Testleri Deep Dive Bulgusu)
+
+#### 🟡 Eksik Test Senaryoları
+- [ ] **Görev:** Eksik test senaryoları ekleme
+  - Açıklama: API testleri deep dive analizi sonucu tespit edildi. Bazı endpoint kombinasyonları ve senaryolar test edilmemiş.
+  - Öncelik: 1 (Yüksek)
+  - Tahmini Süre: 4-6 saat
+  - Durum: 🟡 Yüksek - Test coverage artırma
+  - Detaylar: `reports/API_TESTS_DEEPDIVE_ANALYSIS_20251210.md` dosyasına bakınız
+  - Eksik Senaryolar:
+    - Integration testleri
+    - Endpoint kombinasyon testleri (Charge start → Charge stop → Charge start)
+    - Error recovery testleri (ESP32 bağlantı kopması → Yeniden bağlanma)
+    - Session management testleri (Session endpoint'leri test edilmemiş)
+  - Durum: 📋 Bekliyor
+
+#### 🟡 Test Dokümantasyonu
+- [ ] **Görev:** Test dokümantasyonu oluşturma
+  - Açıklama: Test senaryoları dokümante edilmemiş. Test coverage raporu ve test stratejisi dokümante edilmeli.
+  - Öncelik: 1 (Yüksek)
+  - Tahmini Süre: 2-3 saat
+  - Durum: 🟡 Yüksek - Test dokümantasyonu eksik
+  - Detaylar: `reports/API_TESTS_DEEPDIVE_ANALYSIS_20251210.md` dosyasına bakınız
+  - Durum: 📋 Bekliyor
+
 ### Öncelik 1: API Authentication İyileştirmesi (Gelecek Faz)
 - [ ] **Görev:** API güvenlik katmanı iyileştirmesi
   - Açıklama:
@@ -139,6 +164,34 @@
 ## Faz 7: Code Quality ve DevOps İyileştirmeleri (Yeni - 2025-12-09)
 
 ### Öncelik 0: Kod ve Dokümantasyon Standartlarına Uyum
+
+#### 🔴 Kritik: State Değerleri Standardizasyonu (API Testleri Deep Dive Bulgusu)
+- [ ] **Görev:** State değerleri standardizasyonu (Single Source of Truth)
+  - Açıklama: API testleri deep dive analizi sonucu tespit edildi. State değerleri birden fazla yerde hardcoded (api/routers/charge.py, api/routers/current.py, test dosyaları). ESP32State enum kullanılmalı.
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 2-3 saat
+  - Durum: 🔴 Kritik - Single Source of Truth ihlali
+  - Detaylar: `reports/API_TESTS_DEEPDIVE_ANALYSIS_20251210.md` dosyasına bakınız
+  - Aksiyonlar:
+    - `api/routers/charge.py`: ESP32State enum kullanılmalı
+    - `api/routers/current.py`: ESP32State enum kullanılmalı
+    - Tüm test dosyalarında ESP32State enum kullanılmalı
+    - Hardcoded state değerleri kaldırılmalı
+  - Durum: 📋 Bekliyor
+
+#### 🟡 Yüksek: Mock Yapısı Standardizasyonu (API Testleri Deep Dive Bulgusu)
+- [ ] **Görev:** Mock yapısı standardizasyonu
+  - Açıklama: Farklı test dosyalarında farklı mock yöntemleri kullanılıyor. Standart test fixture oluşturulmalı (tests/conftest.py).
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 1-2 saat
+  - Durum: 🟡 Yüksek - Test tutarlılığı için gerekli
+  - Detaylar: `reports/API_TESTS_DEEPDIVE_ANALYSIS_20251210.md` dosyasına bakınız
+  - Aksiyonlar:
+    - Standart test fixture oluşturulmalı (`tests/conftest.py`)
+    - Tüm test dosyalarında aynı fixture kullanılmalı
+    - Mock yöntemleri standardize edilmeli
+  - Durum: 📋 Bekliyor
+
 - [x] **Görev:** `project_info_20251208_145614.md` bölümleme ✅ Tamamlandı
   - Açıklama: Maksimum sınır (1200 satır) aşıldı (1245 satır). Bölümlere ayrıldı
   - Öncelik: 0 (Acil)
