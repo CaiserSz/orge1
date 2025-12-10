@@ -9,6 +9,7 @@ Description: Current control endpoints
 from fastapi import APIRouter, HTTPException, Request, status, Depends
 
 from api.auth import verify_api_key
+from api.exceptions import ESP32ConnectionError
 from api.models import APIResponse, CurrentSetRequest
 from api.rate_limiting import charge_rate_limit
 from api.routers.dependencies import get_bridge
