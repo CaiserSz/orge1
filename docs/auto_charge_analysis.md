@@ -116,5 +116,21 @@ ESP32 firmware'de:
 
 Sorun ESP32 firmware davranışından kaynaklanıyor. RPi tarafında otomatik şarj başlatma kodu yok. ESP32 firmware'de `onayStatus` değeri bir şekilde `ONAY_STAT_IZIN_VERILDI` olarak ayarlanmış ve bu durumda araç bağlandığında otomatik olarak şarj başlıyor.
 
-**Önerilen çözüm:** ESP32 firmware'de authorization temizleme mekanizması kontrol edilmeli ve `charge_stop` komutu gönderildiğinde `onayStatus` değeri temizlenmeli.
+**ÖNEMLİ:** ESP32 firmware'e müdahale edilmeyecek. Üretici sadece belirli komutları göndermemizi istiyor, firmware davranışı üreticinin sorumluluğundadır.
+
+**RPi Tarafı Sorumluluğu:**
+- ESP32'ye sadece belirlenen komutları göndermek (authorization, charge_stop, current_set vb.)
+- ESP32'den gelen state değişikliklerini izlemek ve loglamak
+- API üzerinden şarj kontrolü sağlamak
+
+**ESP32 Firmware Davranışı:**
+- ESP32 firmware kendi içinde state machine yönetiyor
+- `EV_CONNECTED` state'inde `onayStatus==ONAY_STAT_IZIN_VERILDI` kontrolü yapıyor
+- Bu kontrol ESP32 firmware'in kendi mantığı, RPi tarafından kontrol edilemez
+- Otomatik şarj başlatma ESP32 firmware'in normal davranışı olabilir
+
+**Kullanıcı Bilgilendirmesi:**
+- Araç bağlandığında otomatik şarj başlaması ESP32 firmware davranışıdır
+- RPi tarafı sadece komut gönderir, firmware davranışını kontrol edemez
+- Şarjı durdurmak için `/api/charge/stop` endpoint'i kullanılabilir
 
