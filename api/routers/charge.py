@@ -6,7 +6,7 @@ Version: 1.0.0
 Description: Charge control endpoints (start/stop)
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Request, status
 
 from api.auth import verify_api_key
 from api.exceptions import ESP32ConnectionError
@@ -75,7 +75,8 @@ async def start_charge(
 @router.post("/stop")
 @charge_rate_limit()  # Charge endpoint'leri için sıkı rate limit (10/dakika)
 async def stop_charge(
-    request: ChargeStopRequest,
+    request_body: ChargeStopRequest,
+    request: Request,
     bridge: ESP32Bridge = Depends(get_bridge),
     api_key: str = Depends(verify_api_key),
 ):
@@ -88,7 +89,7 @@ async def stop_charge(
     charge_service = ChargeService(bridge)
 
     try:
-        result = charge_service.stop_charge(request, user_id=None, api_key=api_key)
+        result = charge_service.stop_charge(request_body, user_id=None, api_key=api_key)
         return APIResponse(**result)
     except ESP32ConnectionError as e:
         raise HTTPException(
