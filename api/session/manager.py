@@ -75,7 +75,42 @@ class SessionManager:
 
             # Session başlatma event'leri
             if event_type == EventType.CHARGE_STARTED:
-                self._start_session(event_data)
+                # Resume kontrolü: Eğer aktif session varsa ve son state PAUSED ise,
+                # yeni session oluşturma, mevcut session'a event ekle
+                if self.current_session:
+                    # Son event'i kontrol et - CHARGE_PAUSED var mı?
+                    last_event_type = None
+                    if self.current_session.events:
+                        last_event = self.current_session.events[-1]
+                        last_event_type = last_event.get("event_type")
+
+                    # Eğer son event CHARGE_PAUSED ise, bu resume durumudur
+                    if last_event_type == EventType.CHARGE_PAUSED.value:
+                        # Resume: Mevcut session'a CHARGE_STARTED event'i ekle
+                        self.current_session.add_event(event_type, event_data)
+                        # Metrikleri güncelle (real-time)
+                        self._update_session_metrics(event_data)
+                        # user_id'yi event_data'dan çıkar
+                        user_id = event_data.get("user_id") or event_data.get(
+                            "data", {}
+                        ).get("user_id")
+                        # Normalized event tablosuna kaydet
+                        self._save_event_to_table(event_type, event_data, user_id)
+                        # Database'e kaydet
+                        self.db.update_session(
+                            session_id=self.current_session.session_id,
+                            events=self.current_session.events,
+                            metadata=self.current_session.metadata,
+                        )
+                        system_logger.info(
+                            f"Resume event'i mevcut session'a eklendi: {self.current_session.session_id}"
+                        )
+                    else:
+                        # Yeni session başlat (normal CHARGE_STARTED)
+                        self._start_session(event_data)
+                else:
+                    # Aktif session yok, yeni session başlat
+                    self._start_session(event_data)
 
             # Session sonlandırma event'leri
             elif event_type in [
@@ -227,6 +262,10 @@ class SessionManager:
             user_id = event_data.get("user_id") or event_data.get("data", {}).get(
                 "user_id"
             )
+
+            # CHARGE_STOPPED event'ini session'a ekle (sonlandırmadan önce)
+            self.current_session.add_event(event_type, event_data)
+
             # Normalized event tablosuna kaydet
             self._save_event_to_table(event_type, event_data, user_id)
             self._end_session_internal(
