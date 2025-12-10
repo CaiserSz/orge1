@@ -60,6 +60,17 @@ class ChargeService(BaseService):
                     "timestamp": datetime.now().isoformat(),
                 },
             )
+            # Session manager'a user_id bilgisini geçir (CHARGE_STARTED event'i için)
+            try:
+                from api.session import get_session_manager
+                session_manager = get_session_manager()
+                if session_manager:
+                    # pending_user_id'ye user_id'yi kaydet
+                    with session_manager.pending_user_id_lock:
+                        session_manager.pending_user_id = user_id
+            except Exception:
+                # Session manager yoksa veya hata varsa devam et
+                pass
 
         # Mevcut durumu kontrol et
         current_status = self.bridge.get_status()

@@ -941,6 +941,9 @@ class Database:
         created_at_dt = datetime.fromtimestamp(row["created_at"])
         updated_at_dt = datetime.fromtimestamp(row["updated_at"])
 
+        # Metadata'yı parse et
+        metadata = json.loads(row["metadata"]) if row["metadata"] else {}
+
         result = {
             "session_id": row["session_id"],
             "start_time": start_time_dt.isoformat(),
@@ -949,7 +952,7 @@ class Database:
             "end_state": row["end_state"],
             "status": row["status"],
             "events": json.loads(row["events"]),
-            "metadata": json.loads(row["metadata"]),
+            "metadata": metadata,
             "created_at": created_at_dt.isoformat(),
             "updated_at": updated_at_dt.isoformat(),
             # Hesaplanan alanlar
@@ -958,6 +961,17 @@ class Database:
             ),
             "event_count": len(json.loads(row["events"])),
         }
+
+        # user_id'yi metadata'dan veya database kolonundan al
+        user_id = None
+        if "user_id" in row.keys() and row["user_id"]:
+            user_id = row["user_id"]
+        elif "user_id" in metadata:
+            user_id = metadata["user_id"]
+
+        # user_id varsa ayrı bir field olarak ekle
+        if user_id:
+            result["user_id"] = user_id
 
         # Metrikleri ekle (eğer varsa)
         metric_fields = [

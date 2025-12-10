@@ -83,7 +83,10 @@ class ChargingSession:
             Session dict'i
         """
         with self.lock:
-            return {
+            # user_id'yi metadata'dan çıkar (varsa)
+            user_id = self.metadata.get("user_id")
+
+            result = {
                 "session_id": self.session_id,
                 "start_time": self.start_time.isoformat(),
                 "end_time": self.end_time.isoformat() if self.end_time else None,
@@ -99,3 +102,9 @@ class ChargingSession:
                 "events": self.events,
                 "metadata": self.metadata,
             }
+
+            # user_id varsa ayrı bir field olarak ekle
+            if user_id:
+                result["user_id"] = user_id
+
+            return result

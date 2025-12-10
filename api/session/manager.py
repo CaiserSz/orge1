@@ -37,6 +37,9 @@ class SessionManager:
         self.current_session: Optional[ChargingSession] = None
         self.sessions_lock = threading.Lock()
         self.max_sessions = 1000  # Maksimum saklanacak session sayısı
+        # charge_start event'inden gelen user_id'yi geçici olarak sakla
+        self.pending_user_id: Optional[str] = None
+        self.pending_user_id_lock = threading.Lock()
 
         # Meter entegrasyonu için hazırlık
         try:
@@ -63,6 +66,13 @@ class SessionManager:
             event_data: Event data dict'i
         """
         try:
+            # charge_start event'ini dinle ve user_id'yi sakla
+            if event_type == EventType.CHARGE_START_REQUESTED:
+                user_id = event_data.get("user_id")
+                if user_id:
+                    with self.pending_user_id_lock:
+                        self.pending_user_id = user_id
+
             # Session başlatma event'leri
             if event_type == EventType.CHARGE_STARTED:
                 self._start_session(event_data)
@@ -129,10 +139,16 @@ class SessionManager:
             session = ChargingSession(session_id, start_time, start_state)
             session.add_event(EventType.CHARGE_STARTED, event_data)
 
-            # user_id'yi event_data'dan çıkar (şarj başlatma/bitirme/durum değişiminde geliyor)
+            # user_id'yi event_data'dan veya pending_user_id'den al
             user_id = event_data.get("user_id") or event_data.get("data", {}).get(
                 "user_id"
             )
+            # Eğer event_data'da yoksa, pending_user_id'den al
+            if not user_id:
+                with self.pending_user_id_lock:
+                    user_id = self.pending_user_id
+                    self.pending_user_id = None  # Kullanıldıktan sonra temizle
+
             # user_id'yi metadata'ya ekle
             if user_id:
                 session.metadata["user_id"] = user_id
