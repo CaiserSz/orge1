@@ -226,6 +226,7 @@ async def get_user_sessions(
         session_manager = get_session_manager()
 
         # Status filtresi
+        # Varsayılan olarak ACTIVE hariç tüm session'ları göster (sadece geçmiş session'lar)
         session_status = None
         if status_filter:
             try:
@@ -236,13 +237,38 @@ async def get_user_sessions(
                     detail=f"Geçersiz status filtresi: {status_filter}. Geçerli değerler: ACTIVE, COMPLETED, CANCELLED, FAULTED",
                 )
 
-        sessions = session_manager.get_sessions(
-            limit=limit, offset=offset, status=session_status, user_id=user_id
-        )
+        # Status filtresi yoksa ACTIVE hariç tüm session'ları al
+        if not status_filter:
+            # Tüm session'ları al (ACTIVE dahil)
+            all_sessions = session_manager.get_sessions(
+                limit=limit * 2,  # ACTIVE session'ları filtrelemek için daha fazla al
+                offset=offset,
+                status=None,
+                user_id=user_id,
+            )
+            # ACTIVE session'ları filtrele
+            sessions = [
+                s for s in all_sessions if s.get("status") != SessionStatus.ACTIVE.value
+            ]
+            # Limit'e uygun şekilde kes
+            sessions = sessions[:limit]
 
-        total_count = session_manager.get_session_count(
-            status=session_status, user_id=user_id
-        )
+            # Total count: ACTIVE hariç tüm session sayısı
+            total_count = session_manager.get_session_count(
+                status=None, user_id=user_id
+            )
+            active_count = session_manager.get_session_count(
+                status=SessionStatus.ACTIVE, user_id=user_id
+            )
+            total_count = total_count - active_count
+        else:
+            # Status filtresi varsa normal filtreleme
+            sessions = session_manager.get_sessions(
+                limit=limit, offset=offset, status=session_status, user_id=user_id
+            )
+            total_count = session_manager.get_session_count(
+                status=session_status, user_id=user_id
+            )
 
         return {
             "success": True,
