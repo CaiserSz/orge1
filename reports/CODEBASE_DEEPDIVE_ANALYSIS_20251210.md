@@ -469,6 +469,7 @@ except Exception as e:
 **⚠️ ÖNEMLİ NOT:** ESP32 firmware analizi yapılmamıştır ve yapılmayacaktır. Bizim odağımız:
 
 1. **ESP32'ye Gönderdiğimiz Komutlar:**
+   - Status request komutu (`send_status_request`)
    - Authorization komutu (`send_authorization`)
    - Current set komutu (`send_current_set`)
    - Charge stop komutu (`send_charge_stop`)
