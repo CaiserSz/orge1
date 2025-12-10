@@ -33,6 +33,7 @@ except ImportError:
                     os.environ[key.strip()] = value.strip()
 
 from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -108,6 +109,40 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
 
         return response
 
+
+# CORS Middleware'i ekle
+# Environment variable'lardan CORS ayarlarını al
+allowed_origins_env = os.getenv("CORS_ALLOWED_ORIGINS", "*")
+allowed_origins = (
+    allowed_origins_env.split(",") if allowed_origins_env != "*" else ["*"]
+)
+
+allowed_methods_env = os.getenv("CORS_ALLOWED_METHODS", "GET,POST,PUT,DELETE,OPTIONS")
+allowed_methods = [method.strip() for method in allowed_methods_env.split(",")]
+
+allowed_headers_env = os.getenv(
+    "CORS_ALLOWED_HEADERS", "Content-Type,Authorization,X-API-Key"
+)
+allowed_headers = [header.strip() for header in allowed_headers_env.split(",")]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=allowed_methods,
+    allow_headers=allowed_headers,
+    expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"],
+    max_age=3600,  # Preflight cache süresi (1 saat)
+)
+
+system_logger.info(
+    "CORS middleware aktif edildi",
+    extra={
+        "allowed_origins": allowed_origins,
+        "allowed_methods": allowed_methods,
+        "allowed_headers": allowed_headers,
+    },
+)
 
 # Middleware'i ekle
 app.add_middleware(APILoggingMiddleware)
