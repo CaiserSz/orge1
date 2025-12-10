@@ -10,6 +10,7 @@ import logging
 from typing import Optional
 
 from api.config import config
+from api.exceptions import ESP32ConnectionError
 from api.logging_config import log_event
 from esp32.bridge import ESP32Bridge
 
@@ -41,7 +42,7 @@ class BaseService:
             ValueError: Bridge bağlı değilse
         """
         if not self.bridge or not self.bridge.is_connected:
-            raise ValueError("ESP32 bağlantısı yok")
+            raise ESP32ConnectionError("ESP32 bağlantısı yok")
 
     def _get_user_id(self, user_id: Optional[str] = None) -> Optional[str]:
         """

@@ -264,6 +264,21 @@ async def station_form():
         )
 
 
+# Custom API exception handler
+@app.exception_handler(APIException)
+async def api_exception_handler(request: Request, exc: APIException):
+    """Custom API exception handler"""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "success": False,
+            "error_code": exc.error_code,
+            "message": exc.message,
+            "detail": str(exc),
+        },
+    )
+
+
 # Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
