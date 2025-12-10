@@ -623,6 +623,7 @@
                 <span class="status-value" id="authValue">-</span>
             </div>
             <div class="status-last-update" id="lastUpdate">Son güncelleme: -</div>
+            <button class="bar-action-btn bar-start-btn" onclick="quickStartCharge()" title="Şarjı başlat">Start</button>
         </div>
 
         <!-- System Metrics Bar -->
@@ -648,6 +649,7 @@
                 <span class="metric-label">Network:</span>
                 <span class="metric-value" id="networkValue">-</span>
             </div>
+            <button class="bar-action-btn bar-stop-btn" onclick="quickStopCharge()" title="Şarjı durdur">Stop</button>
         </div>
 
         <div class="content">
@@ -911,6 +913,63 @@
         };
 
         // Initialize curl previews and status bar on page load
+        // Quick charge start/stop functions
+        async function quickStartCharge() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/test/key`);
+                const keyData = await response.json();
+                const apiKey = keyData.api_key;
+
+                const chargeResponse = await fetch(`${API_BASE_URL}/api/charge/start`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
+                    body: JSON.stringify({ test: true })
+                });
+
+                const result = await chargeResponse.json();
+                if (result.success) {
+                    alert('✅ Şarj başlatıldı!');
+                    // Status'u güncelle
+                    updateStatus();
+                } else {
+                    alert('❌ Şarj başlatılamadı: ' + (result.message || 'Bilinmeyen hata'));
+                }
+            } catch (error) {
+                alert('❌ Hata: ' + error.message);
+            }
+        }
+
+        async function quickStopCharge() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/test/key`);
+                const keyData = await response.json();
+                const apiKey = keyData.api_key;
+
+                const chargeResponse = await fetch(`${API_BASE_URL}/api/charge/stop`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
+                    body: JSON.stringify({ test: true })
+                });
+
+                const result = await chargeResponse.json();
+                if (result.success) {
+                    alert('✅ Şarj durduruldu!');
+                    // Status'u güncelle
+                    updateStatus();
+                } else {
+                    alert('❌ Şarj durdurulamadı: ' + (result.message || 'Bilinmeyen hata'));
+                }
+            } catch (error) {
+                alert('❌ Hata: ' + error.message);
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             cachedApiKey = await getApiKey();
 
