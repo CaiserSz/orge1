@@ -52,16 +52,14 @@ def verify_api_key(api_key: Optional[str] = Security(api_key_header)) -> str:
     if not api_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="API key required. Please provide X-API-Key header."
+            detail="API key required. Please provide X-API-Key header.",
         )
 
     secret_key = get_secret_api_key()
 
     if api_key != secret_key:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid API key"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key"
         )
 
     return api_key
-

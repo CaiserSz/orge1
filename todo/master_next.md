@@ -512,6 +512,93 @@
 
 ### Öncelik 0: Kod ve Dokümantasyon Standartlarına Uyum
 
+#### 🔴 KRİTİK: Standart İhlalleri (Standart Kontrol Raporu - 2025-12-10)
+
+##### 🔴 Maksimum Sınır Aşıldı (Acil Refactor Gerekli)
+- [ ] **Görev:** `api/database.py` modüllere bölme
+  - Açıklama: Maksimum sınır (500 satır) aşıldı (1335 satır). Modüllere bölünmeli
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 4-6 saat
+  - Durum: 🔴 Maksimum sınır aşıldı
+  - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
+  - Önerilen Yapı:
+    - `api/database/core.py` - Core database operations
+    - `api/database/migrations.py` - Migration operations
+    - `api/database/queries.py` - Query operations
+    - `api/database/models.py` - Database models
+
+- [ ] **Görev:** `api/session/manager.py` modüllere bölme
+  - Açıklama: Maksimum sınır (500 satır) aşıldı (622 satır). Modüllere bölünmeli
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 3-4 saat
+  - Durum: 🔴 Maksimum sınır aşıldı
+  - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
+  - Önerilen Yapı:
+    - `api/session/manager.py` - Core session management
+    - `api/session/events.py` - Event handling
+    - `api/session/metrics.py` - Metrics calculation
+
+- [ ] **Görev:** `tests/test_charge_status_current_apis.py` test suite'e bölme
+  - Açıklama: Maksimum sınır (500 satır) aşıldı (787 satır). Test suite'e bölünmeli
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 2-3 saat
+  - Durum: 🔴 Maksimum sınır aşıldı
+  - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
+
+- [ ] **Görev:** `tests/test_bridge.py` test suite'e bölme
+  - Açıklama: Maksimum sınır (500 satır) aşıldı (681 satır). Test suite'e bölünmeli
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 2-3 saat
+  - Durum: 🔴 Maksimum sınır aşıldı
+  - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
+
+##### 🟡 Uyarı Eşiği Yakın (Yakın Zamanda Refactor Planlanmalı)
+- [ ] **Görev:** `api/cache.py` modüllere bölme
+  - Açıklama: Uyarı eşiği (500 satır) yakın (415 satır). Modüllere bölünebilir
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 2-3 saat
+  - Durum: 🟡 Uyarı eşiği yakın
+  - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
+
+- [ ] **Görev:** `api/alerting.py` modüllere bölme
+  - Açıklama: Uyarı eşiği (500 satır) yakın (413 satır). Modüllere bölünebilir
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 2-3 saat
+  - Durum: 🟡 Uyarı eşiği yakın
+  - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
+
+- [ ] **Görev:** `api/routers/status.py` modüllere bölme
+  - Açıklama: Uyarı eşiği (500 satır) yakın (420 satır). Modüllere bölünebilir
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 2-3 saat
+  - Durum: 🟡 Uyarı eşiği yakın
+  - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
+
+- [ ] **Görev:** Test dosyaları refactoring (4 dosya)
+  - Açıklama: Uyarı eşiği (500 satır) yakın. Test suite'e bölünmeli
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 4-6 saat
+  - Durum: 🟡 Uyarı eşiği yakın
+  - Dosyalar:
+    - `tests/test_session_manager.py` (457 satır)
+    - `tests/test_event_detector.py` (423 satır)
+    - `tests/test_command_dry_run.py` (456 satır)
+    - `tests/test_protocol.py` (420 satır)
+  - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
+
+#### 🔴 KRİTİK: Workspace Boyutu (Workspace Kontrol Raporu - 2025-12-10)
+- [ ] **Görev:** Workspace temizliği ve arşivleme
+  - Açıklama: Workspace boyutu 137.48 MB (Limit: 100 MB). Temizlik ve arşivleme gerekli
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 1-2 saat
+  - Durum: 🔴 Workspace boyutu çok büyük
+  - Detaylar: `scripts/workspace_auto_check.py` raporuna bakınız
+  - Aksiyonlar:
+    - Eski log dosyalarını arşivleme
+    - Gereksiz dosyaları temizleme
+    - Backup dosyalarını kontrol etme
+    - env/ klasörü boyutunu kontrol etme
+
 #### ✅ State Değerleri Standardizasyonu (API Testleri Deep Dive Bulgusu) - Tamamlandı
 - [x] **Görev:** State değerleri standardizasyonu (Single Source of Truth)
   - Açıklama: API testleri deep dive analizi sonucu tespit edildi. State değerleri birden fazla yerde hardcoded (api/routers/charge.py, api/routers/current.py, test dosyaları). ESP32State enum kullanılmalı.

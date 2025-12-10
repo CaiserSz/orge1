@@ -15,12 +15,14 @@ import sys
 import os
 
 # Logging modülünü import et
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from api.logging_config import system_logger, log_event
+
 
 # ESP32 State değerleri (ESP32 firmware'den)
 class ESP32State(Enum):
     """ESP32 state değerleri"""
+
     HARDFAULT_END = 0  # ESP32 firmware'de tanımlı (Commercial_08122025.ino:197)
     IDLE = 1
     CABLE_DETECT = 2
@@ -31,9 +33,11 @@ class ESP32State(Enum):
     STOPPED = 7
     FAULT_HARD = 8
 
+
 # Event types
 class EventType(Enum):
     """Event type'ları"""
+
     CABLE_CONNECTED = "CABLE_CONNECTED"
     EV_CONNECTED = "EV_CONNECTED"
     CHARGE_READY = "CHARGE_READY"
@@ -97,12 +101,14 @@ class EventDetector:
                 bridge = self.bridge_getter()
                 if bridge and bridge.is_connected:
                     status = bridge.get_status()
-                    if status and 'STATE' in status:
-                        state = status['STATE']
+                    if status and "STATE" in status:
+                        state = status["STATE"]
                         self._check_state_transition(state, status)
                 time.sleep(0.5)  # 500ms bekleme
             except Exception as e:
-                system_logger.error(f"Event detection monitor loop error: {e}", exc_info=True)
+                system_logger.error(
+                    f"Event detection monitor loop error: {e}", exc_info=True
+                )
                 time.sleep(1.0)  # Hata durumunda daha uzun bekle
 
     def _check_state_transition(self, new_state: int, status: Dict[str, Any]):
@@ -129,7 +135,9 @@ class EventDetector:
             # State transition tespit edildi
             event_type = self._classify_event(self.previous_state, self.current_state)
             if event_type:
-                self._create_event(event_type, self.previous_state, self.current_state, status)
+                self._create_event(
+                    event_type, self.previous_state, self.current_state, status
+                )
 
     def _classify_event(self, from_state: int, to_state: int) -> Optional[EventType]:
         """
@@ -144,42 +152,90 @@ class EventDetector:
         """
         # State transition mapping
         transitions = {
-            (ESP32State.IDLE.value, ESP32State.CABLE_DETECT.value): EventType.CABLE_CONNECTED,
-            (ESP32State.CABLE_DETECT.value, ESP32State.EV_CONNECTED.value): EventType.EV_CONNECTED,
-            (ESP32State.EV_CONNECTED.value, ESP32State.READY.value): EventType.CHARGE_READY,
-            (ESP32State.READY.value, ESP32State.CHARGING.value): EventType.CHARGE_STARTED,
+            (
+                ESP32State.IDLE.value,
+                ESP32State.CABLE_DETECT.value,
+            ): EventType.CABLE_CONNECTED,
+            (
+                ESP32State.CABLE_DETECT.value,
+                ESP32State.EV_CONNECTED.value,
+            ): EventType.EV_CONNECTED,
+            (
+                ESP32State.EV_CONNECTED.value,
+                ESP32State.READY.value,
+            ): EventType.CHARGE_READY,
+            (
+                ESP32State.READY.value,
+                ESP32State.CHARGING.value,
+            ): EventType.CHARGE_STARTED,
             # EV_CONNECTED → CHARGING transition (ESP32 firmware gerçek davranışı)
             # Authorization verildikten sonra READY'ye geçmeden direkt CHARGING state'ine geçebilir
-            (ESP32State.EV_CONNECTED.value, ESP32State.CHARGING.value): EventType.CHARGE_STARTED,
+            (
+                ESP32State.EV_CONNECTED.value,
+                ESP32State.CHARGING.value,
+            ): EventType.CHARGE_STARTED,
             # IDLE → CHARGING transition (ESP32 firmware gerçek davranışı)
             # Authorization verildikten sonra direkt CHARGING state'ine geçebilir
-            (ESP32State.IDLE.value, ESP32State.CHARGING.value): EventType.CHARGE_STARTED,
-            (ESP32State.CHARGING.value, ESP32State.PAUSED.value): EventType.CHARGE_PAUSED,
+            (
+                ESP32State.IDLE.value,
+                ESP32State.CHARGING.value,
+            ): EventType.CHARGE_STARTED,
+            (
+                ESP32State.CHARGING.value,
+                ESP32State.PAUSED.value,
+            ): EventType.CHARGE_PAUSED,
             # PAUSED → CHARGING transition (şarja devam etme)
             # Suspended durumundan şarja devam edildiğinde CHARGE_STARTED event'i üretilmeli
-            (ESP32State.PAUSED.value, ESP32State.CHARGING.value): EventType.CHARGE_STARTED,
-            (ESP32State.CHARGING.value, ESP32State.STOPPED.value): EventType.CHARGE_STOPPED,
-            (ESP32State.PAUSED.value, ESP32State.STOPPED.value): EventType.CHARGE_STOPPED,
+            (
+                ESP32State.PAUSED.value,
+                ESP32State.CHARGING.value,
+            ): EventType.CHARGE_STARTED,
+            (
+                ESP32State.CHARGING.value,
+                ESP32State.STOPPED.value,
+            ): EventType.CHARGE_STOPPED,
+            (
+                ESP32State.PAUSED.value,
+                ESP32State.STOPPED.value,
+            ): EventType.CHARGE_STOPPED,
             # CHARGING → IDLE transition (araç şarjı sonlandırdığında direkt IDLE'a geçebilir)
             # Bu durumda CHARGE_STOPPED event'i üretilmeli
-            (ESP32State.CHARGING.value, ESP32State.IDLE.value): EventType.CHARGE_STOPPED,
+            (
+                ESP32State.CHARGING.value,
+                ESP32State.IDLE.value,
+            ): EventType.CHARGE_STOPPED,
             # PAUSED → IDLE transition (araç suspended durumdayken şarjı sonlandırdığında)
             # Bu durumda da CHARGE_STOPPED event'i üretilmeli
             (ESP32State.PAUSED.value, ESP32State.IDLE.value): EventType.CHARGE_STOPPED,
-            (ESP32State.CABLE_DETECT.value, ESP32State.IDLE.value): EventType.CABLE_DISCONNECTED,
-            (ESP32State.EV_CONNECTED.value, ESP32State.IDLE.value): EventType.CABLE_DISCONNECTED,
+            (
+                ESP32State.CABLE_DETECT.value,
+                ESP32State.IDLE.value,
+            ): EventType.CABLE_DISCONNECTED,
+            (
+                ESP32State.EV_CONNECTED.value,
+                ESP32State.IDLE.value,
+            ): EventType.CABLE_DISCONNECTED,
             # PAUSED → READY transition (ESP32 firmware gerçek davranışı)
             # NOT: ESP32 firmware'de bu transition mantık hatası olabilir (CHARGING olmalı)
             # Ancak gerçek davranış bu olduğu için RPi tarafı buna uyum sağlamalı
             (ESP32State.PAUSED.value, ESP32State.READY.value): EventType.STATE_CHANGED,
             # Fault handling transitions
-            (ESP32State.FAULT_HARD.value, ESP32State.HARDFAULT_END.value): EventType.FAULT_DETECTED,
-            (ESP32State.HARDFAULT_END.value, ESP32State.IDLE.value): EventType.STATE_CHANGED,
+            (
+                ESP32State.FAULT_HARD.value,
+                ESP32State.HARDFAULT_END.value,
+            ): EventType.FAULT_DETECTED,
+            (
+                ESP32State.HARDFAULT_END.value,
+                ESP32State.IDLE.value,
+            ): EventType.STATE_CHANGED,
         }
 
         # Fault detection (herhangi bir state'den FAULT_HARD'a geçiş)
         # NOT: FAULT_HARD → HARDFAULT_END transition'ı yukarıda tanımlı
-        if to_state == ESP32State.FAULT_HARD.value and from_state != ESP32State.HARDFAULT_END.value:
+        if (
+            to_state == ESP32State.FAULT_HARD.value
+            and from_state != ESP32State.HARDFAULT_END.value
+        ):
             return EventType.FAULT_DETECTED
 
         # Bilinen transition
@@ -190,7 +246,13 @@ class EventDetector:
         # Bilinmeyen transition - genel state değişikliği
         return EventType.STATE_CHANGED
 
-    def _create_event(self, event_type: EventType, from_state: int, to_state: int, status: Dict[str, Any]):
+    def _create_event(
+        self,
+        event_type: EventType,
+        from_state: int,
+        to_state: int,
+        status: Dict[str, Any],
+    ):
         """
         Event oluşturma ve loglama
 
@@ -207,14 +269,11 @@ class EventDetector:
             "from_state_name": self._get_state_name(from_state),
             "to_state_name": self._get_state_name(to_state),
             "timestamp": datetime.now().isoformat(),
-            "status": status
+            "status": status,
         }
 
         # Event'i logla
-        log_event(
-            event_type=event_type.value,
-            event_data=event_data
-        )
+        log_event(event_type=event_type.value, event_data=event_data)
 
         # Callback'leri çağır (hata toleranslı)
         failed_callbacks = []
@@ -222,7 +281,9 @@ class EventDetector:
             try:
                 callback(event_type, event_data)
             except Exception as e:
-                system_logger.error(f"Event callback error (callback {i}): {e}", exc_info=True)
+                system_logger.error(
+                    f"Event callback error (callback {i}): {e}", exc_info=True
+                )
                 # Hatalı callback'i işaretle (sonra temizlenecek)
                 failed_callbacks.append(i)
 
@@ -230,8 +291,10 @@ class EventDetector:
         if failed_callbacks:
             for i in reversed(failed_callbacks):
                 try:
-                    removed_callback = self.event_callbacks.pop(i)
-                    system_logger.warning(f"Hatalı callback listeden çıkarıldı (index {i})")
+                    self.event_callbacks.pop(i)
+                    system_logger.warning(
+                        f"Hatalı callback listeden çıkarıldı (index {i})"
+                    )
                 except IndexError:
                     # Callback zaten çıkarılmış olabilir
                     pass
@@ -255,7 +318,7 @@ class EventDetector:
             5: "CHARGING",
             6: "PAUSED",
             7: "STOPPED",
-            8: "FAULT_HARD"
+            8: "FAULT_HARD",
         }
         return state_names.get(state, f"UNKNOWN_{state}")
 
@@ -308,4 +371,3 @@ def get_event_detector(bridge_getter: Callable) -> EventDetector:
                 event_detector_instance = EventDetector(bridge_getter)
 
     return event_detector_instance
-
