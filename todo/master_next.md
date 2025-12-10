@@ -34,59 +34,30 @@
   - Test Dosyaları: 8 (test_esp32_bridge.py, test_api_endpoints.py, test_state_logic.py, test_error_handling.py, test_thread_safety.py, test_status_parsing.py, test_integration.py)
 
 ### Öncelik 1: API Test ve İyileştirme
-- [ ] **Görev:** API endpoint'lerini test et
-  - Açıklama: Tüm API endpoint'lerini gerçek ESP32 ile test et
+- [ ] **Görev:** API endpoint'lerini test et ve iyileştir
+  - Açıklama: 
+    - Test: Tüm API endpoint'lerini gerçek ESP32 ile test et
+    - Hata Yönetimi: Daha detaylı hata mesajları ve logging ekle (Logging sistemi mevcut)
+    - Authentication: API güvenlik katmanı iyileştirmesi (mevcut API key sistemi var, JWT token veya OAuth2 eklenebilir)
   - Öncelik: 1 (Yüksek)
-  - Tahmini Süre: 1-2 saat
-  - Bağımlılıklar: ESP32 bağlantısı, Test altyapısı kurulumu
+  - Tahmini Süre: 4-6 saat (Test: 1-2 saat, Hata Yönetimi: 1 saat, Authentication: 2-3 saat)
+  - Bağımlılıklar: ESP32 bağlantısı, Test altyapısı kurulumu (✅ Tamamlandı)
   - Notlar: ESP32'nin `/dev/ttyUSB0` portunda olduğundan emin ol
-  - Durum: 📋 Bekliyor
-
-### Öncelik 4: API Hata Yönetimi İyileştirme
-- [ ] **Görev:** API hata yönetimini iyileştir
-  - Açıklama: Daha detaylı hata mesajları ve logging ekle
-  - Öncelik: 4 (Orta)
-  - Tahmini Süre: 1 saat
-  - Notlar: Logging sistemi eklenebilir
-  - Durum: 📋 Bekliyor
-
-### Öncelik 4: API Authentication/Authorization İyileştirme
-- [ ] **Görev:** API için authentication iyileştirmesi
-  - Açıklama: API endpoint'lerine güvenlik katmanı iyileştirmesi (mevcut API key sistemi var)
-  - Öncelik: 4 (Orta)
-  - Tahmini Süre: 2-3 saat
-  - Notlar: JWT token veya OAuth2 eklenebilir
   - Durum: 📋 Bekliyor
 
 ---
 
 ## Faz 3: OCPP Entegrasyonu
 
-### Öncelik 2: OCPP 1.6J Implementasyonu
-- [ ] **Görev:** OCPP 1.6J protokol desteği ekle
-  - Açıklama: WebSocket bağlantı yönetimi ve temel OCPP mesajları
+### Öncelik 2: OCPP Implementasyonu ve CSMS Entegrasyonu
+- [ ] **Görev:** OCPP protokol desteği ve CSMS entegrasyonu
+  - Açıklama: 
+    - OCPP 1.6J: WebSocket bağlantı yönetimi ve temel OCPP mesajları (Authorize, StartTransaction, StopTransaction, StatusNotification)
+    - OCPP 2.0.1: OCPP 2.0.1 protokol desteği ve yeni özellikler (çift versiyon desteği)
+    - CSMS: Merkezi sistem ile haberleşme (WebSocket üzerinden CSMS bağlantısı)
   - Öncelik: 2 (Yüksek)
-  - Tahmini Süre: 1-2 gün
-  - Bağımlılıklar: API katmanının stabil olması
-  - Notlar: Authorize, StartTransaction, StopTransaction, StatusNotification mesajları
-  - Durum: 📋 Bekliyor
-
-### Öncelik 2: OCPP 2.0.1 Implementasyonu
-- [ ] **Görev:** OCPP 2.0.1 protokol desteği ekle
-  - Açıklama: OCPP 2.0.1 protokol desteği ve yeni özellikler
-  - Öncelik: 2 (Yüksek)
-  - Tahmini Süre: 1-2 gün
-  - Bağımlılıklar: OCPP 1.6J implementasyonu
-  - Notlar: Çift versiyon desteği sağlanmalı
-  - Durum: 📋 Bekliyor
-
-### Öncelik 2: CSMS Entegrasyonu
-- [ ] **Görev:** CSMS (Central System Management System) entegrasyonu
-  - Açıklama: Merkezi sistem ile haberleşme
-  - Öncelik: 2 (Yüksek)
-  - Tahmini Süre: 2-3 gün
-  - Bağımlılıklar: OCPP implementasyonu
-  - Notlar: WebSocket üzerinden CSMS bağlantısı
+  - Tahmini Süre: 4-6 gün (OCPP 1.6J: 1-2 gün, OCPP 2.0.1: 1-2 gün, CSMS: 2-3 gün)
+  - Bağımlılıklar: API katmanının stabil olması, OCPP 1.6J implementasyonu (OCPP 2.0.1 için), OCPP implementasyonu (CSMS için)
   - Durum: 📋 Bekliyor
 
 ---
@@ -119,14 +90,6 @@
   - Öncelik: 3 (Orta)
   - Tahmini Süre: 2-3 gün
   - Notlar: pytest kullanılabilir, coverage %85+ hedefi
-  - Durum: 📋 Bekliyor
-
-### Öncelik 5: Dokümantasyon ve Deployment İyileştirme
-- [ ] **Görev:** API dokümantasyonu ve kurulum kılavuzu iyileştirmesi
-  - Açıklama: Sistem mimarisi dokümantasyonu ve deployment guide (Dokümantasyon mevcut)
-  - Öncelik: 5 (Orta)
-  - Tahmini Süre: 1 gün
-  - Notlar: README.md ve deployment dokümantasyonu güncelleme
   - Durum: 📋 Bekliyor
 
 ---
@@ -162,11 +125,12 @@
   - Öncelik: 4 (Orta)
   - Tahmini Süre: 1-2 gün
   - Bağımlılıklar: ✅ Session manager (Tamamlandı)
-  - Notlar: RESTful API tasarımı, mevcut endpoint'ler var
+  - Notlar: RESTful API tasarımı, mevcut endpoint'ler var (GET /api/sessions, GET /api/sessions/{id}, GET /api/sessions/current, GET /api/sessions/count/stats, GET /api/sessions/{id}/metrics, GET /api/sessions/stats/energy, GET /api/sessions/stats/power, GET /api/users/{user_id}/sessions)
   - İyileştirme Fırsatları:
     - Pagination support (mevcut)
     - Filtering ve sorting (kısmen mevcut)
     - API versioning
+    - GET /api/sessions/{id}/summary endpoint'i ekleme
   - Durum: 📋 Bekliyor
 
 ---
@@ -233,17 +197,6 @@
 
 ## Faz 4: Meter ve Monitoring (Devam Ediyor)
 
-### Öncelik 5: Meter Entegrasyonu Tamamlama
-- [ ] **Görev:** Meter entegrasyonu tamamlama
-  - Açıklama: Fiziksel bağlantı testi, register address doğrulama, data reading validation, API endpoint'leri ekleme
-  - Öncelik: 5 (Orta)
-  - Tahmini Süre: 1-2 gün
-  - Mevcut Durum: Meter abstraction layer mevcut, fiziksel test bekliyor
-  - İyileştirme Fırsatları:
-    - Meter data caching
-    - Meter data aggregation
-    - Meter data visualization
-  - Durum: 📋 Bekliyor (Fiziksel test için hazır)
 
 ---
 

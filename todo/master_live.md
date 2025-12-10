@@ -6,9 +6,16 @@
 
 ## Aktif Görevler
 
-_(Şu anda aktif görev yok)_
-
-**Not:** Öncelik sistemi standardizasyonu tamamlandı (2025-12-10 09:40:00). Yeni görev seçilebilir.
+### Öncelik 1: Duplicate Görevleri Temizle
+- **Görev:** Duplicate görevleri temizle
+- **Öncelik:** 1 (Yüksek)
+- **Tahmini Süre:** 1-2 saat
+- **Durum:** 🔄 Devam Ediyor
+- **Başlangıç:** 2025-12-10 09:45:00
+- **Detaylar:**
+  - Aynı görevlerin farklı yerlerde tekrarını bul
+  - Duplicate görevleri birleştir veya kaldır
+  - Tek bir kaynak olarak tut
 
 ---
 
