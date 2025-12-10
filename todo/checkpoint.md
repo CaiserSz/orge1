@@ -14,8 +14,11 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251210-020
-**Tarih:** 2025-12-10 18:15:00
+**Checkpoint ID:** CP-20251210-021
+**Tarih:** 2025-12-10 18:30:00
+**Durum:** ✅ Retry Logic Ekleme Tamamlandı
+
+### Önceki Checkpoint: CP-20251210-020 (2025-12-10 18:15:00)
 **Durum:** ✅ API Key Logging İyileştirmesi Tamamlandı
 
 ### Önceki Checkpoint: CP-20251210-019 (2025-12-10 18:00:00)
@@ -88,6 +91,23 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 **Durum:** ✅ Logging Sistemi ve Kritik Düzeltmeler Tamamlandı
 
 ### Son Tamamlanan İş
+- **Görev:** Retry Logic Ekleme
+- **Durum:** ✅ Tamamlandı
+- **Tarih:** 2025-12-10 18:30:00
+- **Detaylar:**
+  - ✅ Exponential backoff retry
+  - ✅ Max retry count
+  - ✅ Retry için farklı stratejiler (LINEAR, EXPONENTIAL, FIBONACCI)
+  - ✅ Retry modülü oluşturuldu (`esp32/retry.py`)
+  - ✅ ESP32 bridge'de retry logic iyileştirildi (`send_authorization`, `send_current_set`)
+  - ✅ Varsayılan retry konfigürasyonları (DEFAULT, QUICK, SLOW)
+  - ✅ Kapsamlı dokümantasyon (`docs/esp32/RETRY_LOGIC.md`)
+- **Beklenen İyileştirmeler:**
+  - Daha güvenilir ESP32-RPi iletişimi
+  - Exponential backoff ile daha iyi hata yönetimi
+  - Yapılandırılabilir retry stratejileri
+
+### Önceki Tamamlanan İş
 - **Görev:** API Key Logging İyileştirmesi
 - **Durum:** ✅ Tamamlandı
 - **Tarih:** 2025-12-10 18:15:00

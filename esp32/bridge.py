@@ -23,6 +23,7 @@ import serial.tools.list_ports
 # Logging modülünü import et
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from api.logging_config import esp32_logger, log_esp32_message
+from esp32.retry import RetryConfig, RetryStrategy
 
 # Protocol constants
 PROTOCOL_HEADER = 0x41
@@ -365,21 +366,37 @@ class ESP32Bridge:
                             f"Authorization ACK STATUS={status}, komut gönderildi ama durum beklenmeyen"
                         )
                         return False
-                    # ACK alınamadı, retry yap
+                    # ACK alınamadı, retry yap (exponential backoff)
                     if attempt < max_retries:
-                        esp32_logger.debug(
-                            f"Authorization ACK timeout, retry {attempt + 1}/{max_retries}"
+                        retry_config = RetryConfig(
+                            max_retries=max_retries,
+                            initial_delay=0.1,
+                            max_delay=1.0,
+                            strategy=RetryStrategy.EXPONENTIAL,
+                            multiplier=2.0,
                         )
-                        time.sleep(0.1)  # Kısa bekleme
+                        delay = retry_config.calculate_delay(attempt)
+                        esp32_logger.debug(
+                            f"Authorization ACK timeout, retry {attempt + 1}/{max_retries} (delay: {delay:.2f}s)"
+                        )
+                        time.sleep(delay)
                         continue
                     return False  # Tüm retry'lar başarısız
                 return True  # ACK beklenmiyor, komut gönderildi
-            # Komut gönderilemedi, retry yap
+            # Komut gönderilemedi, retry yap (exponential backoff)
             if attempt < max_retries:
-                esp32_logger.debug(
-                    f"Authorization komut gönderme başarısız, retry {attempt + 1}/{max_retries}"
+                retry_config = RetryConfig(
+                    max_retries=max_retries,
+                    initial_delay=0.1,
+                    max_delay=1.0,
+                    strategy=RetryStrategy.EXPONENTIAL,
+                    multiplier=2.0,
                 )
-                time.sleep(0.1)
+                delay = retry_config.calculate_delay(attempt)
+                esp32_logger.debug(
+                    f"Authorization komut gönderme başarısız, retry {attempt + 1}/{max_retries} (delay: {delay:.2f}s)"
+                )
+                time.sleep(delay)
                 continue
 
         return False  # Tüm denemeler başarısız
@@ -439,21 +456,37 @@ class ESP32Bridge:
                             "Current set ACK STATUS=ERR, komut ESP32 tarafından reddedildi"
                         )
                         return False
-                    # ACK alınamadı, retry yap
+                    # ACK alınamadı, retry yap (exponential backoff)
                     if attempt < max_retries:
-                        esp32_logger.debug(
-                            f"Current set ACK timeout, retry {attempt + 1}/{max_retries}"
+                        retry_config = RetryConfig(
+                            max_retries=max_retries,
+                            initial_delay=0.1,
+                            max_delay=1.0,
+                            strategy=RetryStrategy.EXPONENTIAL,
+                            multiplier=2.0,
                         )
-                        time.sleep(0.1)
+                        delay = retry_config.calculate_delay(attempt)
+                        esp32_logger.debug(
+                            f"Current set ACK timeout, retry {attempt + 1}/{max_retries} (delay: {delay:.2f}s)"
+                        )
+                        time.sleep(delay)
                         continue
                     return False  # Tüm retry'lar başarısız
                 return True  # ACK beklenmiyor, komut gönderildi
-            # Komut gönderilemedi, retry yap
+            # Komut gönderilemedi, retry yap (exponential backoff)
             if attempt < max_retries:
-                esp32_logger.debug(
-                    f"Current set komut gönderme başarısız, retry {attempt + 1}/{max_retries}"
+                retry_config = RetryConfig(
+                    max_retries=max_retries,
+                    initial_delay=0.1,
+                    max_delay=1.0,
+                    strategy=RetryStrategy.EXPONENTIAL,
+                    multiplier=2.0,
                 )
-                time.sleep(0.1)
+                delay = retry_config.calculate_delay(attempt)
+                esp32_logger.debug(
+                    f"Current set komut gönderme başarısız, retry {attempt + 1}/{max_retries} (delay: {delay:.2f}s)"
+                )
+                time.sleep(delay)
                 continue
 
         return False  # Tüm denemeler başarısız
