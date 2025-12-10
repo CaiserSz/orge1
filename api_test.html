@@ -774,6 +774,23 @@
                 <div class="endpoint">
                     <div class="endpoint-header">
                         <span class="method get">GET</span>
+                        <span class="endpoint-path">/api/sessions/current</span>
+                    </div>
+                    <div class="endpoint-description">
+                        <strong>⭐ Aktif Session Sorgulama</strong><br>
+                        Herhangi bir parametre girmeden aktif session bilgilerini getirir. Session ID, User ID ve diğer tüm session detaylarını gösterir.
+                    </div>
+                    <div class="curl-preview">
+                        <label>💻 cURL Command (Edit edilebilir):</label>
+                        <textarea id="curl-/api/sessions/current"></textarea>
+                    </div>
+                    <button class="btn" onclick="testEndpoint('GET', '/api/sessions/current', null)">Test Et</button>
+                    <div class="response-section" id="response-/api/sessions/current"></div>
+                </div>
+
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
                         <span class="endpoint-path">/api/sessions/{session_id}</span>
                     </div>
                     <div class="endpoint-description">Belirli bir session'ı getir</div>
@@ -843,6 +860,7 @@
             updateCurlPreview('POST', '/api/charge/start', 'body-/api/charge/start', 'curl-/api/charge/start');
             updateCurlPreview('POST', '/api/charge/stop', 'body-/api/charge/stop', 'curl-/api/charge/stop');
             updateCurlPreview('POST', '/api/maxcurrent', 'body-/api/maxcurrent', 'curl-/api/maxcurrent', true);
+            updateCurlPreview('GET', '/api/sessions/current', null, 'curl-/api/sessions/current');
             updateCurlPreviewForPathParam('GET', '/api/sessions/{session_id}', 'param-/api/sessions/{session_id}', 'curl-/api/sessions/{session_id}');
             updateCurlPreviewForPathParam('GET', '/api/sessions/users/{user_id}/sessions', 'param-/api/sessions/users/{user_id}/sessions', 'curl-/api/sessions/users/{user_id}/sessions');
 
