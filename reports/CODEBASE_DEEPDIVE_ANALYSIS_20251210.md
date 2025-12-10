@@ -12,11 +12,13 @@ Bu rapor, Charger API projesinin codebase'inin derinlemesine analizini içermekt
 
 ### Kritik Bulgular
 
-1. **🔴 KRİTİK:** ESP32 firmware'de assignment/comparison karışıklığı (2 adet)
+1. **🔴 KRİTİK (NOT EDİLDİ):** ESP32 firmware'de assignment/comparison karışıklığı (2 adet) - **ESP32 firmware'ine dokunulmayacak**
 2. **🟡 ORTA:** State transition logic'te potansiyel race condition riskleri
 3. **🟡 ORTA:** Error handling'de bazı eksiklikler
 4. **🟢 İYİ:** Genel mimari yapı iyi organize edilmiş
 5. **🟢 İYİ:** Thread safety önlemleri alınmış
+
+**ÖNEMLİ NOT:** ESP32 firmware (`esp32/Commercial_08122025.ino`) değiştirilmeyecek. Tespit edilen firmware hataları sadece bilgi amaçlıdır ve Python tarafında workaround'lar ile çözülecektir.
 
 ---
 
@@ -394,13 +396,14 @@ except Exception as e:
 
 ## 9. Öncelikli Aksiyonlar
 
-### 🔴 KRİTİK (Hemen Düzeltilmeli)
+### 🔴 KRİTİK (NOT EDİLDİ - ESP32 Firmware Değiştirilmeyecek)
 
-1. **ESP32 Firmware - Assignment/Comparison Hataları**
-   - Line 964: `=` → `==`
-   - Line 974: `=` → `==`
+1. **ESP32 Firmware - Assignment/Comparison Hataları** ⚠️
+   - Line 964: `=` → `==` (Tespit edildi ancak firmware değiştirilmeyecek)
+   - Line 974: `=` → `==` (Tespit edildi ancak firmware değiştirilmeyecek)
    - **Etki:** State machine logic'i bozulabilir, güvenlik riski
-   - **Süre:** 5 dakika
+   - **Çözüm:** Python tarafında workaround'lar ile çözülecek
+   - **Durum:** Bilgi amaçlı tespit edildi, firmware'e dokunulmayacak
 
 ### 🟡 YÜKSEK (Yakın Zamanda Düzeltilmeli)
 
@@ -467,23 +470,25 @@ except Exception as e:
 
 **Dosya:** `esp32/Commercial_08122025.ino`
 
-#### Bulunan Sorunlar:
+**⚠️ ÖNEMLİ NOT:** ESP32 firmware'ine dokunulmayacak. Tespit edilen hatalar sadece bilgi amaçlıdır ve Python tarafında workaround'lar ile çözülecektir.
+
+#### Bulunan Sorunlar (Bilgi Amaçlı):
 
 1. **Line 964 - Assignment/Comparison Karışıklığı**
    ```cpp
-   // YANLIŞ:
+   // YANLIŞ (Tespit edildi, firmware değiştirilmeyecek):
    if((sarjStatus=SARJ_STAT_SARJ_DURAKLATILDI)|| (SARJ_STAT_SARJ_BASLADI)){
    
-   // DOĞRU:
+   // DOĞRU (Referans için):
    if((sarjStatus==SARJ_STAT_SARJ_DURAKLATILDI)|| (sarjStatus==SARJ_STAT_SARJ_BASLADI)){
    ```
 
 2. **Line 974 - Assignment/Comparison Karışıklığı**
    ```cpp
-   // YANLIŞ:
+   // YANLIŞ (Tespit edildi, firmware değiştirilmeyecek):
    if (sarjStatus=SARJ_STAT_IDLE){
    
-   // DOĞRU:
+   // DOĞRU (Referans için):
    if (sarjStatus==SARJ_STAT_IDLE){
    ```
 
@@ -493,11 +498,13 @@ except Exception as e:
   - Yanlış state'lerde authorization clear çalışabilir
   - State machine logic'i bozulabilir
   - Güvenlik riski oluşturabilir
+  - **Çözüm:** Python tarafında state validation ile workaround yapılabilir
 
 - **Current Set Komutu (Line 974):**
   - Current set komutu her zaman çalışır (state kontrolü çalışmaz)
   - State'i IDLE'a set eder (yan etki)
   - State machine logic'i bozulabilir
+  - **Çözüm:** Python tarafında state kontrolü yapılarak komut gönderilmeden önce doğrulama yapılabilir
 
 ### 11.2 Python Code Analizi
 
@@ -628,13 +635,15 @@ except Exception as e:
 Bu deep dive analizi, codebase'in genel olarak iyi organize edilmiş ve kaliteli olduğunu göstermektedir. Ancak ESP32 firmware'de kritik mantık hataları tespit edilmiştir ve acil olarak düzeltilmelidir.
 
 **Öncelikli Aksiyonlar:**
-1. 🔴 ESP32 firmware hatalarını düzelt (5 dakika)
-2. 🟡 State validation iyileştir (1 saat)
+1. 🔴 ESP32 firmware hataları (NOT EDİLDİ - Firmware değiştirilmeyecek, Python tarafında workaround)
+2. 🟡 State validation iyileştir (1 saat) - ESP32 firmware hatalarını workaround ile çöz
 3. 🟡 Error handling iyileştir (1 saat)
 4. 🟢 Code duplication azalt (2-3 saat)
 5. 🟢 Security hardening (3-4 saat)
 
-**Genel Değerlendirme:** 8.5/10 - İyi, ancak kritik hatalar düzeltilmeli
+**Genel Değerlendirme:** 8.5/10 - İyi, ESP32 firmware hataları Python tarafında workaround ile çözülecek
+
+**⚠️ ÖNEMLİ:** ESP32 firmware (`esp32/Commercial_08122025.ino`) değiştirilmeyecektir. Tespit edilen firmware hataları Python tarafında workaround'lar ile çözülecektir.
 
 ---
 
