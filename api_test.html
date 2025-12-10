@@ -646,41 +646,43 @@
 
         <!-- ESP32 Real-Time Status Bar -->
         <div class="status-bar" id="statusBar">
-            <span class="status-bar-title">Real-time EV Charging Values:</span>
-            <div class="status-item" id="statusIndicator">
-                <span class="status-indicator" id="statusDot"></span>
-                <span class="status-label">Bağlantı</span>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span class="status-bar-title">Real-time EV Charging Values:</span>
+                <div class="status-item" id="statusIndicator">
+                    <span class="status-indicator" id="statusDot"></span>
+                    <span class="status-label">Bağlantı</span>
+                </div>
+                <div class="status-item status-state-1" id="statusState">
+                    <span class="status-label">STATE:</span>
+                    <span class="status-value" id="stateValue">-</span>
+                </div>
+                <div class="status-item" id="statusCP">
+                    <span class="status-label">CP:</span>
+                    <span class="status-value" id="cpValue">-</span>
+                </div>
+                <div class="status-item" id="statusPP">
+                    <span class="status-label">PP:</span>
+                    <span class="status-value" id="ppValue">-</span>
+                </div>
+                <div class="status-item" id="statusRL">
+                    <span class="status-label">RL:</span>
+                    <span class="status-value" id="rlValue">-</span>
+                </div>
+                <div class="status-item" id="statusLOCK">
+                    <span class="status-label">LOCK:</span>
+                    <span class="status-value" id="lockValue">-</span>
+                </div>
+                <div class="status-item" id="statusMAX">
+                    <span class="status-label">MAX:</span>
+                    <span class="status-value" id="maxValue">-</span>
+                    <span style="font-size: 0.7em; margin-left: 2px;">A</span>
+                </div>
+                <div class="status-item" id="statusAUTH">
+                    <span class="status-label">AUTH:</span>
+                    <span class="status-value" id="authValue">-</span>
+                </div>
+                <div class="status-last-update" id="lastUpdate">Son güncelleme: -</div>
             </div>
-            <div class="status-item status-state-1" id="statusState">
-                <span class="status-label">STATE:</span>
-                <span class="status-value" id="stateValue">-</span>
-            </div>
-            <div class="status-item" id="statusCP">
-                <span class="status-label">CP:</span>
-                <span class="status-value" id="cpValue">-</span>
-            </div>
-            <div class="status-item" id="statusPP">
-                <span class="status-label">PP:</span>
-                <span class="status-value" id="ppValue">-</span>
-            </div>
-            <div class="status-item" id="statusRL">
-                <span class="status-label">RL:</span>
-                <span class="status-value" id="rlValue">-</span>
-            </div>
-            <div class="status-item" id="statusLOCK">
-                <span class="status-label">LOCK:</span>
-                <span class="status-value" id="lockValue">-</span>
-            </div>
-            <div class="status-item" id="statusMAX">
-                <span class="status-label">MAX:</span>
-                <span class="status-value" id="maxValue">-</span>
-                <span style="font-size: 0.7em; margin-left: 2px;">A</span>
-            </div>
-            <div class="status-item" id="statusAUTH">
-                <span class="status-label">AUTH:</span>
-                <span class="status-value" id="authValue">-</span>
-            </div>
-            <div class="status-last-update" id="lastUpdate">Son güncelleme: -</div>
             <button class="bar-action-btn bar-start-btn" onclick="quickStartCharge()" title="Şarjı başlat">Start</button>
         </div>
 
