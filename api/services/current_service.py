@@ -1,38 +1,28 @@
 """
 Current Service
 Created: 2025-12-10 15:30:00
-Last Modified: 2025-12-10 15:30:00
-Version: 1.0.0
+Last Modified: 2025-12-10
+Version: 1.1.0
 Description: Current control business logic service layer
 """
 
-import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
 
 from api.event_detector import ESP32State
-from api.logging_config import log_event, system_logger
+from api.logging_config import system_logger
 from api.models import CurrentSetRequest
-from api.cache import invalidate_cache
-from esp32.bridge import ESP32Bridge
+from api.cache import CacheInvalidator
+from api.services.base_service import BaseService
 
 
-class CurrentService:
+class CurrentService(BaseService):
     """
     Current control business logic service
 
     Current set işlemlerinin business logic'ini içerir.
     Router'lar sadece HTTP handling yapar, business logic burada.
     """
-
-    def __init__(self, bridge: ESP32Bridge):
-        """
-        CurrentService başlatıcı
-
-        Args:
-            bridge: ESP32Bridge instance
-        """
-        self.bridge = bridge
 
     def set_current(
         self,
@@ -45,7 +35,7 @@ class CurrentService:
 
         Args:
             request_body: Current set request body
-            user_id: User ID (audit trail için)
+            user_id: User ID (audit trail için, None ise config'den alınır)
             api_key: API key (audit trail için)
 
         Returns:
@@ -54,14 +44,15 @@ class CurrentService:
         Raises:
             ValueError: Business logic hataları için
         """
+        # Bridge bağlantısını kontrol et
+        self._ensure_connected()
+
         # User ID'yi al (audit trail için)
-        if not user_id:
-            from api.config import config
-            user_id = config.get_user_id()
+        user_id = self._get_user_id(user_id)
 
         # Kritik işlemleri logla (akım ayarlama)
         if user_id:
-            log_event(
+            self._log_event(
                 event_type="current_set",
                 event_data={
                     "user_id": user_id,
@@ -69,21 +60,7 @@ class CurrentService:
                     "api_key": api_key[:10] + "..." if api_key else None,
                     "timestamp": datetime.now().isoformat(),
                 },
-                level=logging.INFO,
             )
-
-        if not self.bridge or not self.bridge.is_connected:
-            error_msg = "ESP32 bağlantısı yok"
-            system_logger.error(
-                f"Current set failed: {error_msg}",
-                extra={
-                    "endpoint": "/api/maxcurrent",
-                    "user_id": user_id,
-                    "amperage": request_body.amperage,
-                    "error_type": "ESP32_CONNECTION_ERROR",
-                },
-            )
-            raise ValueError(error_msg)
 
         # Mevcut durumu kontrol et
         current_status = self.bridge.get_status()
@@ -142,7 +119,7 @@ class CurrentService:
             raise ValueError(error_msg)
 
         # Status cache'ini invalidate et (current değişti)
-        invalidate_cache("status:*")
+        CacheInvalidator.invalidate_status()
 
         return {
             "success": True,

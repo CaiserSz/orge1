@@ -36,11 +36,9 @@ async def start_charge(
     """
     # Service layer kullan
     charge_service = ChargeService(bridge)
-    from api.config import config
-    user_id = config.get_user_id()
 
     try:
-        result = charge_service.start_charge(request_body, user_id, api_key)
+        result = charge_service.start_charge(request_body, user_id=None, api_key=api_key)
         return APIResponse(**result)
     except ValueError as e:
         # Business logic hataları için uygun HTTP exception'a dönüştür
@@ -83,11 +81,9 @@ async def stop_charge(
     """
     # Service layer kullan
     charge_service = ChargeService(bridge)
-    from api.config import config
-    user_id = config.get_user_id()
 
     try:
-        result = charge_service.stop_charge(request, user_id, api_key)
+        result = charge_service.stop_charge(request, user_id=None, api_key=api_key)
         return APIResponse(**result)
     except ValueError as e:
         # Business logic hataları için uygun HTTP exception'a dönüştür

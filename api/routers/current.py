@@ -39,11 +39,9 @@ async def set_current(
     """
     # Service layer kullan
     current_service = CurrentService(bridge)
-    from api.config import config
-    user_id = config.get_user_id()
 
     try:
-        result = current_service.set_current(request_body, user_id, api_key)
+        result = current_service.set_current(request_body, user_id=None, api_key=api_key)
         return APIResponse(**result)
     except ValueError as e:
         # Business logic hataları için uygun HTTP exception'a dönüştür

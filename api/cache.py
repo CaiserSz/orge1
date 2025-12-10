@@ -329,6 +329,37 @@ def cache_response(
     return decorator
 
 
+class CacheInvalidator:
+    """
+    Cache invalidation helper class
+
+    Cache invalidation pattern'lerini merkezileştirir ve standardize eder.
+    """
+
+    @staticmethod
+    def invalidate_status() -> None:
+        """Status cache'lerini invalidate et"""
+        invalidate_cache("status:*")
+
+    @staticmethod
+    def invalidate_session() -> None:
+        """Session cache'lerini invalidate et"""
+        invalidate_cache("session_current:*")
+        invalidate_cache("sessions_list:*")
+        invalidate_cache("user_current_session:*")
+        invalidate_cache("session_detail:*")
+        invalidate_cache("session_metrics:*")
+        invalidate_cache("user_sessions:*")
+        invalidate_cache("session_stats:*")
+
+    @staticmethod
+    def invalidate_all() -> None:
+        """Tüm cache'leri invalidate et"""
+        CacheInvalidator.invalidate_status()
+        CacheInvalidator.invalidate_session()
+        invalidate_cache("*")
+
+
 def invalidate_cache(pattern: Optional[str] = None):
     """
     Cache'i invalidate et

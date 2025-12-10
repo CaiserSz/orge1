@@ -1,38 +1,28 @@
 """
 Charge Service
 Created: 2025-12-10 15:30:00
-Last Modified: 2025-12-10 15:30:00
-Version: 1.0.0
+Last Modified: 2025-12-10
+Version: 1.1.0
 Description: Charge control business logic service layer
 """
 
-import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
 
 from api.event_detector import ESP32State
-from api.logging_config import log_event, system_logger
+from api.logging_config import system_logger
 from api.models import ChargeStartRequest, ChargeStopRequest
-from api.cache import invalidate_cache
-from esp32.bridge import ESP32Bridge
+from api.cache import CacheInvalidator
+from api.services.base_service import BaseService
 
 
-class ChargeService:
+class ChargeService(BaseService):
     """
     Charge control business logic service
 
     Charge start/stop işlemlerinin business logic'ini içerir.
     Router'lar sadece HTTP handling yapar, business logic burada.
     """
-
-    def __init__(self, bridge: ESP32Bridge):
-        """
-        ChargeService başlatıcı
-
-        Args:
-            bridge: ESP32Bridge instance
-        """
-        self.bridge = bridge
 
     def start_charge(
         self,
@@ -45,34 +35,31 @@ class ChargeService:
 
         Args:
             request_body: Charge start request body
-            user_id: User ID (audit trail için)
+            user_id: User ID (audit trail için, None ise config'den alınır)
             api_key: API key (audit trail için)
 
         Returns:
             Success response dict
 
         Raises:
-            HTTPException: Business logic hataları için
+            ValueError: Business logic hataları için
         """
+        # Bridge bağlantısını kontrol et
+        self._ensure_connected()
+
         # User ID'yi al (audit trail için)
-        if not user_id:
-            from api.config import config
-            user_id = config.get_user_id()
+        user_id = self._get_user_id(user_id)
 
         # Kritik işlemleri logla (şarj başlatma)
         if user_id:
-            log_event(
+            self._log_event(
                 event_type="charge_start",
                 event_data={
                     "user_id": user_id,
                     "api_key": api_key[:10] + "..." if api_key else None,
                     "timestamp": datetime.now().isoformat(),
                 },
-                level=logging.INFO,
             )
-
-        if not self.bridge or not self.bridge.is_connected:
-            raise ValueError("ESP32 bağlantısı yok")
 
         # Mevcut durumu kontrol et
         current_status = self.bridge.get_status()
@@ -193,8 +180,8 @@ class ChargeService:
             raise ValueError(error_msg)
 
         # Status ve session cache'lerini invalidate et (state değişti)
-        invalidate_cache("status:*")
-        invalidate_cache("session_current:*")
+        CacheInvalidator.invalidate_status()
+        CacheInvalidator.invalidate_session()
 
         return {
             "success": True,
@@ -213,43 +200,31 @@ class ChargeService:
 
         Args:
             request_body: Charge stop request body
-            user_id: User ID (audit trail için)
+            user_id: User ID (audit trail için, None ise config'den alınır)
             api_key: API key (audit trail için)
 
         Returns:
             Success response dict
 
         Raises:
-            HTTPException: Business logic hataları için
+            ValueError: Business logic hataları için
         """
+        # Bridge bağlantısını kontrol et
+        self._ensure_connected()
+
         # User ID'yi al (audit trail için)
-        if not user_id:
-            from api.config import config
-            user_id = config.get_user_id()
+        user_id = self._get_user_id(user_id)
 
         # Kritik işlemleri logla (şarj durdurma)
         if user_id:
-            log_event(
+            self._log_event(
                 event_type="charge_stop",
                 event_data={
                     "user_id": user_id,
                     "api_key": api_key[:10] + "..." if api_key else None,
                     "timestamp": datetime.now().isoformat(),
                 },
-                level=logging.INFO,
             )
-
-        if not self.bridge or not self.bridge.is_connected:
-            error_msg = "ESP32 bağlantısı yok"
-            system_logger.error(
-                f"Charge stop failed: {error_msg}",
-                extra={
-                    "endpoint": "/api/charge/stop",
-                    "user_id": user_id,
-                    "error_type": "ESP32_CONNECTION_ERROR",
-                },
-            )
-            raise ValueError(error_msg)
 
         # Charge stop komutu gönder
         success = self.bridge.send_charge_stop()
@@ -267,9 +242,8 @@ class ChargeService:
             raise ValueError(error_msg)
 
         # Status ve session cache'lerini invalidate et (state değişti)
-        invalidate_cache("status:*")
-        invalidate_cache("session_current:*")
-        invalidate_cache("sessions_list:*")
+        CacheInvalidator.invalidate_status()
+        CacheInvalidator.invalidate_session()
 
         return {
             "success": True,
