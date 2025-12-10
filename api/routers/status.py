@@ -225,6 +225,85 @@ async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
             health_data["disk_percent"] = disk_percent
         except Exception:
             pass  # Disk bilgisi alınamadı
+
+        # Network bilgileri (SSID ve IP adresi)
+        try:
+            import socket
+            import subprocess
+
+            # IP adresi al (eth0 veya wlan0 interface'inden)
+            ip_address = None
+            try:
+                # Önce wlan0, sonra eth0 kontrol et
+                for interface in ["wlan0", "eth0", "enp0s3", "ens33"]:
+                    try:
+                        result = subprocess.run(
+                            ["ip", "addr", "show", interface],
+                            capture_output=True,
+                            text=True,
+                            timeout=1,
+                        )
+                        if result.returncode == 0:
+                            import re
+
+                            match = re.search(r"inet (\d+\.\d+\.\d+\.\d+)", result.stdout)
+                            if match:
+                                ip_address = match.group(1)
+                                break
+                    except (subprocess.TimeoutExpired, FileNotFoundError):
+                        continue
+
+                # Alternatif: socket ile
+                if not ip_address:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    try:
+                        s.connect(("8.8.8.8", 80))
+                        ip_address = s.getsockname()[0]
+                    except Exception:
+                        pass
+                    finally:
+                        s.close()
+            except Exception:
+                pass
+
+            # SSID al (WiFi network adı)
+            ssid = None
+            try:
+                # iwconfig ile (eski yöntem)
+                result = subprocess.run(
+                    ["iwconfig"], capture_output=True, text=True, timeout=1
+                )
+                if result.returncode == 0:
+                    import re
+
+                    match = re.search(r'ESSID:"([^"]+)"', result.stdout)
+                    if match:
+                        ssid = match.group(1)
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                pass
+
+            # nmcli ile (NetworkManager)
+            if not ssid:
+                try:
+                    result = subprocess.run(
+                        ["nmcli", "-t", "-f", "active,ssid", "dev", "wifi"],
+                        capture_output=True,
+                        text=True,
+                        timeout=1,
+                    )
+                    if result.returncode == 0:
+                        for line in result.stdout.strip().split("\n"):
+                            if line.startswith("yes:"):
+                                ssid = line.split(":")[1]
+                                break
+                except (subprocess.TimeoutExpired, FileNotFoundError):
+                    pass
+
+            # Network bilgilerini ekle
+            health_data["network_ip"] = ip_address
+            health_data["network_ssid"] = ssid
+        except Exception:
+            pass  # Network bilgisi alınamadı
     except Exception as e:
         # Metrik toplama hatası - kritik değil, devam et
         health_data["metrics_error"] = str(e)

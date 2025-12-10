@@ -644,6 +644,10 @@
                 <span class="metric-label">Temp:</span>
                 <span class="metric-value" id="tempValue">-</span>
             </div>
+            <div class="metric-item metric-normal" id="metricNetwork">
+                <span class="metric-label">Network:</span>
+                <span class="metric-value" id="networkValue">-</span>
+            </div>
         </div>
 
         <div class="content">
@@ -1055,6 +1059,34 @@
                 document.getElementById('tempValue').textContent = 'N/A';
                 document.getElementById('metricTemp').className = 'metric-item metric-normal';
             }
+
+            // Network bilgileri güncelleme (SSID ve IP)
+            const networkIP = data.network_ip !== null && data.network_ip !== undefined
+                ? data.network_ip
+                : null;
+
+            const networkSSID = data.network_ssid !== null && data.network_ssid !== undefined
+                ? data.network_ssid
+                : null;
+
+            if (networkIP || networkSSID) {
+                let networkDisplay = '';
+                if (networkSSID) {
+                    networkDisplay = networkSSID;
+                }
+                if (networkIP) {
+                    if (networkDisplay) {
+                        networkDisplay += ' / ' + networkIP;
+                    } else {
+                        networkDisplay = networkIP;
+                    }
+                }
+                document.getElementById('networkValue').textContent = networkDisplay;
+                document.getElementById('metricNetwork').className = 'metric-item metric-normal';
+            } else {
+                document.getElementById('networkValue').textContent = 'N/A';
+                document.getElementById('metricNetwork').className = 'metric-item metric-normal';
+            }
         }
 
         function updateMetric(elementId, displayValue, containerId, value, normalThreshold, warningThreshold, dangerThreshold) {
@@ -1095,12 +1127,14 @@
             document.getElementById('ramValue').textContent = '-';
             document.getElementById('ssdValue').textContent = '-';
             document.getElementById('tempValue').textContent = '-';
+            document.getElementById('networkValue').textContent = '-';
 
             // Varsayılan renkleri geri yükle
             document.getElementById('metricCPU').className = 'metric-item metric-normal';
             document.getElementById('metricRAM').className = 'metric-item metric-normal';
             document.getElementById('metricSSD').className = 'metric-item metric-normal';
             document.getElementById('metricTemp').className = 'metric-item metric-normal';
+            document.getElementById('metricNetwork').className = 'metric-item metric-normal';
 
             lastSystemMetrics = {};
         }
