@@ -6,7 +6,6 @@ Version: 1.0.0
 Description: Rate limiting implementation using slowapi for DDoS and brute force protection
 """
 
-import os
 from typing import Optional
 
 from fastapi import Request
@@ -14,6 +13,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
+from api.config import config
 from api.logging_config import system_logger
 
 
@@ -54,23 +54,17 @@ limiter = Limiter(
 
 def get_rate_limit_config() -> dict:
     """
-    Rate limit konfigürasyonunu environment variable'lardan al
+    Rate limit konfigürasyonunu config modülünden al
 
     Returns:
         dict: Rate limit konfigürasyonu
     """
     return {
-        "default_limit": os.getenv("RATE_LIMIT_DEFAULT", "100/minute"),
-        "ip_limit": os.getenv("RATE_LIMIT_IP", "60/minute"),  # IP-based: 60/dakika
-        "api_key_limit": os.getenv(
-            "RATE_LIMIT_API_KEY", "200/minute"
-        ),  # API key-based: 200/dakika
-        "charge_limit": os.getenv(
-            "RATE_LIMIT_CHARGE", "10/minute"
-        ),  # Charge endpoint'leri: 10/dakika
-        "status_limit": os.getenv(
-            "RATE_LIMIT_STATUS", "30/minute"
-        ),  # Status endpoint'leri: 30/dakika
+        "default_limit": config.RATE_LIMIT_DEFAULT,
+        "ip_limit": config.RATE_LIMIT_IP,  # IP-based: 60/dakika
+        "api_key_limit": config.RATE_LIMIT_API_KEY,  # API key-based: 200/dakika
+        "charge_limit": config.RATE_LIMIT_CHARGE,  # Charge endpoint'leri: 10/dakika
+        "status_limit": config.RATE_LIMIT_STATUS,  # Status endpoint'leri: 30/dakika
     }
 
 

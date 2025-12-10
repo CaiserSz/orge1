@@ -6,8 +6,6 @@ Version: 1.0.0
 Description: Current control endpoints
 """
 
-import os
-
 from fastapi import APIRouter, HTTPException, Request, status, Depends
 
 from api.auth import verify_api_key
@@ -41,7 +39,8 @@ async def set_current(
     """
     # Service layer kullan
     current_service = CurrentService(bridge)
-    user_id = os.getenv("TEST_API_USER_ID", None)
+    from api.config import config
+    user_id = config.get_user_id()
 
     try:
         result = current_service.set_current(request_body, user_id, api_key)

@@ -6,10 +6,11 @@ Version: 1.0.0
 Description: Test endpoints
 """
 
-import os
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import HTMLResponse, FileResponse
+
+from api.config import config
 
 router = APIRouter(tags=["Test"])
 
@@ -22,8 +23,9 @@ async def get_test_api_key():
     NOT: Bu endpoint test sayfası için gereklidir. Ngrok üzerinden erişim için aktif tutulmalıdır.
     """
     # Test sayfası için API key gerekli - Ngrok üzerinden erişim için aktif
-    api_key = os.getenv("SECRET_API_KEY", "")
-    if not api_key:
+    try:
+        api_key = config.get_secret_api_key()
+    except ValueError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="API key not configured"
@@ -31,7 +33,7 @@ async def get_test_api_key():
 
     return {
         "api_key": api_key,
-        "user_id": os.getenv("TEST_API_USER_ID", ""),
+        "user_id": config.get_user_id() or "",
         "note": "This endpoint is for testing purposes only."
     }
 

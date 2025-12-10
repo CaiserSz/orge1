@@ -8,7 +8,6 @@ Description: API response caching için modül - In-memory cache ve Redis deste�
 
 import hashlib
 import json
-import os
 import time
 from functools import wraps
 from typing import Any, Callable, Optional
@@ -16,13 +15,14 @@ from typing import Any, Callable, Optional
 from fastapi import Request
 from starlette.responses import JSONResponse
 
+from api.config import config
 from api.logging_config import system_logger
 
-# Cache backend seçimi (environment variable'dan)
-CACHE_BACKEND = os.getenv("CACHE_BACKEND", "memory").lower()  # memory, redis
+# Cache backend seçimi (config modülünden)
+CACHE_BACKEND = config.CACHE_BACKEND.lower()  # memory, redis
 
 # Cache TTL (Time To Live) - saniye cinsinden
-CACHE_TTL = int(os.getenv("CACHE_TTL", "300"))  # Varsayılan: 5 dakika
+CACHE_TTL = config.CACHE_TTL  # Varsayılan: 5 dakika
 
 # In-memory cache storage
 _memory_cache: dict[str, dict[str, Any]] = {}
@@ -103,7 +103,7 @@ class RedisCacheBackend(CacheBackend):
         try:
             import redis
 
-            redis_url = redis_url or os.getenv("REDIS_URL", "redis://localhost:6379/0")
+            redis_url = redis_url or config.REDIS_URL
             self._client = redis.from_url(redis_url, decode_responses=True)
             # Bağlantı testi
             self._client.ping()
@@ -257,7 +257,7 @@ def cache_response(
             if api_key:
                 # API key'den user ID çıkar (basit bir yaklaşım)
                 # Gerçek implementasyonda auth middleware'den alınmalı
-                user_id = os.getenv("TEST_API_USER_ID", None)
+                user_id = config.get_user_id()
 
             # Header'ları ekle (vary_on_headers varsa)
             if vary_on_headers:

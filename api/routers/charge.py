@@ -6,8 +6,6 @@ Version: 1.0.0
 Description: Charge control endpoints (start/stop)
 """
 
-import os
-
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from api.auth import verify_api_key
@@ -38,7 +36,8 @@ async def start_charge(
     """
     # Service layer kullan
     charge_service = ChargeService(bridge)
-    user_id = os.getenv("TEST_API_USER_ID", None)
+    from api.config import config
+    user_id = config.get_user_id()
 
     try:
         result = charge_service.start_charge(request_body, user_id, api_key)
@@ -84,7 +83,8 @@ async def stop_charge(
     """
     # Service layer kullan
     charge_service = ChargeService(bridge)
-    user_id = os.getenv("TEST_API_USER_ID", None)
+    from api.config import config
+    user_id = config.get_user_id()
 
     try:
         result = charge_service.stop_charge(request, user_id, api_key)

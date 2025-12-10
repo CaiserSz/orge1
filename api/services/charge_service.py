@@ -7,7 +7,6 @@ Description: Charge control business logic service layer
 """
 
 import logging
-import os
 from datetime import datetime
 from typing import Dict, Any, Optional
 
@@ -57,7 +56,8 @@ class ChargeService:
         """
         # User ID'yi al (audit trail için)
         if not user_id:
-            user_id = os.getenv("TEST_API_USER_ID", None)
+            from api.config import config
+            user_id = config.get_user_id()
 
         # Kritik işlemleri logla (şarj başlatma)
         if user_id:
@@ -224,7 +224,8 @@ class ChargeService:
         """
         # User ID'yi al (audit trail için)
         if not user_id:
-            user_id = os.getenv("TEST_API_USER_ID", None)
+            from api.config import config
+            user_id = config.get_user_id()
 
         # Kritik işlemleri logla (şarj durdurma)
         if user_id:

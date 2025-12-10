@@ -115,9 +115,7 @@ class Config:
 
         # Cache TTL validation
         if cls.CACHE_TTL < 0:
-            raise ValueError(
-                f"Geçersiz CACHE_TTL: {cls.CACHE_TTL} (0 veya pozitif olmalı)"
-            )
+            raise ValueError(f"Geçersiz CACHE_TTL: {cls.CACHE_TTL} (0 veya pozitif olmalı)")
 
         # Rate limit format validation (basit kontrol)
         rate_limits = [
@@ -219,3 +217,4 @@ config = Config()
 
 # Startup'ta configuration'ı yükle
 config.load()
+
