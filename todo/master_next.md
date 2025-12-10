@@ -33,25 +33,26 @@
   - Test Coverage: ~70%
   - Test Dosyaları: 8 (test_esp32_bridge.py, test_api_endpoints.py, test_state_logic.py, test_error_handling.py, test_thread_safety.py, test_status_parsing.py, test_integration.py)
 
-### Öncelik 0: ESP32 Firmware Hataları Workaround (Codebase Deep Dive Bulgusu)
+### Öncelik 0: STATE Verileri Yönetimi İyileştirmesi (Codebase Deep Dive Bulgusu)
 
-#### 🔴 ESP32 Firmware Hataları - Python Tarafında Workaround
-- [ ] **Görev:** ESP32 firmware hataları için Python tarafında workaround implementasyonu
-  - Açıklama: Codebase deep dive analizi sonucu ESP32 firmware'de 2 kritik mantık hatası tespit edildi (Line 964, 974 - assignment/comparison karışıklığı). ESP32 firmware'ine dokunulmayacak, Python tarafında workaround'lar ile çözülecek.
-  - Öncelik: 0 (Acil - Workaround)
+#### 🟡 STATE Verileri Yönetimi ve Validation
+- [ ] **Görev:** STATE verileri yönetimi ve validation iyileştirmesi
+  - Açıklama: Codebase deep dive analizi sonucu STATE verileri yönetiminde iyileştirme fırsatları tespit edildi. Bizim odağımız ESP32'den gelen STATE verilerini doğru okumak ve yönetmektir.
+  - Öncelik: 0 (Acil - STATE Yönetimi)
   - Tahmini Süre: 2-3 saat
-  - Durum: 🔴 Acil - Firmware hatalarını workaround ile çöz
+  - Durum: 🟡 Acil - STATE verileri yönetimini iyileştir
   - Detaylar: `reports/CODEBASE_DEEPDIVE_ANALYSIS_20251210.md` dosyasına bakınız
-  - Firmware Hataları:
-    - Line 964: `if((sarjStatus=SARJ_STAT_SARJ_DURAKLATILDI)|| (SARJ_STAT_SARJ_BASLADI))` - `=` yerine `==` olmalı
-    - Line 974: `if (sarjStatus=SARJ_STAT_IDLE)` - `=` yerine `==` olmalı
-  - Workaround Stratejisi:
-    - Python tarafında state validation güçlendirilecek
-    - Komut gönderilmeden önce state kontrolü yapılacak
-    - Yanlış state'lerde komut gönderilmeyecek
-    - Authorization clear ve current set komutları için ekstra validation
-  - Etki: State machine logic'i bozulabilir, güvenlik riski oluşturabilir
-  - **ÖNEMLİ:** ESP32 firmware (`esp32/Commercial_08122025.ino`) değiştirilmeyecektir
+  - Odak Noktaları:
+    - ESP32'ye gönderdiğimiz komutlar: authorization, current set, charge stop
+    - ESP32'den aldığımız STATE verileri: periyodik ve komut response'ları
+    - STATE verilerine göre backend süreç yönetimi
+  - İyileştirme Stratejisi:
+    - STATE validation güçlendirilecek
+    - Komut gönderilmeden önce STATE kontrolü yapılacak
+    - Yanlış STATE'lerde komut gönderilmeyecek
+    - STATE transition'ları daha güvenli işlenecek
+    - Error handling iyileştirilecek
+  - **ÖNEMLİ:** ESP32 firmware analizi yapılmamıştır ve yapılmayacaktır. ESP32'nin internal logic'i bizim sorumluluğumuz değildir. Bizim görevimiz STATE verilerini doğru okumak ve yönetmektir.
   - Durum: 📋 Bekliyor
 
 ### Öncelik 1: API Test İyileştirmeleri (API Testleri Deep Dive Bulgusu)

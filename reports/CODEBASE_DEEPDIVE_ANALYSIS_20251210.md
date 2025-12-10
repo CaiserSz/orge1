@@ -12,13 +12,18 @@ Bu rapor, Charger API projesinin codebase'inin derinlemesine analizini içermekt
 
 ### Kritik Bulgular
 
-1. **🔴 KRİTİK (NOT EDİLDİ):** ESP32 firmware'de assignment/comparison karışıklığı (2 adet) - **ESP32 firmware'ine dokunulmayacak**
-2. **🟡 ORTA:** State transition logic'te potansiyel race condition riskleri
-3. **🟡 ORTA:** Error handling'de bazı eksiklikler
-4. **🟢 İYİ:** Genel mimari yapı iyi organize edilmiş
-5. **🟢 İYİ:** Thread safety önlemleri alınmış
+1. **🟡 ORTA:** State transition logic'te potansiyel race condition riskleri
+2. **🟡 ORTA:** Error handling'de bazı eksiklikler
+3. **🟢 İYİ:** Genel mimari yapı iyi organize edilmiş
+4. **🟢 İYİ:** Thread safety önlemleri alınmış
+5. **🟢 İYİ:** State verileri yönetimi iyi organize edilmiş
 
-**ÖNEMLİ NOT:** ESP32 firmware (`esp32/Commercial_08122025.ino`) değiştirilmeyecek. Tespit edilen firmware hataları sadece bilgi amaçlıdır ve Python tarafında workaround'lar ile çözülecektir.
+**ÖNEMLİ NOT:** ESP32 firmware analizi yapılmamıştır. Bizim odağımız:
+- ESP32'ye gönderdiğimiz komutlar (authorization, current set, charge stop)
+- ESP32'den aldığımız STATE verileri (periyodik ve komut response'ları)
+- STATE verilerine göre backend süreç yönetimi
+
+ESP32'nin internal logic'i ve firmware kodundaki sorunlar bizim sorumluluğumuz değildir. Bizim görevimiz STATE verilerini doğru okumak ve yönetmektir.
 
 ---
 
@@ -396,14 +401,7 @@ except Exception as e:
 
 ## 9. Öncelikli Aksiyonlar
 
-### 🔴 KRİTİK (NOT EDİLDİ - ESP32 Firmware Değiştirilmeyecek)
-
-1. **ESP32 Firmware - Assignment/Comparison Hataları** ⚠️
-   - Line 964: `=` → `==` (Tespit edildi ancak firmware değiştirilmeyecek)
-   - Line 974: `=` → `==` (Tespit edildi ancak firmware değiştirilmeyecek)
-   - **Etki:** State machine logic'i bozulabilir, güvenlik riski
-   - **Çözüm:** Python tarafında workaround'lar ile çözülecek
-   - **Durum:** Bilgi amaçlı tespit edildi, firmware'e dokunulmayacak
+**NOT:** ESP32 firmware analizi yapılmamıştır. Bizim odağımız STATE verilerini doğru okumak ve yönetmektir.
 
 ### 🟡 YÜKSEK (Yakın Zamanda Düzeltilmeli)
 
@@ -466,45 +464,26 @@ except Exception as e:
 
 ## 11. Detaylı Bulgular
 
-### 11.1 ESP32 Firmware Analizi
+### 11.1 ESP32 İletişim ve STATE Yönetimi
 
-**Dosya:** `esp32/Commercial_08122025.ino`
+**⚠️ ÖNEMLİ NOT:** ESP32 firmware analizi yapılmamıştır ve yapılmayacaktır. Bizim odağımız:
 
-**⚠️ ÖNEMLİ NOT:** ESP32 firmware'ine dokunulmayacak. Tespit edilen hatalar sadece bilgi amaçlıdır ve Python tarafında workaround'lar ile çözülecektir.
+1. **ESP32'ye Gönderdiğimiz Komutlar:**
+   - Authorization komutu (`send_authorization`)
+   - Current set komutu (`send_current_set`)
+   - Charge stop komutu (`send_charge_stop`)
 
-#### Bulunan Sorunlar (Bilgi Amaçlı):
+2. **ESP32'den Aldığımız STATE Verileri:**
+   - Periyodik olarak gelen STATE bilgileri
+   - Komut gönderildiğinde gelen response'lar
+   - STATE transition'ları
 
-1. **Line 964 - Assignment/Comparison Karışıklığı**
-   ```cpp
-   // YANLIŞ (Tespit edildi, firmware değiştirilmeyecek):
-   if((sarjStatus=SARJ_STAT_SARJ_DURAKLATILDI)|| (SARJ_STAT_SARJ_BASLADI)){
-   
-   // DOĞRU (Referans için):
-   if((sarjStatus==SARJ_STAT_SARJ_DURAKLATILDI)|| (sarjStatus==SARJ_STAT_SARJ_BASLADI)){
-   ```
+3. **Backend Süreç Yönetimi:**
+   - STATE verilerine göre session yönetimi
+   - STATE verilerine göre event detection
+   - STATE verilerine göre API response'ları
 
-2. **Line 974 - Assignment/Comparison Karışıklığı**
-   ```cpp
-   // YANLIŞ (Tespit edildi, firmware değiştirilmeyecek):
-   if (sarjStatus=SARJ_STAT_IDLE){
-   
-   // DOĞRU (Referans için):
-   if (sarjStatus==SARJ_STAT_IDLE){
-   ```
-
-#### Etki Analizi:
-
-- **Authorization Clear Komutu (Line 964):**
-  - Yanlış state'lerde authorization clear çalışabilir
-  - State machine logic'i bozulabilir
-  - Güvenlik riski oluşturabilir
-  - **Çözüm:** Python tarafında state validation ile workaround yapılabilir
-
-- **Current Set Komutu (Line 974):**
-  - Current set komutu her zaman çalışır (state kontrolü çalışmaz)
-  - State'i IDLE'a set eder (yan etki)
-  - State machine logic'i bozulabilir
-  - **Çözüm:** Python tarafında state kontrolü yapılarak komut gönderilmeden önce doğrulama yapılabilir
+**ESP32'nin internal logic'i ve firmware kodundaki sorunlar bizim sorumluluğumuz değildir.** Bizim görevimiz STATE verilerini doğru okumak, yönetmek ve backend süreçlerini bu verilere göre yönetmektir.
 
 ### 11.2 Python Code Analizi
 
@@ -635,15 +614,20 @@ except Exception as e:
 Bu deep dive analizi, codebase'in genel olarak iyi organize edilmiş ve kaliteli olduğunu göstermektedir. Ancak ESP32 firmware'de kritik mantık hataları tespit edilmiştir ve acil olarak düzeltilmelidir.
 
 **Öncelikli Aksiyonlar:**
-1. 🔴 ESP32 firmware hataları (NOT EDİLDİ - Firmware değiştirilmeyecek, Python tarafında workaround)
-2. 🟡 State validation iyileştir (1 saat) - ESP32 firmware hatalarını workaround ile çöz
-3. 🟡 Error handling iyileştir (1 saat)
-4. 🟢 Code duplication azalt (2-3 saat)
-5. 🟢 Security hardening (3-4 saat)
+1. 🟡 State validation iyileştir (1 saat) - STATE verilerini daha güvenli işle
+2. 🟡 Error handling iyileştir (1 saat)
+3. 🟢 Code duplication azalt (2-3 saat)
+4. 🟢 Security hardening (3-4 saat)
+5. 🟢 STATE yönetimi iyileştirmeleri (2-3 saat)
 
-**Genel Değerlendirme:** 8.5/10 - İyi, ESP32 firmware hataları Python tarafında workaround ile çözülecek
+**Genel Değerlendirme:** 8.5/10 - İyi, STATE verileri yönetimi odaklı geliştirme
 
-**⚠️ ÖNEMLİ:** ESP32 firmware (`esp32/Commercial_08122025.ino`) değiştirilmeyecektir. Tespit edilen firmware hataları Python tarafında workaround'lar ile çözülecektir.
+**⚠️ ÖNEMLİ:** ESP32 firmware analizi yapılmamıştır ve yapılmayacaktır. Bizim odağımız:
+- ESP32'ye gönderdiğimiz komutlar (authorization, current set, charge stop)
+- ESP32'den aldığımız STATE verileri (periyodik ve komut response'ları)
+- STATE verilerine göre backend süreç yönetimi
+
+ESP32'nin internal logic'i bizim sorumluluğumuz değildir.
 
 ---
 
