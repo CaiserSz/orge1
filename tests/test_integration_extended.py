@@ -6,15 +6,12 @@ Version: 1.0.0
 Description: Genişletilmiş integration testleri - gerçek senaryolar
 """
 
-import pytest
 import sys
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 from pathlib import Path
-from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from api.main import app
 from api.event_detector import ESP32State
 
 
@@ -25,7 +22,9 @@ from api.event_detector import ESP32State
 class TestCompleteChargingWorkflow:
     """Tam şarj workflow testleri"""
 
-    def test_complete_charging_workflow_idle_to_charging(self, client, mock_esp32_bridge, test_headers):
+    def test_complete_charging_workflow_idle_to_charging(
+        self, client, mock_esp32_bridge, test_headers
+    ):
         """Tam şarj workflow - IDLE'dan CHARGING'e"""
         # 1. Başlangıç durumu: IDLE
         mock_esp32_bridge.get_status.return_value = {
@@ -81,7 +80,9 @@ class TestCompleteChargingWorkflow:
         assert response.status_code == 200
         assert response.json()["data"]["STATE"] == ESP32State.IDLE.value
 
-    def test_charging_workflow_with_multiple_current_changes(self, client, mock_esp32_bridge, test_headers):
+    def test_charging_workflow_with_multiple_current_changes(
+        self, client, mock_esp32_bridge, test_headers
+    ):
         """Şarj workflow - birden fazla akım değişikliği"""
         # 1. İlk akım ayarla
         mock_esp32_bridge.get_status.return_value = {
@@ -114,7 +115,9 @@ class TestCompleteChargingWorkflow:
         # Tüm akım değişiklikleri başarılı olmalı
         assert mock_esp32_bridge.send_current_set.call_count == 3
 
-    def test_charging_workflow_error_recovery(self, client, mock_esp32_bridge, test_headers):
+    def test_charging_workflow_error_recovery(
+        self, client, mock_esp32_bridge, test_headers
+    ):
         """Şarj workflow - hata kurtarma"""
         # 1. Şarj başlatma denemesi - başarısız komut
         mock_esp32_bridge.get_status.return_value = {
@@ -162,7 +165,9 @@ class TestConcurrentOperations:
         assert all(status == 200 for status in results)
         assert len(results) == 10
 
-    def test_concurrent_current_set_requests(self, client, mock_esp32_bridge, test_headers):
+    def test_concurrent_current_set_requests(
+        self, client, mock_esp32_bridge, test_headers
+    ):
         """Eşzamanlı akım ayarlama istekleri"""
         import threading
 

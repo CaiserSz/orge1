@@ -12,7 +12,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
-
 # ESP32 State Değerleri (Commercial_08122025.ino'dan)
 SARJ_STAT_IDLE = 1  # IDLE - Boşta
 SARJ_CABLE_DETECT = 2  # Kablo algılandı
