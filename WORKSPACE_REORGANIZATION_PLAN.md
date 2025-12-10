@@ -1,7 +1,7 @@
 # Workspace Yeniden Organizasyon Planı
 
-**Tarih:** 2025-12-10 01:50:00  
-**Durum:** Planlama Aşaması  
+**Tarih:** 2025-12-10 01:50:00
+**Durum:** Planlama Aşaması
 **Amaç:** Workspace standartlarına uygun düzenleme
 
 ---
@@ -209,21 +209,21 @@
 
 ### Kök Dizin
 
-**Önce:** 33 .md dosyası  
+**Önce:** 33 .md dosyası
 **Sonra:** ~8 .md dosyası (README, CHANGELOG, CONTRIBUTING, project_info, vb.)
 
 **İyileştirme:** ✅ İdeal sınırlar içinde (< 30)
 
 ### Klasör Sayısı
 
-**Önce:** 17 klasör  
+**Önce:** 17 klasör
 **Sonra:** 18 klasör (+1 reports/, +1 docs/standards/)
 
 **İyileştirme:** ✅ Uyarı eşiği içinde (< 20)
 
 ### Organizasyon
 
-**Önce:** Dağınık yapı  
+**Önce:** Dağınık yapı
 **Sonra:** Standartlara uygun organize yapı
 
 ---
@@ -247,6 +247,6 @@ Bu reorganizasyon ile:
 
 ---
 
-**Plan Tarihi:** 2025-12-10 01:50:00  
+**Plan Tarihi:** 2025-12-10 01:50:00
 **Durum:** Planlama tamamlandı, uygulama bekliyor
 

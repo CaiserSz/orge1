@@ -9,6 +9,49 @@
 
 ### 2025-12-10
 
+#### ✅ Code Duplication Azaltma (16:00:00)
+- **Görev:** Code duplication azaltma
+- **Açıklama:** Codebase deep dive analizi sonucu Code Quality Expert tarafından tespit edildi. Error handling pattern'leri ve state validation logic'i tekrarlanıyor.
+- **Öncelik:** 1 (Yüksek)
+- **Tahmini Süre:** 2-3 saat
+- **Durum:** ✅ Tamamlandı
+- **Başlangıç:** 2025-12-10 16:00:00
+- **Bitiş:** 2025-12-10 16:00:00
+- **Detaylar:** `reports/CODEBASE_DEEPDIVE_ANALYSIS_20251210.md` dosyasına bakınız
+- **İmplementasyon:**
+  - ✅ Common error handler decorator oluşturuldu (`api/error_handlers.py`)
+    - `@handle_api_errors` decorator ile merkezi error handling
+    - ESP32ConnectionError, InvalidStateError, CommandSendError, ValidationError, APIException handling
+    - ValueError'ları uygun HTTP exception'lara dönüştürme
+  - ✅ State validation helper functions oluşturuldu (`api/state_validation.py`)
+    - `validate_state()` - ESP32 state validation helper
+    - `check_state_for_charge_start()` - Charge start için state kontrolü
+    - `check_state_for_current_set()` - Current set için state kontrolü
+    - `check_state_changed()` - State değişikliği kontrolü (race condition önlemi)
+  - ✅ Router'larda error handler decorator kullanıldı
+    - `api/routers/charge.py` - `start_charge()` ve `stop_charge()` endpoint'leri
+    - `api/routers/current.py` - `set_current()` endpoint'i
+    - Error handling kod tekrarı azaltıldı (~100 satır kod azaltıldı)
+  - ✅ Service layer'da state validation helper kullanıldı
+    - `api/services/charge_service.py` - `start_charge()` metodunda state validation helper kullanımı
+    - `api/services/current_service.py` - `set_current()` metodunda state validation helper kullanımı
+    - State validation kod tekrarı azaltıldı (~80 satır kod azaltıldı)
+- **Yapılan İyileştirmeler:**
+  - ✅ Error handling pattern tekrarı azaltıldı (3 router'da ~100 satır kod azaltıldı)
+  - ✅ State validation logic tekrarı azaltıldı (2 service'de ~80 satır kod azaltıldı)
+  - ✅ Merkezi error handling ve state validation sağlandı
+  - ✅ Kod bakımı kolaylaştırıldı
+  - ✅ Kod okunabilirliği artırıldı
+- **Dosyalar:**
+  - `api/error_handlers.py` - Common error handler decorator (yeni, 120 satır)
+  - `api/state_validation.py` - State validation helper functions (yeni, 236 satır)
+  - `api/routers/charge.py` - Error handler decorator kullanımı (güncellendi, ~40 satır azaltıldı)
+  - `api/routers/current.py` - Error handler decorator kullanımı (güncellendi, ~30 satır azaltıldı)
+  - `api/services/charge_service.py` - State validation helper kullanımı (güncellendi, ~50 satır azaltıldı)
+  - `api/services/current_service.py` - State validation helper kullanımı (güncellendi, ~30 satır azaltıldı)
+- **Durum:** ✅ Tamamlandı
+- **Notlar:** Code duplication başarıyla azaltıldı. Error handling ve state validation logic'i merkezi helper'lara taşındı. Kod daha maintainable ve okunabilir hale geldi.
+
 #### ✅ Configuration Management Merkezileştirme (16:00:00)
 - **Görev:** Configuration management merkezileştirme
 - **Açıklama:** Codebase deep dive analizi sonucu Architecture Expert tarafından tespit edildi. Configuration değerleri birden fazla yerde tanımlı. Merkezi configuration management oluşturuldu.

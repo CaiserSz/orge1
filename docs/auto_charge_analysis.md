@@ -1,6 +1,6 @@
 # Otomatik Şarj Başlatma Analizi
 
-**Tarih:** 2025-12-10  
+**Tarih:** 2025-12-10
 **Sorun:** Araç bağlandığında otomatik olarak şarj başlıyor
 
 ---

@@ -6,10 +6,10 @@ Version: 1.0.0
 Description: Current control endpoints
 """
 
-from fastapi import APIRouter, HTTPException, Request, status, Depends
+from fastapi import APIRouter, Request, Depends
 
 from api.auth import verify_api_key
-from api.exceptions import ESP32ConnectionError
+from api.error_handlers import handle_api_errors
 from api.models import APIResponse, CurrentSetRequest
 from api.rate_limiting import charge_rate_limit
 from api.routers.dependencies import get_bridge
@@ -22,6 +22,7 @@ router = APIRouter(prefix="/api", tags=["Current Control"])
 
 @router.post("/maxcurrent")
 @charge_rate_limit()  # Kritik endpoint için sıkı rate limit (10/dakika)
+@handle_api_errors
 async def set_current(
     request_body: CurrentSetRequest,
     request: Request,
@@ -41,34 +42,8 @@ async def set_current(
     # Service layer kullan
     current_service = CurrentService(bridge)
 
-    try:
-        result = current_service.set_current(request_body, user_id=None, api_key=api_key)
-        return APIResponse(**result)
-    except ESP32ConnectionError as e:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e)
-        )
-    except ValueError as e:
-        # Business logic hataları için uygun HTTP exception'a dönüştür
-        error_msg = str(e)
-        if "ESP32 bağlantısı yok" in error_msg or "Geçersiz STATE değeri" in error_msg:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=error_msg
-            )
-        elif "akım değiştirilemez" in error_msg or "State:" in error_msg:
-            # State validation hataları için 400 Bad Request
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg
-            )
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_msg
-            )
-    except Exception as e:
-        # Diğer hatalar için 500 Internal Server Error
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
-        )
+    result = current_service.set_current(request_body, user_id=None, api_key=api_key)
+    return APIResponse(**result)
 
 
 @router.get("/current/available")

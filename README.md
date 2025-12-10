@@ -1,8 +1,8 @@
 # AC Charger Project
 
-**Proje Tipi:** AC Charger (Elektrikli Araç Şarj İstasyonu)  
-**Platform:** Raspberry Pi + ESP32  
-**Dil:** Python (FastAPI) + Arduino (ESP32)  
+**Proje Tipi:** AC Charger (Elektrikli Araç Şarj İstasyonu)
+**Platform:** Raspberry Pi + ESP32
+**Dil:** Python (FastAPI) + Arduino (ESP32)
 **Repository:** https://github.com/CaiserSz/orge1.git
 
 ---
@@ -125,8 +125,8 @@ cat todo/project_state.md
 
 ## 🎯 Proje Durumu
 
-**Mevcut Faz:** Faz 1 ✅ (Tamamlandı)  
-**Sonraki Faz:** Faz 2 🔄 (API Test ve İyileştirme)  
+**Mevcut Faz:** Faz 1 ✅ (Tamamlandı)
+**Sonraki Faz:** Faz 2 🔄 (API Test ve İyileştirme)
 **Genel İlerleme:** %32
 
 ### Tamamlananlar

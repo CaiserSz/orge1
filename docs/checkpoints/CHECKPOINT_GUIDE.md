@@ -1,6 +1,6 @@
 # Checkpoint Kullanım Kılavuzu
 
-**Oluşturulma Tarihi:** 2025-12-10 15:40:00  
+**Oluşturulma Tarihi:** 2025-12-10 15:40:00
 **Son Güncelleme:** 2025-12-10 15:40:00
 
 ---
@@ -14,8 +14,8 @@ Checkpoint, projenin belirli bir noktasında tüm kod ve dokümantasyonun kayded
 ## 📍 Mevcut Checkpoint'ler
 
 ### v1.0.0-test-complete
-**Tarih:** 2025-12-10 15:40:00  
-**Durum:** ✅ Production-Ready  
+**Tarih:** 2025-12-10 15:40:00
+**Durum:** ✅ Production-Ready
 **Açıklama:** Tüm temel özellikler test edildi ve çalışıyor. Sistem production-ready durumda.
 
 **Özellikler:**
@@ -166,6 +166,6 @@ git diff v1.0.0-test-complete HEAD -- api/session/manager.py
 
 ---
 
-**Kılavuz Oluşturuldu:** 2025-12-10 15:40:00  
+**Kılavuz Oluşturuldu:** 2025-12-10 15:40:00
 **Son Güncelleme:** 2025-12-10 15:40:00
 

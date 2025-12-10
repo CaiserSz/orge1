@@ -1,7 +1,7 @@
 # Max Akım API Test Raporu
 
-**Tarih:** 2025-12-10  
-**Test Edilen:** `/api/maxcurrent` endpoint'i ve tüm kullanım yerleri  
+**Tarih:** 2025-12-10
+**Test Edilen:** `/api/maxcurrent` endpoint'i ve tüm kullanım yerleri
 **Durum:** ✅ TÜM TESTLER BAŞARILI
 
 ---

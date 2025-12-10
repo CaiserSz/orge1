@@ -1,7 +1,7 @@
 # Test Sonuçları - v1.0.0-test-complete
 
-**Test Tarihi:** 2025-12-10  
-**Test Ortamı:** Production-like (Gerçek Araç Testleri)  
+**Test Tarihi:** 2025-12-10
+**Test Ortamı:** Production-like (Gerçek Araç Testleri)
 **Test Durumu:** ✅ Tüm Testler Başarılı
 
 ---
@@ -19,7 +19,7 @@
 ## ✅ Test Senaryoları
 
 ### 1. START/STOP Testi (CHARGING'den)
-**Tarih:** 2025-12-10 15:15:00  
+**Tarih:** 2025-12-10 15:15:00
 **Durum:** ✅ Başarılı
 
 **Test Adımları:**
@@ -35,13 +35,13 @@
 - ✅ User ID kaydedildi
 - ✅ Duration hesaplandı
 
-**Session ID:** `02636a91-c668-4d7f-9fd3-52025bb215bf`  
+**Session ID:** `02636a91-c668-4d7f-9fd3-52025bb215bf`
 **Duration:** 37.0 saniye
 
 ---
 
 ### 2. START → Suspended → STOP Testi
-**Tarih:** 2025-12-10 15:17:00  
+**Tarih:** 2025-12-10 15:17:00
 **Durum:** ✅ Başarılı
 
 **Test Adımları:**
@@ -58,13 +58,13 @@
 - ✅ Tüm event'ler aynı session'da
 - ✅ User ID kaydedildi
 
-**Session ID:** `33bc6c4e-75bc-443f-8187-0bc8a11c1935`  
+**Session ID:** `33bc6c4e-75bc-443f-8187-0bc8a11c1935`
 **Duration:** 91.0 saniye
 
 ---
 
 ### 3. Resume Senaryosu Testi
-**Tarih:** 2025-12-10 15:29:00  
+**Tarih:** 2025-12-10 15:29:00
 **Durum:** ✅ Başarılı
 
 **Test Adımları:**
@@ -82,14 +82,14 @@
 - ✅ Tüm event'ler aynı session'da
 - ✅ Yeni session oluşturulmadı (resume düzeltmesi çalıştı)
 
-**Session ID:** `580684f7-96b7-4f3a-8a2d-a40dfd57577f`  
-**Duration:** 130.0 saniye  
+**Session ID:** `580684f7-96b7-4f3a-8a2d-a40dfd57577f`
+**Duration:** 130.0 saniye
 **Event Count:** 4
 
 ---
 
 ### 4. Akım Değiştirme Testi
-**Tarih:** 2025-12-10 15:33:00  
+**Tarih:** 2025-12-10 15:33:00
 **Durum:** ✅ Başarılı
 
 **Test Adımları:**
@@ -102,13 +102,13 @@
 - ✅ IDLE durumunda akım değiştirme başarılı
 - ✅ MAX değeri 23 A → 32 A olarak güncellendi
 
-**Önceki MAX:** 23 A  
+**Önceki MAX:** 23 A
 **Yeni MAX:** 32 A
 
 ---
 
 ### 5. Aktif Session Sorgusu Testi
-**Tarih:** 2025-12-10 15:34:00  
+**Tarih:** 2025-12-10 15:34:00
 **Durum:** ✅ Başarılı
 
 **Test Endpoint'leri:**
@@ -130,7 +130,7 @@
 ---
 
 ### 6. Mobil Uyumluluk Testi
-**Tarih:** 2025-12-10 15:39:00  
+**Tarih:** 2025-12-10 15:39:00
 **Durum:** ✅ Başarılı
 
 **Kontrol Edilenler:**
@@ -148,13 +148,13 @@
 ## 🔧 Düzeltilen Sorunlar
 
 ### 1. Resume Senaryosu
-**Sorun:** PAUSED → CHARGING geçişinde yeni session oluşturuluyordu.  
-**Düzeltme:** `api/session/manager.py` - Resume kontrolü eklendi.  
+**Sorun:** PAUSED → CHARGING geçişinde yeni session oluşturuluyordu.
+**Düzeltme:** `api/session/manager.py` - Resume kontrolü eklendi.
 **Durum:** ✅ Düzeltildi
 
 ### 2. CHARGE_STOPPED Event'i
-**Sorun:** CHARGE_STOPPED event'i session'a eklenmiyordu.  
-**Düzeltme:** `api/session/manager.py` - Event ekleme eklendi.  
+**Sorun:** CHARGE_STOPPED event'i session'a eklenmiyordu.
+**Düzeltme:** `api/session/manager.py` - Event ekleme eklendi.
 **Durum:** ✅ Düzeltildi
 
 ---
@@ -206,6 +206,6 @@
 
 ---
 
-**Test Raporu Oluşturuldu:** 2025-12-10 15:40:00  
+**Test Raporu Oluşturuldu:** 2025-12-10 15:40:00
 **Test Durumu:** ✅ Tüm Testler Başarılı
 

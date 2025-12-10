@@ -1,15 +1,15 @@
 # Protokol Uyum Raporu
 
-**Tarih:** 2025-12-10  
+**Tarih:** 2025-12-10
 **Durum:** ✅ PROTOKOLE UYUMLU
 
 ---
 
 ## Protokol Spesifikasyonu
 
-**Protokol:** ESP32-RPi Binary Hex Protocol v1.0  
-**Format:** `41 [KOMUT] 2C [DEĞER] 10`  
-**Packet Size:** 5 byte  
+**Protokol:** ESP32-RPi Binary Hex Protocol v1.0
+**Format:** `41 [KOMUT] 2C [DEĞER] 10`
+**Packet Size:** 5 byte
 **Baudrate:** 115200
 
 ### Protokol Sabitleri

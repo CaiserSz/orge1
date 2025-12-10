@@ -1,7 +1,7 @@
 # API Simplification & Single Source of Truth Analysis
 
-**Tarih:** 2025-12-10  
-**Versiyon:** 1.0.0  
+**Tarih:** 2025-12-10
+**Versiyon:** 1.0.0
 **Amaç:** API'lerin "Simple is Best" ve "Single Source of Truth" prensipleri açısından değerlendirilmesi ve iyileştirme önerileri
 
 ---
@@ -194,19 +194,19 @@ raise ESP32ConnectionError()
 class BaseService:
     def __init__(self, bridge: ESP32Bridge):
         self.bridge = bridge
-    
+
     def _ensure_connected(self):
         """Bridge bağlantısını kontrol et"""
         if not self.bridge or not self.bridge.is_connected:
             raise ValueError("ESP32 bağlantısı yok")
-    
+
     def _get_user_id(self, user_id: Optional[str] = None) -> Optional[str]:
         """User ID'yi al veya config'den yükle"""
         if not user_id:
             from api.config import config
             return config.get_user_id()
         return user_id
-    
+
     def _log_event(self, event_type: str, event_data: dict, level=logging.INFO):
         """Event logging helper"""
         from api.logging_config import log_event
@@ -283,13 +283,13 @@ class CacheInvalidator:
     def invalidate_status():
         """Status cache'lerini invalidate et"""
         invalidate_cache("status:*")
-    
+
     @staticmethod
     def invalidate_session():
         """Session cache'lerini invalidate et"""
         invalidate_cache("session_current:*")
         invalidate_cache("sessions_list:*")
-    
+
     @staticmethod
     def invalidate_all():
         """Tüm cache'leri invalidate et"""

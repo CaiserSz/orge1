@@ -1,7 +1,7 @@
 # Max Akım API Şarj Sonrası Test Raporu
 
-**Tarih:** 2025-12-10  
-**Test:** Şarj sonrası max akım API testi  
+**Tarih:** 2025-12-10
+**Test:** Şarj sonrası max akım API testi
 **Durum:** ✅ BAŞARILI
 
 ---

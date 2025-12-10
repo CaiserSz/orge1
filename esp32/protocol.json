@@ -1,130 +1,166 @@
 {
-  "protocol": {
-    "name": "ESP32-RPi Binary Hex Protocol",
-    "version": "1.0",
-    "baudrate": 115200,
-    "packet_size": 5,
-    "format": "41 [KOMUT] 2C [DEĞER] 10",
-    "constants": {
-      "header": "0x41",
-      "separator": "0x2C",
-      "footer": "0x10"
-    }
-  },
-  "commands": {
-    "status": {
-      "id": "0x00",
-      "value": "0x00",
-      "hex": "41 00 2C 00 10",
-      "byte_array": [65, 0, 44, 0, 16],
-      "description": "İstasyon durumu okuma",
-      "category": "status"
+    "protocol": {
+        "name": "ESP32-RPi Binary Hex Protocol",
+        "version": "1.0",
+        "baudrate": 115200,
+        "packet_size": 5,
+        "format": "41 [KOMUT] 2C [DEĞER] 10",
+        "constants": {
+            "header": "0x41",
+            "separator": "0x2C",
+            "footer": "0x10"
+        }
     },
-    "authorization": {
-      "id": "0x01",
-      "value": "0x01",
-      "hex": "41 01 2C 01 10",
-      "byte_array": [65, 1, 44, 1, 16],
-      "description": "Şarj izni ver",
-      "category": "charge_control"
+    "commands": {
+        "status": {
+            "id": "0x00",
+            "value": "0x00",
+            "hex": "41 00 2C 00 10",
+            "byte_array": [65, 0, 44, 0, 16],
+            "description": "İstasyon durumu okuma",
+            "category": "status"
+        },
+        "authorization": {
+            "id": "0x01",
+            "value": "0x01",
+            "hex": "41 01 2C 01 10",
+            "byte_array": [65, 1, 44, 1, 16],
+            "description": "Şarj izni ver",
+            "category": "charge_control"
+        },
+        "current_set_6A": {
+            "id": "0x02",
+            "value": "0x06",
+            "hex": "41 02 2C 06 10",
+            "byte_array": [65, 2, 44, 6, 16],
+            "description": "Maksimum akım: 6A",
+            "category": "current_set",
+            "amperage": 6
+        },
+        "current_set_10A": {
+            "id": "0x02",
+            "value": "0x0A",
+            "hex": "41 02 2C 0A 10",
+            "byte_array": [65, 2, 44, 10, 16],
+            "description": "Maksimum akım: 10A",
+            "category": "current_set",
+            "amperage": 10
+        },
+        "current_set_13A": {
+            "id": "0x02",
+            "value": "0x0D",
+            "hex": "41 02 2C 0D 10",
+            "byte_array": [65, 2, 44, 13, 16],
+            "description": "Maksimum akım: 13A",
+            "category": "current_set",
+            "amperage": 13
+        },
+        "current_set_16A": {
+            "id": "0x02",
+            "value": "0x10",
+            "hex": "41 02 2C 10 10",
+            "byte_array": [65, 2, 44, 16, 16],
+            "description": "Maksimum akım: 16A",
+            "category": "current_set",
+            "amperage": 16
+        },
+        "current_set_20A": {
+            "id": "0x02",
+            "value": "0x14",
+            "hex": "41 02 2C 14 10",
+            "byte_array": [65, 2, 44, 20, 16],
+            "description": "Maksimum akım: 20A",
+            "category": "current_set",
+            "amperage": 20
+        },
+        "current_set_25A": {
+            "id": "0x02",
+            "value": "0x19",
+            "hex": "41 02 2C 19 10",
+            "byte_array": [65, 2, 44, 25, 16],
+            "description": "Maksimum akım: 25A",
+            "category": "current_set",
+            "amperage": 25
+        },
+        "current_set_32A": {
+            "id": "0x02",
+            "value": "0x20",
+            "hex": "41 02 2C 20 10",
+            "byte_array": [65, 2, 44, 32, 16],
+            "description": "Maksimum akım: 32A",
+            "category": "current_set",
+            "amperage": 32
+        },
+        "charge_stop": {
+            "id": "0x04",
+            "value": "0x07",
+            "hex": "41 04 2C 07 10",
+            "byte_array": [65, 4, 44, 7, 16],
+            "description": "Şarjı bitir",
+            "category": "charge_control"
+        }
     },
-    "current_set_6A": {
-      "id": "0x02",
-      "value": "0x06",
-      "hex": "41 02 2C 06 10",
-      "byte_array": [65, 2, 44, 6, 16],
-      "description": "Maksimum akım: 6A",
-      "category": "current_set",
-      "amperage": 6
+    "status_message": {
+        "format": "<STAT;ID=X;CP=X;CPV=X;PP=X;PPV=X;RL=X;LOCK=X;MOTOR=X;PWM=X;MAX=X;CABLE=X;AUTH=X;STATE=X;PB=X;STOP=X;>",
+        "fields": {
+            "ID": "Request ID (optional)",
+            "CP": "Control Pilot status",
+            "CPV": "Control Pilot voltage",
+            "PP": "Proximity Pilot status",
+            "PPV": "Proximity Pilot voltage",
+            "RL": "Relay flag",
+            "LOCK": "Lock flag",
+            "MOTOR": "Motor flag",
+            "PWM": "PWM value",
+            "MAX": "Maximum current",
+            "CABLE": "Cable current",
+            "AUTH": "Authorization enabled (0/1)",
+            "STATE": "Charging state",
+            "PB": "Power board status",
+            "STOP": "Stop requested (0/1)"
+        },
+        "update_interval_seconds": 5
     },
-    "current_set_10A": {
-      "id": "0x02",
-      "value": "0x0A",
-      "hex": "41 02 2C 0A 10",
-      "byte_array": [65, 2, 44, 10, 16],
-      "description": "Maksimum akım: 10A",
-      "category": "current_set",
-      "amperage": 10
+    "ack_messages": {
+        "format": "<ACK;CMD=[KOMUT];STATUS=[DURUM];[EK_BILGI];>",
+        "timeout_seconds": 1.0,
+        "commands": {
+            "READSTAT": {
+                "success": "<ACK;CMD=READSTAT;STATUS=OK;>",
+                "description": "Status request komutu için ACK"
+            },
+            "AUTH": {
+                "success": "<ACK;CMD=AUTH;STATUS=OK;>",
+                "cleared": "<ACK;CMD=AUTH;STATUS=CLEARED;>",
+                "error": "<ACK;CMD=AUTH;STATUS=NOT CLEARED;>",
+                "description": "Authorization komutu için ACK"
+            },
+            "SETMAXAMP": {
+                "success": "<ACK;CMD=SETMAXAMP;STATUS=OK;>",
+                "error": "<ACK;CMD=SETMAXAMP;STATUS=ERR;>",
+                "description": "Current set komutu için ACK"
+            },
+            "STOP": {
+                "success": "<ACK;CMD=STOP;STATUS=OK;>",
+                "description": "Charge stop komutu için ACK (GPIO UART'ta tanımlı, USB Serial'de yok)"
+            },
+            "UNLOCK": {
+                "success": "<ACK;CMD=UNLOCK;STATUS=OK;>",
+                "description": "Unlock komutu için ACK"
+            },
+            "LOCK": {
+                "success": "<ACK;CMD=LOCK;STATUS=OK;>",
+                "description": "Lock komutu için ACK"
+            },
+            "UNKNOWN": {
+                "error": "<ACK;CMD=UNKNOWN;STATUS=ERR;>",
+                "description": "Bilinmeyen komut için ACK"
+            }
+        }
     },
-    "current_set_13A": {
-      "id": "0x02",
-      "value": "0x0D",
-      "hex": "41 02 2C 0D 10",
-      "byte_array": [65, 2, 44, 13, 16],
-      "description": "Maksimum akım: 13A",
-      "category": "current_set",
-      "amperage": 13
-    },
-    "current_set_16A": {
-      "id": "0x02",
-      "value": "0x10",
-      "hex": "41 02 2C 10 10",
-      "byte_array": [65, 2, 44, 16, 16],
-      "description": "Maksimum akım: 16A",
-      "category": "current_set",
-      "amperage": 16
-    },
-    "current_set_20A": {
-      "id": "0x02",
-      "value": "0x14",
-      "hex": "41 02 2C 14 10",
-      "byte_array": [65, 2, 44, 20, 16],
-      "description": "Maksimum akım: 20A",
-      "category": "current_set",
-      "amperage": 20
-    },
-    "current_set_25A": {
-      "id": "0x02",
-      "value": "0x19",
-      "hex": "41 02 2C 19 10",
-      "byte_array": [65, 2, 44, 25, 16],
-      "description": "Maksimum akım: 25A",
-      "category": "current_set",
-      "amperage": 25
-    },
-    "current_set_32A": {
-      "id": "0x02",
-      "value": "0x20",
-      "hex": "41 02 2C 20 10",
-      "byte_array": [65, 2, 44, 32, 16],
-      "description": "Maksimum akım: 32A",
-      "category": "current_set",
-      "amperage": 32
-    },
-    "charge_stop": {
-      "id": "0x04",
-      "value": "0x07",
-      "hex": "41 04 2C 07 10",
-      "byte_array": [65, 4, 44, 7, 16],
-      "description": "Şarjı bitir",
-      "category": "charge_control"
-    }
-  },
-  "status_message": {
-    "format": "<STAT;ID=X;CP=X;CPV=X;PP=X;PPV=X;RL=X;LOCK=X;MOTOR=X;PWM=X;MAX=X;CABLE=X;AUTH=X;STATE=X;PB=X;STOP=X;>",
-    "fields": {
-      "ID": "Request ID (optional)",
-      "CP": "Control Pilot status",
-      "CPV": "Control Pilot voltage",
-      "PP": "Proximity Pilot status",
-      "PPV": "Proximity Pilot voltage",
-      "RL": "Relay flag",
-      "LOCK": "Lock flag",
-      "MOTOR": "Motor flag",
-      "PWM": "PWM value",
-      "MAX": "Maximum current",
-      "CABLE": "Cable current",
-      "AUTH": "Authorization enabled (0/1)",
-      "STATE": "Charging state",
-      "PB": "Power board status",
-      "STOP": "Stop requested (0/1)"
-    },
-    "update_interval_seconds": 5
-  },
     "rules": {
         "current_set_only_before_charging": "Akım set komutları sadece aktif şarj başlamadan gönderilebilir. Şarj esnasında akım değiştirilemez (güvenlik nedeniyle).",
         "only_defined_commands": "Başka komut RPi'den ESP32'ye gitmez.",
         "current_set_range": "Akım set değeri 6-32 amper aralığında herhangi bir tam sayı olabilir. Değer doğrudan amper cinsinden hex formatında gönderilir (örn: 12A = 0x0C)."
     }
 }
-

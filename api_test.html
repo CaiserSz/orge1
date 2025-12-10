@@ -816,7 +816,7 @@
                     <div class="endpoint-description">Şarj başlatma</div>
                     <div class="request-body">
                         <label>Request Body (JSON):</label>
-                        <textarea id="body-/api/charge/start" placeholder='{}' oninput="updateCurlPreviewDebounced('POST', '/api/charge/start', 'body-/api/charge/start', 'curl-/api/charge/start')">{"test": true}</textarea>
+                        <textarea id="body-/api/charge/start" placeholder='{"user_id": "your-user-id"}' oninput="updateCurlPreviewDebounced('POST', '/api/charge/start', 'body-/api/charge/start', 'curl-/api/charge/start')">{}</textarea>
                     </div>
                     <div class="curl-preview">
                         <label>💻 cURL Command (Edit edilebilir):</label>
@@ -834,7 +834,7 @@
                     <div class="endpoint-description">Şarj durdurma</div>
                     <div class="request-body">
                         <label>Request Body (JSON):</label>
-                        <textarea id="body-/api/charge/stop" placeholder='{}' oninput="updateCurlPreviewDebounced('POST', '/api/charge/stop', 'body-/api/charge/stop', 'curl-/api/charge/stop')">{"test": true}</textarea>
+                        <textarea id="body-/api/charge/stop" placeholder='{"user_id": "your-user-id"}' oninput="updateCurlPreviewDebounced('POST', '/api/charge/stop', 'body-/api/charge/stop', 'curl-/api/charge/stop')">{}</textarea>
                     </div>
                     <div class="curl-preview">
                         <label>💻 cURL Command (Edit edilebilir):</label>
@@ -986,6 +986,9 @@
                 const response = await fetch(`${API_BASE_URL}/api/test/key`);
                 const keyData = await response.json();
                 const apiKey = keyData.api_key;
+                const userId = keyData.user_id || null;
+
+                const requestBody = userId ? { user_id: userId } : {};
 
                 const chargeResponse = await fetch(`${API_BASE_URL}/api/charge/start`, {
                     method: 'POST',
@@ -993,7 +996,7 @@
                         'Content-Type': 'application/json',
                         'X-API-Key': apiKey
                     },
-                    body: JSON.stringify({ test: true })
+                    body: JSON.stringify(requestBody)
                 });
 
                 const result = await chargeResponse.json();
@@ -1014,6 +1017,9 @@
                 const response = await fetch(`${API_BASE_URL}/api/test/key`);
                 const keyData = await response.json();
                 const apiKey = keyData.api_key;
+                const userId = keyData.user_id || null;
+
+                const requestBody = userId ? { user_id: userId } : {};
 
                 const chargeResponse = await fetch(`${API_BASE_URL}/api/charge/stop`, {
                     method: 'POST',
@@ -1021,7 +1027,7 @@
                         'Content-Type': 'application/json',
                         'X-API-Key': apiKey
                     },
-                    body: JSON.stringify({ test: true })
+                    body: JSON.stringify(requestBody)
                 });
 
                 const result = await chargeResponse.json();
@@ -1081,6 +1087,44 @@
                                 input.dispatchEvent(new Event('input'));
                             }
                         });
+
+                        // Set User ID in charge start/stop body fields
+                        const chargeStartBody = document.getElementById('body-/api/charge/start');
+                        const chargeStopBody = document.getElementById('body-/api/charge/stop');
+
+                        if (chargeStartBody) {
+                            try {
+                                const currentValue = chargeStartBody.value.trim();
+                                let bodyObj = {};
+                                if (currentValue) {
+                                    bodyObj = JSON.parse(currentValue);
+                                }
+                                bodyObj.user_id = userId;
+                                chargeStartBody.value = JSON.stringify(bodyObj, null, 2);
+                                chargeStartBody.dispatchEvent(new Event('input'));
+                            } catch (e) {
+                                // If parsing fails, set default with user_id
+                                chargeStartBody.value = JSON.stringify({ user_id: userId }, null, 2);
+                                chargeStartBody.dispatchEvent(new Event('input'));
+                            }
+                        }
+
+                        if (chargeStopBody) {
+                            try {
+                                const currentValue = chargeStopBody.value.trim();
+                                let bodyObj = {};
+                                if (currentValue) {
+                                    bodyObj = JSON.parse(currentValue);
+                                }
+                                bodyObj.user_id = userId;
+                                chargeStopBody.value = JSON.stringify(bodyObj, null, 2);
+                                chargeStopBody.dispatchEvent(new Event('input'));
+                            } catch (e) {
+                                // If parsing fails, set default with user_id
+                                chargeStopBody.value = JSON.stringify({ user_id: userId }, null, 2);
+                                chargeStopBody.dispatchEvent(new Event('input'));
+                            }
+                        }
                     }
                 }
 

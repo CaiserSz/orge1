@@ -1,7 +1,7 @@
 # Status API Browser Test Raporu
 
-**Tarih:** 2025-12-10  
-**Test:** Browser'dan "Test Et" butonu ile Status API testi  
+**Tarih:** 2025-12-10
+**Test:** Browser'dan "Test Et" butonu ile Status API testi
 **Durum:** ✅ BAŞARILI
 
 ---

@@ -9,11 +9,14 @@ Description: Current control business logic service layer
 from datetime import datetime
 from typing import Dict, Any, Optional
 
-from api.event_detector import ESP32State
 from api.logging_config import system_logger
 from api.models import CurrentSetRequest
 from api.cache import CacheInvalidator
 from api.services.base_service import BaseService
+from api.state_validation import (
+    validate_state,
+    check_state_for_current_set,
+)
 
 
 class CurrentService(BaseService):
@@ -62,45 +65,18 @@ class CurrentService(BaseService):
                 },
             )
 
-        # Mevcut durumu kontrol et
+        # Mevcut durumu kontrol et ve state validate et (STATE None durumunda devam edebilir)
         current_status = self.bridge.get_status()
-        if current_status:
-            # STATE değerini al ve None kontrolü yap
-            state = current_status.get("STATE")
-            if state is None:
-                # STATE None ise, akım ayarlama işlemini devam ettirebiliriz
-                # Ancak log'a kaydedelim
-                system_logger.warning(
-                    "Current set: STATE None, işlem devam ediyor",
-                    extra={
-                        "endpoint": "/api/maxcurrent",
-                        "user_id": user_id,
-                        "amperage": request_body.amperage,
-                    },
-                )
-            else:
-                # State değerini ESP32State enum ile kontrol et
-                try:
-                    esp32_state = ESP32State(state)
-                    state_name = esp32_state.name
-                except ValueError:
-                    state_name = f"UNKNOWN_{state}"
+        state, state_name = validate_state(
+            current_status,
+            endpoint="/api/maxcurrent",
+            user_id=user_id,
+            allow_none=True,  # STATE None durumunda akım ayarlama devam edebilir
+        )
 
-                # Şarj aktifken (state >= CHARGING) akım değiştirilemez
-                if state >= ESP32State.CHARGING.value:
-                    detail = f"Akım ayarlanamaz (State: {state_name}). Şarj aktifken akım değiştirilemez."
-                    system_logger.warning(
-                        f"Current set rejected: {detail}",
-                        extra={
-                            "endpoint": "/api/maxcurrent",
-                            "user_id": user_id,
-                            "amperage": request_body.amperage,
-                            "current_state": state,
-                            "state_name": state_name,
-                            "error_type": "INVALID_STATE",
-                        },
-                    )
-                    raise ValueError(detail)
+        # State None değilse ve şarj aktifse akım değiştirilemez
+        if state is not None:
+            check_state_for_current_set(state, state_name, "/api/maxcurrent", user_id)
 
         # Akım ayarlama komutu gönder
         success = self.bridge.send_current_set(request_body.amperage)

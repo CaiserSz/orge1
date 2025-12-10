@@ -1,6 +1,6 @@
 # ESP32 Firmware Müdahale Politikası
 
-**Tarih:** 2025-12-10  
+**Tarih:** 2025-12-10
 **Durum:** Aktif
 
 ---

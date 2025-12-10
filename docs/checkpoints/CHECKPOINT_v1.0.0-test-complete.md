@@ -1,7 +1,7 @@
 # Checkpoint: v1.0.0-test-complete
 
-**Oluşturulma Tarihi:** 2025-12-10 15:40:00  
-**Tag:** v1.0.0-test-complete  
+**Oluşturulma Tarihi:** 2025-12-10 15:40:00
+**Tag:** v1.0.0-test-complete
 **Durum:** ✅ Production-Ready Checkpoint
 
 ---
@@ -56,7 +56,7 @@ Bu checkpoint, tüm temel özelliklerin test edildiği ve çalıştığı doğru
 ### Resume Senaryosu Düzeltmesi
 **Sorun:** PAUSED → CHARGING geçişinde yeni session oluşturuluyordu.
 
-**Çözüm:** 
+**Çözüm:**
 - `api/session/manager.py` dosyasında `_on_event` metoduna resume kontrolü eklendi
 - Son event CHARGE_PAUSED ise, CHARGE_STARTED event'i mevcut session'a ekleniyor
 - Yeni session oluşturulmuyor
@@ -195,6 +195,6 @@ Bu checkpoint ile ilgili sorular için:
 
 ---
 
-**Checkpoint Oluşturuldu:** 2025-12-10 15:40:00  
+**Checkpoint Oluşturuldu:** 2025-12-10 15:40:00
 **Son Güncelleme:** 2025-12-10 15:40:00
 

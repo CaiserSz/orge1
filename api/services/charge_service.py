@@ -9,11 +9,15 @@ Description: Charge control business logic service layer
 from datetime import datetime
 from typing import Dict, Any, Optional
 
-from api.event_detector import ESP32State
 from api.logging_config import system_logger
 from api.models import ChargeStartRequest, ChargeStopRequest
 from api.cache import CacheInvalidator
 from api.services.base_service import BaseService
+from api.state_validation import (
+    validate_state,
+    check_state_for_charge_start,
+    check_state_changed,
+)
 
 
 class ChargeService(BaseService):
@@ -47,8 +51,9 @@ class ChargeService(BaseService):
         # Bridge bağlantısını kontrol et
         self._ensure_connected()
 
-        # User ID'yi al (audit trail için)
-        user_id = self._get_user_id(user_id)
+        # User ID'yi al (request body'den gelen user_id öncelikli, yoksa config'den)
+        if not user_id:
+            user_id = self._get_user_id(None)
 
         # Kritik işlemleri logla (şarj başlatma)
         if user_id:
@@ -63,6 +68,7 @@ class ChargeService(BaseService):
             # Session manager'a user_id bilgisini geçir (CHARGE_STARTED event'i için)
             try:
                 from api.session import get_session_manager
+
                 session_manager = get_session_manager()
                 if session_manager:
                     # pending_user_id'ye user_id'yi kaydet
@@ -72,108 +78,23 @@ class ChargeService(BaseService):
                 # Session manager yoksa veya hata varsa devam et
                 pass
 
-        # Mevcut durumu kontrol et
+        # Mevcut durumu kontrol et ve state validate et
         current_status = self.bridge.get_status()
-        if not current_status:
-            error_msg = "ESP32 durum bilgisi alınamadı"
-            system_logger.error(
-                f"Charge start failed: {error_msg}",
-                extra={
-                    "endpoint": "/api/charge/start",
-                    "user_id": user_id,
-                    "error_type": "ESP32_STATUS_ERROR",
-                },
-            )
-            raise ValueError(error_msg)
+        state, state_name = validate_state(
+            current_status,
+            endpoint="/api/charge/start",
+            user_id=user_id,
+            allow_none=False,
+        )
 
-        # STATE değerini al ve None kontrolü yap
-        state = current_status.get("STATE")
-        if state is None:
-            error_msg = "ESP32 STATE değeri alınamadı (None)"
-            system_logger.error(
-                f"Charge start failed: {error_msg}",
-                extra={
-                    "endpoint": "/api/charge/start",
-                    "user_id": user_id,
-                    "error_type": "STATE_NONE_ERROR",
-                    "status_data": current_status,
-                },
-            )
-            raise ValueError(error_msg)
-
-        # State değerini ESP32State enum ile kontrol et ve validate et
-        try:
-            esp32_state = ESP32State(state)
-            state_name = esp32_state.name
-        except ValueError:
-            # Geçersiz state değeri (ESP32State enum'unda yok)
-            state_name = f"UNKNOWN_{state}"
-            esp32_state = None
-            error_msg = f"Geçersiz STATE değeri: {state} (beklenen: 0-8 arası)"
-            system_logger.error(
-                f"Charge start failed: {error_msg}",
-                extra={
-                    "endpoint": "/api/charge/start",
-                    "user_id": user_id,
-                    "error_type": "INVALID_STATE_VALUE",
-                    "invalid_state": state,
-                    "status_data": current_status,
-                },
-            )
-            raise ValueError(error_msg)
-
-        # Sadece EV_CONNECTED (state=3) durumunda authorization gönderilebilir
-        if state != ESP32State.EV_CONNECTED.value:
-            # State'e göre hata mesajı oluştur
-            if state == ESP32State.IDLE.value:
-                detail = "Şarj başlatılamaz (State: IDLE). Kablo takılı değil."
-            elif state == ESP32State.CABLE_DETECT.value:
-                detail = "Şarj başlatılamaz (State: CABLE_DETECT). Araç bağlı değil."
-            elif state == ESP32State.READY.value:
-                detail = (
-                    "Şarj başlatılamaz (State: READY). Authorization zaten verilmiş."
-                )
-            elif state >= ESP32State.CHARGING.value:
-                detail = f"Şarj başlatılamaz (State: {state_name}). Şarj zaten aktif veya hata durumunda."
-            else:
-                detail = f"Şarj başlatılamaz (State: {state_name}). Sadece EV_CONNECTED durumunda authorization gönderilebilir."
-
-            system_logger.warning(
-                f"Charge start rejected: {detail}",
-                extra={
-                    "endpoint": "/api/charge/start",
-                    "user_id": user_id,
-                    "current_state": state,
-                    "state_name": state_name,
-                    "error_type": "INVALID_STATE",
-                },
-            )
-            raise ValueError(detail)
+        # Charge start için state kontrolü
+        check_state_for_charge_start(state, state_name, "/api/charge/start", user_id)
 
         # Komut gönderilmeden önce son bir kez STATE kontrolü yapalım (race condition önlemi)
         final_status_check = self.bridge.get_status()
         if final_status_check:
             final_state = final_status_check.get("STATE")
-            if final_state is not None and final_state != ESP32State.EV_CONNECTED.value:
-                # State değişmiş, komut gönderme
-                try:
-                    final_state_name = ESP32State(final_state).name
-                except ValueError:
-                    final_state_name = f"UNKNOWN_{final_state}"
-                error_msg = (
-                    f"State değişti, şarj başlatılamaz (State: {final_state_name})"
-                )
-                system_logger.warning(
-                    f"Charge start rejected: {error_msg}",
-                    extra={
-                        "endpoint": "/api/charge/start",
-                        "user_id": user_id,
-                        "initial_state": state,
-                        "final_state": final_state,
-                        "error_type": "STATE_CHANGED",
-                    },
-                )
-                raise ValueError(error_msg)
+            check_state_changed(state, final_state, "/api/charge/start", user_id)
 
         success = self.bridge.send_authorization()
 
@@ -223,8 +144,9 @@ class ChargeService(BaseService):
         # Bridge bağlantısını kontrol et
         self._ensure_connected()
 
-        # User ID'yi al (audit trail için)
-        user_id = self._get_user_id(user_id)
+        # User ID'yi al (request body'den gelen user_id öncelikli, yoksa config'den)
+        if not user_id:
+            user_id = self._get_user_id(None)
 
         # Kritik işlemleri logla (şarj durdurma)
         if user_id:

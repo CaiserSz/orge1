@@ -14,8 +14,11 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251210-014
-**Tarih:** 2025-12-10 15:40:00
+**Checkpoint ID:** CP-20251210-015
+**Tarih:** 2025-12-10 16:00:00
+**Durum:** ✅ Code Duplication Azaltma Tamamlandı
+
+### Önceki Checkpoint: CP-20251210-014 (2025-12-10 15:40:00)
 **Durum:** ✅ Tüm Testler Tamamlandı - Production-Ready Checkpoint (v1.0.0-test-complete)
 
 ### Önceki Checkpoint: CP-20251210-013 (2025-12-10 15:10:00)
@@ -70,6 +73,22 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 **Durum:** ✅ Logging Sistemi ve Kritik Düzeltmeler Tamamlandı
 
 ### Son Tamamlanan İş
+- **Görev:** Code Duplication Azaltma
+- **Durum:** ✅ Tamamlandı
+- **Tarih:** 2025-12-10 16:00:00
+- **Detaylar:**
+  - ✅ Common error handler decorator oluşturuldu (`api/error_handlers.py`)
+  - ✅ State validation helper functions oluşturuldu (`api/state_validation.py`)
+  - ✅ Router'larda error handler decorator kullanıldı (`charge.py`, `current.py`)
+  - ✅ Service layer'da state validation helper kullanıldı (`charge_service.py`, `current_service.py`)
+  - ✅ Error handling pattern tekrarı azaltıldı (~100 satır kod azaltıldı)
+  - ✅ State validation logic tekrarı azaltıldı (~80 satır kod azaltıldı)
+  - ✅ Merkezi error handling ve state validation sağlandı
+- **Beklenen İyileştirmeler:**
+  - Kod bakımı kolaylaştırıldı
+  - Kod okunabilirliği artırıldı
+
+### Önceki Tamamlanan İş
 - **Görev:** Tüm Testler Tamamlandı - Production-Ready Checkpoint
 - **Durum:** ✅ Tamamlandı
 - **Tarih:** 2025-12-10 15:40:00
@@ -182,14 +201,14 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
   - Checkpoint güncellendi (CP-20251210-006)
 
 ### Son Aktif Görev
-- **Görev:** Yok (Eksik Test Senaryoları tamamlandı)
+- **Görev:** Yok (Code Duplication Azaltma tamamlandı)
 
 ### Sonraki Yapılacak
-- **Görev:** Response Caching Implementasyonu (Öncelik 1)
+- **Görev:** Type Hints Ekleme (Öncelik 1)
 - **Öncelik:** Yüksek
 - **Durum:** 📋 Bekliyor
 - **Tahmini Süre:** 2-3 saat
-- **Bağımlılıklar:** ✅ Rate limiting, CORS, Test Dokümantasyonu ve Eksik Test Senaryoları (Tamamlandı)
+- **Bağımlılıklar:** ✅ Code Duplication Azaltma (Tamamlandı)
 
 ---
 

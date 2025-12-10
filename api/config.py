@@ -58,7 +58,9 @@ class Config:
             ValueError: Gerekli configuration değerleri eksikse
         """
         # API Configuration
-        cls.SECRET_API_KEY = os.getenv("SECRET_API_KEY")
+        # SECRET_API_KEY veya X-API-Key environment variable'ından al
+        # X-API-Key öncelikli (karışıklığı önlemek için)
+        cls.SECRET_API_KEY = os.getenv("X-API-Key") or os.getenv("SECRET_API_KEY")
         cls.TEST_API_USER_ID = os.getenv("TEST_API_USER_ID")
         cls.DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
@@ -115,7 +117,9 @@ class Config:
 
         # Cache TTL validation
         if cls.CACHE_TTL < 0:
-            raise ValueError(f"Geçersiz CACHE_TTL: {cls.CACHE_TTL} (0 veya pozitif olmalı)")
+            raise ValueError(
+                f"Geçersiz CACHE_TTL: {cls.CACHE_TTL} (0 veya pozitif olmalı)"
+            )
 
         # Rate limit format validation (basit kontrol)
         rate_limits = [
@@ -217,4 +221,3 @@ config = Config()
 
 # Startup'ta configuration'ı yükle
 config.load()
-

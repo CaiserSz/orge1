@@ -1,7 +1,7 @@
 # Gerçek Araç Testi Kontrol Listesi
 
-**Oluşturulma Tarihi:** 2025-12-10 12:05:00  
-**Son Güncelleme:** 2025-12-10 12:05:00  
+**Oluşturulma Tarihi:** 2025-12-10 12:05:00
+**Son Güncelleme:** 2025-12-10 12:05:00
 **Versiyon:** 1.0.0
 
 ## Özet

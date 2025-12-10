@@ -1,7 +1,7 @@
 # Status API Test Raporu
 
-**Tarih:** 2025-12-10  
-**Test Edilen:** `/api/status` endpoint'i ve tüm kullanım yerleri  
+**Tarih:** 2025-12-10
+**Test Edilen:** `/api/status` endpoint'i ve tüm kullanım yerleri
 **Durum:** ✅ TÜM TESTLER BAŞARILI
 
 ---

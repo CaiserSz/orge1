@@ -1,7 +1,7 @@
 # API Test Raporu
 
-**Tarih:** 2025-12-10 13:05:00  
-**Test Edilen:** Tüm API Endpoint'leri  
+**Tarih:** 2025-12-10 13:05:00
+**Test Edilen:** Tüm API Endpoint'leri
 **Durum:** ⚠️ Çoğu endpoint çalışıyor, bazıları servis yeniden başlatma gerektiriyor
 
 ---
