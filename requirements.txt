@@ -36,3 +36,6 @@ psutil>=5.9.0
 black>=24.0.0
 ruff>=0.14.0
 
+# Caching (optional - Redis için)
+# redis>=5.0.0  # Uncomment if using Redis backend
+

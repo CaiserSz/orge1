@@ -18,6 +18,7 @@ from api.logging_config import log_event, system_logger
 from api.models import APIResponse, ChargeStartRequest, ChargeStopRequest
 from api.rate_limiting import charge_rate_limit
 from api.routers.dependencies import get_bridge
+from api.cache import invalidate_cache
 from esp32.bridge import ESP32Bridge
 
 router = APIRouter(prefix="/api/charge", tags=["Charge Control"])
@@ -189,6 +190,10 @@ async def start_charge(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_msg
         )
 
+    # Status ve session cache'lerini invalidate et (state değişti)
+    invalidate_cache("status:*")
+    invalidate_cache("session_current:*")
+
     return APIResponse(
         success=True,
         message="Şarj başlatma komutu gönderildi",
@@ -253,6 +258,12 @@ async def stop_charge(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_msg
         )
+
+    # Status ve session cache'lerini invalidate et (state değişti)
+    invalidate_cache("status:*")
+    invalidate_cache("session_current:*")
+    invalidate_cache("sessions_list:*")
+    invalidate_cache("user_sessions:*")
 
     return APIResponse(
         success=True,

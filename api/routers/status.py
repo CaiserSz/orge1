@@ -13,11 +13,13 @@ from api.routers.dependencies import get_bridge
 from api.models import APIResponse
 from api.event_detector import get_event_detector
 from api.rate_limiting import status_rate_limit
+from api.cache import cache_response
 
 router = APIRouter(prefix="/api", tags=["Status"])
 
 
 @router.get("/health")
+@cache_response(ttl=30, key_prefix="health")  # 30 saniye cache
 async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
     """
     Sistem sağlık kontrolü (Detaylı)
@@ -221,6 +223,9 @@ async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
 
 @router.get("/status")
 @status_rate_limit()  # Status endpoint'leri için rate limit (30/dakika)
+@cache_response(
+    ttl=5, key_prefix="status"
+)  # 5 saniye cache (ESP32 7.5 saniyede bir gönderiyor)
 async def get_status(request: Request, bridge: ESP32Bridge = Depends(get_bridge)):
     """
     ESP32 durum bilgisini al

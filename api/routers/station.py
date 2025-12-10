@@ -10,11 +10,15 @@ from typing import Dict, Any
 from fastapi import APIRouter, HTTPException, status
 from api.station_info import save_station_info, get_station_info
 from api.models import APIResponse
+from api.cache import cache_response, invalidate_cache
 
 router = APIRouter(prefix="/api/station", tags=["Station"])
 
 
 @router.get("/info")
+@cache_response(
+    ttl=3600, key_prefix="station_info"
+)  # 1 saat cache (station info nadiren değişir)
 async def get_station_info_endpoint():
     """
     Şarj istasyonu bilgilerini al
@@ -26,13 +30,11 @@ async def get_station_info_endpoint():
     if not station_info:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="İstasyon bilgisi bulunamadı. Lütfen önce formu doldurun."
+            detail="İstasyon bilgisi bulunamadı. Lütfen önce formu doldurun.",
         )
 
     return APIResponse(
-        success=True,
-        message="İstasyon bilgisi alındı",
-        data=station_info
+        success=True, message="İstasyon bilgisi alındı", data=station_info
     )
 
 
@@ -44,14 +46,14 @@ async def save_station_info_endpoint(station_data: Dict[str, Any]):
     Formdan girilen istasyon bilgilerini kaydeder.
     """
     if save_station_info(station_data):
+        # Station info cache'ini invalidate et
+        invalidate_cache("station_info:*")
+
         return APIResponse(
-            success=True,
-            message="İstasyon bilgileri kaydedildi",
-            data=station_data
+            success=True, message="İstasyon bilgileri kaydedildi", data=station_data
         )
     else:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="İstasyon bilgileri kaydedilemedi"
+            detail="İstasyon bilgileri kaydedilemedi",
         )
-

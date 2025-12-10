@@ -12,11 +12,13 @@ from fastapi import APIRouter, HTTPException, Query, status
 
 from api.logging_config import system_logger
 from api.session import SessionStatus, get_session_manager
+from api.cache import cache_response
 
 router = APIRouter(prefix="/api/sessions", tags=["Sessions"])
 
 
 @router.get("/current")
+@cache_response(ttl=10, key_prefix="session_current")  # 10 saniye cache
 async def get_current_session():
     """
     Aktif session'ı döndür
@@ -41,6 +43,9 @@ async def get_current_session():
 
 
 @router.get("/{session_id}")
+@cache_response(
+    ttl=300, key_prefix="session_detail"
+)  # 5 dakika cache (session detayları nadiren değişir)
 async def get_session(session_id: str):
     """
     Belirli bir session'ı döndür
@@ -73,6 +78,7 @@ async def get_session(session_id: str):
 
 
 @router.get("/{session_id}/metrics")
+@cache_response(ttl=60, key_prefix="session_metrics")  # 1 dakika cache
 async def get_session_metrics(session_id: str):
     """
     Belirli bir session'ın metriklerini döndür
@@ -127,6 +133,9 @@ async def get_session_metrics(session_id: str):
 
 
 @router.get("")
+@cache_response(
+    ttl=30, key_prefix="sessions_list", exclude_query_params=["offset"]
+)  # 30 saniye cache, offset hariç
 async def get_sessions(
     limit: int = Query(
         100, ge=1, le=1000, description="Maksimum döndürülecek session sayısı"
@@ -194,6 +203,9 @@ async def get_sessions(
 
 
 @router.get("/users/{user_id}/sessions")
+@cache_response(
+    ttl=30, key_prefix="user_sessions", exclude_query_params=["offset"]
+)  # 30 saniye cache, offset hariç
 async def get_user_sessions(
     user_id: str,
     limit: int = Query(
@@ -290,6 +302,7 @@ async def get_user_sessions(
 
 
 @router.get("/count/stats")
+@cache_response(ttl=60, key_prefix="session_stats")  # 1 dakika cache
 async def get_session_stats():
     """
     Session istatistiklerini döndür

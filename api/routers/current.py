@@ -17,6 +17,7 @@ from api.logging_config import log_event, system_logger
 from api.rate_limiting import charge_rate_limit
 from api.routers.dependencies import get_bridge
 from api.models import APIResponse, CurrentSetRequest
+from api.cache import cache_response, invalidate_cache
 
 router = APIRouter(prefix="/api", tags=["Current Control"])
 
@@ -152,6 +153,9 @@ async def set_current(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_msg
         )
 
+    # Status cache'ini invalidate et (MAX değeri değişti)
+    invalidate_cache("status:*")
+
     return APIResponse(
         success=True,
         message=f"Akım ayarlandı: {request_body.amperage}A",
@@ -160,6 +164,9 @@ async def set_current(
 
 
 @router.get("/current/available")
+@cache_response(
+    ttl=3600, key_prefix="current_available"
+)  # 1 saat cache (sabit değerler)
 async def get_available_currents():
     """
     Kullanılabilir akım değerlerini listele
