@@ -1,0 +1,17 @@
+[Unit]
+Description=Charger API Backup Service
+After=network.target
+
+[Service]
+Type=oneshot
+User=pi
+Group=pi
+WorkingDirectory=/home/basar/charger
+Environment="PATH=/home/basar/charger/env/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/basar/charger/env/bin/python3 /home/basar/charger/scripts/backup_manager.py
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+

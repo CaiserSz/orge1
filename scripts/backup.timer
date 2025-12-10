@@ -1,0 +1,15 @@
+[Unit]
+Description=Charger API Backup Timer
+Requires=backup.service
+
+[Timer]
+# Run daily at 2:00 AM
+OnCalendar=*-*-* 02:00:00
+# Run immediately if missed
+Persistent=true
+# Randomize start time by up to 30 minutes
+RandomizedDelaySec=1800
+
+[Install]
+WantedBy=timers.target
+
