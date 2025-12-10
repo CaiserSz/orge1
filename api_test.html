@@ -194,6 +194,57 @@
         }
 
         /* STATE renkleri (ESP32 kodundan) - Görünürlük iyileştirmeleri */
+        .status-last-update {
+            font-size: 0.85em;
+            color: #aaa;
+            margin-left: auto;
+        }
+
+        .bar-action-btn {
+            margin-left: 15px;
+            padding: 8px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .bar-start-btn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .bar-start-btn:hover {
+            background: #45a049;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+        }
+
+        .bar-start-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(76, 175, 80, 0.2);
+        }
+
+        .bar-stop-btn {
+            background: #f44336;
+            color: white;
+        }
+
+        .bar-stop-btn:hover {
+            background: #da190b;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(244, 67, 54, 0.3);
+        }
+
+        .bar-stop-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(244, 67, 54, 0.2);
+        }
+
         .status-state-1 { background: #e8e8e8; border-color: #bbb; } /* IDLE - Açık Gri */
         .status-state-1 .status-label { color: #555; } /* Koyu gri label */
         .status-state-1 .status-value { color: #000; font-weight: bold; } /* Siyah değer */
