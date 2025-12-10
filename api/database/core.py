@@ -1,9 +1,9 @@
 """
-Database Module
-Created: 2025-12-10 04:30:00
-Last Modified: 2025-12-10 04:30:00
-Version: 1.0.0
-Description: SQLite database yönetimi ve session storage
+Database Core Module
+Created: 2025-12-10 19:00:00
+Last Modified: 2025-12-10 19:00:00
+Version: 2.0.0
+Description: SQLite database yönetimi ve session storage - Core module
 """
 
 import sqlite3
@@ -17,8 +17,12 @@ import sys
 import os
 
 # Logging modülünü import et
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 from api.logging_config import system_logger
+
+# Migration ve model modüllerini import et
+from api.database import migrations
+from api.database import models
 
 
 class Database:
@@ -110,13 +114,13 @@ class Database:
                 )
 
                 # Migration: Eski TEXT timestamp kolonları varsa migrate et
-                self._migrate_timestamp_columns(cursor)
+                migrations.migrate_timestamp_columns(cursor)
 
                 # Migration: Yeni metrik kolonlarını ekle (eğer yoksa)
-                self._migrate_metrics_columns(cursor)
+                migrations.migrate_metrics_columns(cursor)
 
                 # Migration: user_id kolonunu ekle (eğer yoksa)
-                self._migrate_user_id_column(cursor)
+                migrations.migrate_user_id_column(cursor)
 
                 # Session events tablosu (normalized)
                 cursor.execute(
@@ -340,167 +344,6 @@ class Database:
             for key in keys_to_delete:
                 del self._query_cache[key]
 
-    def _migrate_timestamp_columns(self, cursor):
-        """
-        Eski TEXT timestamp kolonlarını INTEGER'a migrate et
-
-        Args:
-            cursor: Database cursor
-        """
-        try:
-            # Mevcut kolonları kontrol et
-            cursor.execute("PRAGMA table_info(sessions)")
-            columns = {row[1]: row[2] for row in cursor.fetchall()}
-
-            # Eğer start_time TEXT ise, INTEGER'a çevir
-            if columns.get("start_time") == "TEXT":
-                system_logger.info(
-                    "Migrating timestamp columns from TEXT to INTEGER..."
-                )
-
-                # Yeni tablo oluştur
-                cursor.execute(
-                    """
-                    CREATE TABLE sessions_new (
-                        session_id TEXT PRIMARY KEY,
-                        start_time INTEGER NOT NULL,
-                        end_time INTEGER,
-                        start_state INTEGER NOT NULL,
-                        end_state INTEGER,
-                        status TEXT NOT NULL,
-                        events TEXT NOT NULL,
-                        metadata TEXT NOT NULL,
-                        created_at INTEGER NOT NULL,
-                        updated_at INTEGER NOT NULL
-                    )
-                    """
-                )
-
-                # Mevcut verileri migrate et
-                cursor.execute("SELECT * FROM sessions")
-                rows = cursor.fetchall()
-
-                for row in rows:
-                    # TEXT timestamp'leri INTEGER'a çevir
-                    start_time_int = int(
-                        datetime.fromisoformat(row["start_time"]).timestamp()
-                    )
-                    end_time_int = (
-                        int(datetime.fromisoformat(row["end_time"]).timestamp())
-                        if row["end_time"]
-                        else None
-                    )
-                    created_at_int = int(
-                        datetime.fromisoformat(row["created_at"]).timestamp()
-                    )
-                    updated_at_int = int(
-                        datetime.fromisoformat(row["updated_at"]).timestamp()
-                    )
-
-                    cursor.execute(
-                        """
-                        INSERT INTO sessions_new
-                        (session_id, start_time, end_time, start_state, end_state,
-                         status, events, metadata, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """,
-                        (
-                            row["session_id"],
-                            start_time_int,
-                            end_time_int,
-                            row["start_state"],
-                            row["end_state"],
-                            row["status"],
-                            row["events"],
-                            row["metadata"],
-                            created_at_int,
-                            updated_at_int,
-                        ),
-                    )
-
-                # Eski tabloyu sil ve yenisini yeniden adlandır
-                cursor.execute("DROP TABLE sessions")
-                cursor.execute("ALTER TABLE sessions_new RENAME TO sessions")
-
-                system_logger.info("Timestamp migration completed successfully")
-        except Exception as e:
-            # Migration hatası kritik değil (yeni database için)
-            system_logger.debug(
-                f"Timestamp migration skipped (new database or already migrated): {e}"
-            )
-
-    def _migrate_user_id_column(self, cursor):
-        """
-        user_id kolonunu ekle (eğer yoksa)
-
-        Args:
-            cursor: SQLite cursor
-        """
-        try:
-            # sessions tablosuna user_id ekle
-            cursor.execute("PRAGMA table_info(sessions)")
-            columns = [col[1] for col in cursor.fetchall()]
-            if "user_id" not in columns:
-                cursor.execute("ALTER TABLE sessions ADD COLUMN user_id TEXT")
-                system_logger.info("user_id kolonu sessions tablosuna eklendi")
-
-            # session_events tablosuna user_id ekle
-            cursor.execute("PRAGMA table_info(session_events)")
-            columns = [col[1] for col in cursor.fetchall()]
-            if "user_id" not in columns:
-                cursor.execute("ALTER TABLE session_events ADD COLUMN user_id TEXT")
-                system_logger.info("user_id kolonu session_events tablosuna eklendi")
-        except Exception as e:
-            system_logger.warning(f"user_id migration hatası: {e}")
-
-    def _migrate_metrics_columns(self, cursor):
-        """
-        Yeni metrik kolonlarını ekle (eğer yoksa)
-
-        Args:
-            cursor: Database cursor
-        """
-        try:
-            # Mevcut kolonları kontrol et
-            cursor.execute("PRAGMA table_info(sessions)")
-            existing_columns = {row[1] for row in cursor.fetchall()}
-
-            # Eklenecek metrik kolonları
-            metrics_columns = [
-                ("duration_seconds", "INTEGER"),
-                ("charging_duration_seconds", "INTEGER"),
-                ("idle_duration_seconds", "INTEGER"),
-                ("total_energy_kwh", "REAL"),
-                ("start_energy_kwh", "REAL"),
-                ("end_energy_kwh", "REAL"),
-                ("max_power_kw", "REAL"),
-                ("avg_power_kw", "REAL"),
-                ("min_power_kw", "REAL"),
-                ("max_current_a", "REAL"),
-                ("avg_current_a", "REAL"),
-                ("min_current_a", "REAL"),
-                ("set_current_a", "REAL"),
-                ("max_voltage_v", "REAL"),
-                ("avg_voltage_v", "REAL"),
-                ("min_voltage_v", "REAL"),
-                ("event_count", "INTEGER DEFAULT 0"),
-            ]
-
-            # Eksik kolonları ekle
-            for col_name, col_type in metrics_columns:
-                if col_name not in existing_columns:
-                    try:
-                        cursor.execute(
-                            f"ALTER TABLE sessions ADD COLUMN {col_name} {col_type}"
-                        )
-                        system_logger.debug(f"Added column: {col_name}")
-                    except sqlite3.OperationalError as e:
-                        # Kolon zaten var veya başka bir hata
-                        system_logger.debug(
-                            f"Column {col_name} already exists or error: {e}"
-                        )
-        except Exception as e:
-            system_logger.warning(f"Metrics columns migration error: {e}")
 
     def _get_connection(self) -> sqlite3.Connection:
         """
@@ -775,7 +618,7 @@ class Database:
                 row = cursor.fetchone()
 
                 if row:
-                    return self._row_to_dict(row)
+                    return models.row_to_dict(row)
                 return None
             except Exception as e:
                 system_logger.error(f"Get session error: {e}", exc_info=True)
@@ -840,7 +683,7 @@ class Database:
                 )
 
                 rows = cursor.fetchall()
-                result = [self._row_to_dict(row) for row in rows]
+                result = [models.row_to_dict(row) for row in rows]
 
                 # Cache'e kaydet (sadece offset=0 için)
                 if use_cache and offset == 0:
@@ -916,91 +759,12 @@ class Database:
                 row = cursor.fetchone()
 
                 if row:
-                    return self._row_to_dict(row)
+                    return models.row_to_dict(row)
                 return None
             except Exception as e:
                 system_logger.error(f"Get current session error: {e}", exc_info=True)
                 return None
             # Connection persistent - close gerekmez
-
-    def _row_to_dict(self, row: sqlite3.Row) -> Dict[str, Any]:
-        """
-        Database row'unu dict'e dönüştür
-
-        Args:
-            row: SQLite row
-
-        Returns:
-            Session dict'i
-        """
-        # Timestamp'leri datetime'a çevir (INTEGER → datetime)
-        start_time_dt = datetime.fromtimestamp(row["start_time"])
-        end_time_dt = (
-            datetime.fromtimestamp(row["end_time"]) if row["end_time"] else None
-        )
-        created_at_dt = datetime.fromtimestamp(row["created_at"])
-        updated_at_dt = datetime.fromtimestamp(row["updated_at"])
-
-        # Metadata'yı parse et
-        metadata = json.loads(row["metadata"]) if row["metadata"] else {}
-
-        result = {
-            "session_id": row["session_id"],
-            "start_time": start_time_dt.isoformat(),
-            "end_time": end_time_dt.isoformat() if end_time_dt else None,
-            "start_state": row["start_state"],
-            "end_state": row["end_state"],
-            "status": row["status"],
-            "events": json.loads(row["events"]),
-            "metadata": metadata,
-            "created_at": created_at_dt.isoformat(),
-            "updated_at": updated_at_dt.isoformat(),
-            # Hesaplanan alanlar
-            "duration_seconds": (
-                (end_time_dt - start_time_dt).total_seconds()
-                if end_time_dt
-                else (datetime.now() - start_time_dt).total_seconds()  # Aktif session için şu anki zaman
-            ),
-            "event_count": len(json.loads(row["events"])),
-        }
-
-        # user_id'yi metadata'dan veya database kolonundan al
-        user_id = None
-        if "user_id" in row.keys() and row["user_id"]:
-            user_id = row["user_id"]
-        elif "user_id" in metadata:
-            user_id = metadata["user_id"]
-
-        # user_id varsa ayrı bir field olarak ekle
-        if user_id:
-            result["user_id"] = user_id
-
-        # Metrikleri ekle (eğer varsa)
-        metric_fields = [
-            "duration_seconds",
-            "charging_duration_seconds",
-            "idle_duration_seconds",
-            "total_energy_kwh",
-            "start_energy_kwh",
-            "end_energy_kwh",
-            "max_power_kw",
-            "avg_power_kw",
-            "min_power_kw",
-            "max_current_a",
-            "avg_current_a",
-            "min_current_a",
-            "set_current_a",
-            "max_voltage_v",
-            "avg_voltage_v",
-            "min_voltage_v",
-            "event_count",
-        ]
-
-        for field in metric_fields:
-            if field in row.keys() and row[field] is not None:
-                result[field] = row[field]
-
-        return result
 
     def create_event(
         self,
@@ -1140,43 +904,11 @@ class Database:
                 )
 
                 rows = cursor.fetchall()
-                return [self._event_row_to_dict(row) for row in rows]
+                return [models.event_row_to_dict(row) for row in rows]
             except Exception as e:
                 system_logger.error(f"Get session events error: {e}", exc_info=True)
                 return []
             # Connection persistent - close gerekmez
-
-    def _event_row_to_dict(self, row: sqlite3.Row) -> Dict[str, Any]:
-        """
-        Event row'unu dict'e dönüştür
-
-        Args:
-            row: SQLite row
-
-        Returns:
-            Event dict'i
-        """
-        return {
-            "id": row["id"],
-            "session_id": row["session_id"],
-            "user_id": row.get("user_id"),
-            "event_type": row["event_type"],
-            "event_timestamp": datetime.fromtimestamp(
-                row["event_timestamp"]
-            ).isoformat(),
-            "from_state": row["from_state"],
-            "to_state": row["to_state"],
-            "from_state_name": row["from_state_name"],
-            "to_state_name": row["to_state_name"],
-            "current_a": row["current_a"],
-            "voltage_v": row["voltage_v"],
-            "power_kw": row["power_kw"],
-            "event_data": json.loads(row["event_data"]) if row["event_data"] else None,
-            "status_data": (
-                json.loads(row["status_data"]) if row["status_data"] else None
-            ),
-            "created_at": datetime.fromtimestamp(row["created_at"]).isoformat(),
-        }
 
     def migrate_events_to_table(self, session_id: Optional[str] = None) -> int:
         """
