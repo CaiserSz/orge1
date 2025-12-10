@@ -41,6 +41,11 @@ async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
         "event_detector": None,
         "threads": threading.active_count(),
         "memory_mb": None,
+        "disk_percent": None,
+        "disk_used_gb": None,
+        "disk_total_gb": None,
+        "network_ip": None,
+        "network_ssid": None,
     }
 
     # ESP32 durumu

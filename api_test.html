@@ -1154,19 +1154,19 @@
             }
 
             // SSD güncelleme
-            const ssdPercent = data.disk_percent !== null && data.disk_percent !== undefined
+            const ssdPercent = (data.disk_percent !== null && data.disk_percent !== undefined)
                 ? data.disk_percent
                 : null;
 
-            const ssdUsed = data.disk_used_gb !== null && data.disk_used_gb !== undefined
-                ? data.disk_used_gb.toFixed(1)
+            const ssdUsed = (data.disk_used_gb !== null && data.disk_used_gb !== undefined)
+                ? parseFloat(data.disk_used_gb).toFixed(1)
                 : null;
 
-            const ssdTotal = data.disk_total_gb !== null && data.disk_total_gb !== undefined
-                ? data.disk_total_gb.toFixed(1)
+            const ssdTotal = (data.disk_total_gb !== null && data.disk_total_gb !== undefined)
+                ? parseFloat(data.disk_total_gb).toFixed(1)
                 : null;
 
-            if (ssdPercent !== null) {
+            if (ssdPercent !== null && !isNaN(ssdPercent)) {
                 let ssdDisplay = ssdPercent.toFixed(1) + '%';
                 if (ssdUsed !== null && ssdTotal !== null) {
                     ssdDisplay = `${ssdUsed}GB/${ssdTotal}GB (${ssdPercent.toFixed(1)}%)`;
@@ -1191,11 +1191,11 @@
             }
 
             // Network bilgileri güncelleme (SSID ve IP)
-            const networkIP = data.network_ip !== null && data.network_ip !== undefined
+            const networkIP = (data.network_ip !== null && data.network_ip !== undefined && data.network_ip !== '')
                 ? data.network_ip
                 : null;
 
-            const networkSSID = data.network_ssid !== null && data.network_ssid !== undefined
+            const networkSSID = (data.network_ssid !== null && data.network_ssid !== undefined && data.network_ssid !== '')
                 ? data.network_ssid
                 : null;
 
