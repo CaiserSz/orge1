@@ -86,6 +86,14 @@ class ChargingSession:
             # user_id'yi metadata'dan çıkar (varsa)
             user_id = self.metadata.get("user_id")
 
+            # Aktif session için süre hesapla (end_time yoksa şu anki zamanı kullan)
+            from datetime import datetime
+            if self.end_time:
+                duration_seconds = (self.end_time - self.start_time).total_seconds()
+            else:
+                # Aktif session için şu anki zaman ile başlangıç zamanı arasındaki fark
+                duration_seconds = (datetime.now() - self.start_time).total_seconds()
+
             result = {
                 "session_id": self.session_id,
                 "start_time": self.start_time.isoformat(),
@@ -93,11 +101,7 @@ class ChargingSession:
                 "start_state": self.start_state,
                 "end_state": self.end_state,
                 "status": self.status.value,
-                "duration_seconds": (
-                    (self.end_time - self.start_time).total_seconds()
-                    if self.end_time
-                    else None
-                ),
+                "duration_seconds": duration_seconds,
                 "event_count": len(self.events),
                 "events": self.events,
                 "metadata": self.metadata,

@@ -957,7 +957,9 @@ class Database:
             "updated_at": updated_at_dt.isoformat(),
             # Hesaplanan alanlar
             "duration_seconds": (
-                (end_time_dt - start_time_dt).total_seconds() if end_time_dt else None
+                (end_time_dt - start_time_dt).total_seconds()
+                if end_time_dt
+                else (datetime.now() - start_time_dt).total_seconds()  # Aktif session için şu anki zaman
             ),
             "event_count": len(json.loads(row["events"])),
         }
