@@ -33,91 +33,101 @@
   - Test Coverage: ~70%
   - Test Dosyaları: 8 (test_esp32_bridge.py, test_api_endpoints.py, test_state_logic.py, test_error_handling.py, test_thread_safety.py, test_status_parsing.py, test_integration.py)
 
-### 🔄 API Test ve İyileştirme
+### Öncelik 1: API Test ve İyileştirme
 - [ ] **Görev:** API endpoint'lerini test et
   - Açıklama: Tüm API endpoint'lerini gerçek ESP32 ile test et
-  - Öncelik: Yüksek
+  - Öncelik: 1 (Yüksek)
   - Tahmini Süre: 1-2 saat
   - Bağımlılıklar: ESP32 bağlantısı, Test altyapısı kurulumu
   - Notlar: ESP32'nin `/dev/ttyUSB0` portunda olduğundan emin ol
+  - Durum: 📋 Bekliyor
 
-### 🔄 API Hata Yönetimi İyileştirme
+### Öncelik 4: API Hata Yönetimi İyileştirme
 - [ ] **Görev:** API hata yönetimini iyileştir
   - Açıklama: Daha detaylı hata mesajları ve logging ekle
-  - Öncelik: Orta
+  - Öncelik: 4 (Orta)
   - Tahmini Süre: 1 saat
   - Notlar: Logging sistemi eklenebilir
+  - Durum: 📋 Bekliyor
 
-### 🔄 API Authentication/Authorization
-- [ ] **Görev:** API için authentication ekle
-  - Açıklama: API endpoint'lerine güvenlik katmanı ekle
-  - Öncelik: Orta
+### Öncelik 4: API Authentication/Authorization İyileştirme
+- [ ] **Görev:** API için authentication iyileştirmesi
+  - Açıklama: API endpoint'lerine güvenlik katmanı iyileştirmesi (mevcut API key sistemi var)
+  - Öncelik: 4 (Orta)
   - Tahmini Süre: 2-3 saat
-  - Notlar: API key veya JWT token kullanılabilir
+  - Notlar: JWT token veya OAuth2 eklenebilir
+  - Durum: 📋 Bekliyor
 
 ---
 
 ## Faz 3: OCPP Entegrasyonu
 
-### 📋 OCPP 1.6J Implementasyonu
+### Öncelik 2: OCPP 1.6J Implementasyonu
 - [ ] **Görev:** OCPP 1.6J protokol desteği ekle
   - Açıklama: WebSocket bağlantı yönetimi ve temel OCPP mesajları
-  - Öncelik: Yüksek
+  - Öncelik: 2 (Yüksek)
   - Tahmini Süre: 1-2 gün
   - Bağımlılıklar: API katmanının stabil olması
   - Notlar: Authorize, StartTransaction, StopTransaction, StatusNotification mesajları
+  - Durum: 📋 Bekliyor
 
-### 📋 OCPP 2.0.1 Implementasyonu
+### Öncelik 2: OCPP 2.0.1 Implementasyonu
 - [ ] **Görev:** OCPP 2.0.1 protokol desteği ekle
   - Açıklama: OCPP 2.0.1 protokol desteği ve yeni özellikler
-  - Öncelik: Yüksek
+  - Öncelik: 2 (Yüksek)
   - Tahmini Süre: 1-2 gün
   - Bağımlılıklar: OCPP 1.6J implementasyonu
   - Notlar: Çift versiyon desteği sağlanmalı
+  - Durum: 📋 Bekliyor
 
-### 📋 CSMS Entegrasyonu
+### Öncelik 2: CSMS Entegrasyonu
 - [ ] **Görev:** CSMS (Central System Management System) entegrasyonu
   - Açıklama: Merkezi sistem ile haberleşme
-  - Öncelik: Yüksek
+  - Öncelik: 2 (Yüksek)
   - Tahmini Süre: 2-3 gün
   - Bağımlılıklar: OCPP implementasyonu
   - Notlar: WebSocket üzerinden CSMS bağlantısı
+  - Durum: 📋 Bekliyor
 
 ---
 
 ## Faz 4: Meter ve Monitoring
 
-### 📋 Meter Okuma Modülü
+### Öncelik 5: Meter Okuma Modülü Geliştirme
 - [ ] **Görev:** Meter okuma modülü geliştir (`meter/read_meter.py`)
-  - Açıklama: Enerji ölçüm cihazı entegrasyonu
-  - Öncelik: Orta
+  - Açıklama: Enerji ölçüm cihazı entegrasyonu (Meter abstraction layer mevcut, fiziksel test bekliyor)
+  - Öncelik: 5 (Orta)
   - Tahmini Süre: 1-2 gün
-  - Notlar: Veri toplama ve işleme
+  - Notlar: Veri toplama ve işleme, fiziksel bağlantı testi gerekli
+  - Durum: 📋 Bekliyor
 
-### 📋 Monitoring ve Logging
-- [ ] **Görev:** Sistem durumu izleme ve logging
-  - Açıklama: Hata loglama ve performans metrikleri
-  - Öncelik: Orta
+### Öncelik 5: Monitoring ve Logging İyileştirme
+- [ ] **Görev:** Sistem durumu izleme ve logging iyileştirmesi
+  - Açıklama: Hata loglama ve performans metrikleri (Logging sistemi mevcut)
+  - Öncelik: 5 (Orta)
   - Tahmini Süre: 1 gün
-  - Notlar: Logging sistemi ve monitoring dashboard
+  - Notlar: Monitoring dashboard eklenebilir
+  - Durum: 📋 Bekliyor
 
 ---
 
 ## Faz 5: Test ve Optimizasyon
 
-### 📋 Test Suite
-- [ ] **Görev:** Unit testler ve entegrasyon testleri
-  - Açıklama: ESP32-RPi iletişim testleri, OCPP protokol testleri
-  - Öncelik: Yüksek
+### Öncelik 3: Test Suite Genişletme
+- [ ] **Görev:** Unit testler ve entegrasyon testleri genişletme
+  - Açıklama: ESP32-RPi iletişim testleri, OCPP protokol testleri (Test altyapısı mevcut, coverage %84)
+  - Öncelik: 3 (Orta)
   - Tahmini Süre: 2-3 gün
-  - Notlar: pytest kullanılabilir
+  - Notlar: pytest kullanılabilir, coverage %85+ hedefi
+  - Durum: 📋 Bekliyor
 
-### 📋 Dokümantasyon ve Deployment
-- [ ] **Görev:** API dokümantasyonu ve kurulum kılavuzu
-  - Açıklama: Sistem mimarisi dokümantasyonu ve deployment guide
-  - Öncelik: Orta
+### Öncelik 5: Dokümantasyon ve Deployment İyileştirme
+- [ ] **Görev:** API dokümantasyonu ve kurulum kılavuzu iyileştirmesi
+  - Açıklama: Sistem mimarisi dokümantasyonu ve deployment guide (Dokümantasyon mevcut)
+  - Öncelik: 5 (Orta)
   - Tahmini Süre: 1 gün
-  - Notlar: README.md ve deployment dokümantasyonu
+  - Notlar: README.md ve deployment dokümantasyonu güncelleme
+  - Durum: 📋 Bekliyor
 
 ---
 
@@ -133,40 +143,40 @@
 
 
 
-### 📋 Session Summary Generation (Orta Öncelik - Öncelik 3)
+### Öncelik 3: Session Summary Generation
 - [ ] **Görev:** Session summary generator oluştur
   - Açıklama: Session özeti hesaplama, istatistikler, rapor oluşturma
-  - Öncelik: Orta
+  - Öncelik: 3 (Orta)
   - Tahmini Süre: 2-3 gün
-  - Bağımlılıklar: Session manager
+  - Bağımlılıklar: ✅ Session manager (Tamamlandı)
   - Notlar: Enerji, akım, süre, state duration'ları
   - İyileştirme Fırsatları:
     - Real-time summary updates
     - Summary caching
     - Export functionality (CSV, JSON, PDF)
-  - Durum: 📋 Bekliyor (Session Management tamamlandıktan sonra)
+  - Durum: 📋 Bekliyor
 
-### 📋 Session API Endpoint'leri (Orta Öncelik - Öncelik 4)
-- [ ] **Görev:** Session API endpoint'leri ekle
-  - Açıklama: `GET /api/sessions`, `GET /api/sessions/{id}`, `GET /api/sessions/current`, `GET /api/sessions/{id}/summary`
-  - Öncelik: Orta
+### Öncelik 4: Session API Endpoint'leri İyileştirme
+- [ ] **Görev:** Session API endpoint'leri iyileştirme
+  - Açıklama: Mevcut endpoint'lere ek özellikler (`GET /api/sessions/{id}/summary`, filtering, sorting)
+  - Öncelik: 4 (Orta)
   - Tahmini Süre: 1-2 gün
-  - Bağımlılıklar: Session manager
-  - Notlar: RESTful API tasarımı
+  - Bağımlılıklar: ✅ Session manager (Tamamlandı)
+  - Notlar: RESTful API tasarımı, mevcut endpoint'ler var
   - İyileştirme Fırsatları:
-    - Pagination support
-    - Filtering ve sorting
+    - Pagination support (mevcut)
+    - Filtering ve sorting (kısmen mevcut)
     - API versioning
-  - Durum: 📋 Bekliyor (Session Management tamamlandıktan sonra)
+  - Durum: 📋 Bekliyor
 
 ---
 
 ## Faz 7: Code Quality ve DevOps İyileştirmeleri (Yeni - 2025-12-09)
 
-### 📋 Kod ve Dokümantasyon Standartlarına Uyum (Yüksek Öncelik - Öncelik 0)
+### Öncelik 0: Kod ve Dokümantasyon Standartlarına Uyum
 - [ ] **Görev:** `project_info_20251208_145614.md` bölümleme
   - Açıklama: Maksimum sınır (1200 satır) aşıldı (1245 satır). Bölümlere ayrılmalı
-  - Öncelik: Yüksek (Acil)
+  - Öncelik: 0 (Acil)
   - Tahmini Süre: 2-3 saat
   - Durum: 🔴 Maksimum sınır aşıldı
   - Detaylar: `todo/REFACTORING_PLAN.md` dosyasına bakınız
@@ -182,7 +192,7 @@
 
 - [ ] **Görev:** `MULTI_EXPERT_ANALYSIS.md` bölümleme
   - Açıklama: Uyarı eşiği (1000 satır) aşıldı (1115 satır). Bölümlere ayırılabilir
-  - Öncelik: Orta
+  - Öncelik: 4 (Orta)
   - Tahmini Süre: 1-2 saat
   - Durum: 🟡 Uyarı eşiği aşıldı
   - Detaylar: `todo/REFACTORING_PLAN.md` dosyasına bakınız
@@ -190,47 +200,28 @@
 
 - [ ] **Görev:** `meter/read_meter.py` modüllere bölme
   - Açıklama: Uyarı eşiği (500 satır) yakın (496 satır). Modüllere bölünebilir
-  - Öncelik: Düşük
+  - Öncelik: 6 (Düşük)
   - Tahmini Süre: 2-3 saat
   - Durum: 🟡 Uyarı eşiği yakın
   - Detaylar: `todo/REFACTORING_PLAN.md` dosyasına bakınız
   - Durum: 📋 Bekliyor
 
-### 📋 Test Coverage Artırma (Yüksek Öncelik - Öncelik 5)
-- [x] **Görev:** Test coverage artırma
-  - Açıklama: Eksik test senaryolarını tamamlama, edge case testleri, integration testleri genişletme
-  - Öncelik: Yüksek
-  - Tahmini Süre: 1-2 gün
-  - Mevcut Coverage: %84
-  - Hedef Coverage: %85+
-  - Tamamlanan:
-    - API edge case testleri eklendi (test_api_edge_cases.py)
-    - Station info modülü için testler eklendi (test_station_info.py)
-    - Event detector edge case testleri eklendi (test_event_detector_edge_cases.py)
-    - Logging config testleri eklendi (test_logging_config.py)
-    - ESP32 bridge edge case testleri eklendi (test_esp32_bridge_edge_cases.py)
-    - Toplam 99 test geçiyor
-  - İyileştirme Fırsatları:
-    - Property-based testing (Hypothesis)
-    - Performance testing (locust veya pytest-benchmark)
-    - Load testing (API endpoint'leri için)
-  - Durum: ✅ Tamamlandı (%84 - %85+ hedefine yakın)
 
-### 📋 Code Quality Tools Kurulumu (Orta Öncelik - Öncelik 6)
+### Öncelik 6: Code Quality Tools Kurulumu
 - [ ] **Görev:** Code quality tools kurulumu
-  - Açıklama: Black (formatter), Pylint (linter), Mypy (type checker), pre-commit hooks entegrasyonu
-  - Öncelik: Orta
+  - Açıklama: Black (formatter) ve Ruff (linter) kurulu, Mypy (type checker) ve pre-commit hooks iyileştirmesi
+  - Öncelik: 6 (Düşük)
   - Tahmini Süre: 1-2 saat
   - İyileştirme Fırsatları:
-    - Automated code quality checks
+    - Automated code quality checks (kısmen mevcut)
     - CI/CD pipeline'a entegrasyon
     - Code quality metrics tracking
   - Durum: 📋 Bekliyor
 
-### 📋 CI/CD Pipeline Kurulumu (Orta Öncelik - Öncelik 7)
+### Öncelik 7: CI/CD Pipeline Kurulumu
 - [ ] **Görev:** CI/CD pipeline kurulumu
   - Açıklama: GitHub Actions workflow, automated testing, automated linting, deployment automation
-  - Öncelik: Orta
+  - Öncelik: 7 (Düşük)
   - Tahmini Süre: 2-3 saat
   - İyileştirme Fırsatları:
     - Multi-environment deployment (dev/staging/prod)
@@ -242,17 +233,17 @@
 
 ## Faz 4: Meter ve Monitoring (Devam Ediyor)
 
-### 📋 Meter Entegrasyonu Tamamlama (Orta Öncelik - Öncelik 8)
+### Öncelik 5: Meter Entegrasyonu Tamamlama
 - [ ] **Görev:** Meter entegrasyonu tamamlama
   - Açıklama: Fiziksel bağlantı testi, register address doğrulama, data reading validation, API endpoint'leri ekleme
-  - Öncelik: Orta
+  - Öncelik: 5 (Orta)
   - Tahmini Süre: 1-2 gün
-  - Mevcut Durum: Kod var, fiziksel test bekliyor
+  - Mevcut Durum: Meter abstraction layer mevcut, fiziksel test bekliyor
   - İyileştirme Fırsatları:
     - Meter data caching
     - Meter data aggregation
     - Meter data visualization
-  - Durum: 🔄 Devam Ediyor
+  - Durum: 📋 Bekliyor (Fiziksel test için hazır)
 
 ---
 
@@ -302,10 +293,11 @@
 
 ## Genel Notlar
 
-- Görevler öncelik sırasına göre sıralanmıştır
+- Görevler öncelik sırasına göre sıralanmıştır (Öncelik 0: Acil → Öncelik 8: Düşük)
 - Her görev tamamlandığında `master_done.md`'ye taşınacak
 - Aktif görevler `master_live.md`'ye taşınacak
 - Görevler proje planlamasına göre fazlara ayrılmıştır
+- **Öncelik Sistemi:** Detaylar için `todo/PRIORITY_SYSTEM_STANDARD.md` dosyasına bakınız
 - **Yeni:** Loglama ve Session Yönetimi fazı eklendi (2025-12-09)
 - **Yeni:** Code Quality ve DevOps İyileştirmeleri fazı eklendi (2025-12-09)
 - **Yeni:** Audit bulguları eklendi (2025-12-10)
@@ -317,6 +309,8 @@
 - **Güncelleme:** Session Management audit raporu eklendi (2025-12-10 04:20:00)
 - **Güncelleme:** Session Management deep dive analizi eklendi (2025-12-10 05:30:00)
 - **Güncelleme:** Database deep dive analizi eklendi (2025-12-10 06:00:00)
+- **Güncelleme:** Todo dosyaları deep dive analizi ve temizlik yapıldı (2025-12-10 09:30:00)
+- **Güncelleme:** Öncelik sistemi standardize edildi (2025-12-10 09:35:00)
 
 ---
 
@@ -336,10 +330,10 @@ Session Management modülü başarıyla implement edildi. Kod kalitesi yüksek, 
 ### 🟡 İyileştirme Fırsatları (Orta Öncelik)
 
 
-#### Öncelik 4: Test Dosyası Refactoring
+### Öncelik 4: Test Dosyası Refactoring
 - [ ] **Görev:** `tests/test_session_manager.py` test suite'lere bölme
   - Açıklama: Dosya boyutu 368 satır (Uyarı: 400) - uyarı eşiğinde. Test suite'lere bölünebilir
-  - Öncelik: Orta (Öncelik 4)
+  - Öncelik: 4 (Orta)
   - Tahmini Süre: 1 saat
   - Durum: 🟡 Uyarı eşiği yakın
   - Önerilen Yapı:
@@ -351,28 +345,10 @@ Session Management modülü başarıyla implement edildi. Kod kalitesi yüksek, 
 
 ### 🟢 Gelecek Faz İyileştirmeleri (Düşük Öncelik)
 
-#### Öncelik 6: Database Entegrasyonu (Gelecek Faz)
-- [ ] **Görev:** Session storage için database entegrasyonu
-  - Açıklama: In-memory storage yerine database kullanımı (SQLite veya PostgreSQL)
-  - Öncelik: Yüksek (Gelecek faz için)
-  - Tahmini Süre: 2-3 gün
-  - Durum: 🟢 Gelecek faz
-  - Detaylar: `docs/SESSION_MANAGEMENT_AUDIT_20251210.md` dosyasına bakınız
-  - Durum: 📋 Bekliyor
-
-#### Öncelik 7: Session Persistence (Gelecek Faz)
-- [ ] **Görev:** Session persistence ve crash recovery
-  - Açıklama: Periyodik disk'e kaydetme ve startup'ta restore
-  - Öncelik: Orta (Gelecek faz için)
-  - Tahmini Süre: 1-2 gün
-  - Durum: 🟢 Gelecek faz
-  - Detaylar: `docs/SESSION_MANAGEMENT_AUDIT_20251210.md` dosyasına bakınız
-  - Durum: 📋 Bekliyor
-
-#### Öncelik 8: Session Analytics (Gelecek Faz)
+### Öncelik 6: Session Analytics (Gelecek Faz)
 - [ ] **Görev:** Session analytics ve reporting özellikleri
-  - Açıklama: Session süresi analizi, enerji tüketimi analizi, fault analizi
-  - Öncelik: Düşük (Gelecek faz için)
+  - Açıklama: Session süresi analizi, enerji tüketimi analizi, fault analizi (Database entegrasyonu mevcut)
+  - Öncelik: 6 (Düşük)
   - Tahmini Süre: 2-3 gün
   - Durum: 🟢 Gelecek faz
   - Detaylar: `docs/SESSION_MANAGEMENT_AUDIT_20251210.md` dosyasına bakınız
