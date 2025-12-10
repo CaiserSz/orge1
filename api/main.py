@@ -42,6 +42,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from api.event_detector import get_event_detector
+from api.exceptions import APIException
 from api.logging_config import log_api_request, system_logger
 from api.rate_limiting import setup_rate_limiting
 from api.session import get_session_manager
