@@ -105,14 +105,15 @@
   - Açıklama: Codebase deep dive analizi sonucu Security Expert tarafından tespit edildi. API key'lerin periyodik olarak değiştirilmesi için mekanizma eklenmeli.
   - Öncelik: 1 (Yüksek)
   - Tahmini Süre: 2-3 saat
-  - Durum: 🔒 Security Expert - API key rotation eksik
+  - Durum: ⏸️ ERTELENDİ - User istediğinde yapılacak
   - Detaylar: `reports/CODEBASE_DEEPDIVE_ANALYSIS_20251210.md` dosyasına bakınız
   - İmplementasyon:
     - Multiple API keys desteği
     - API key expiration mekanizması
     - Graceful rotation (eski key'ler belirli süre geçerli kalır)
     - Key revocation mekanizması
-  - Durum: 📋 Bekliyor
+  - **NOT:** Bu görev ertelendi. User istediğinde yapılacak. Gelecekteki analizlerde ignore edilecek.
+  - Durum: ⏸️ Ertelendi
 
 #### 🌐 CORS Policy Tanımlama
 - [ ] **Görev:** CORS policy tanımlama
@@ -149,7 +150,8 @@
   - Tahmini Süre: 4-6 saat
   - Bağımlılıklar: ✅ Rate limiting, API key rotation (Tamamlandıktan sonra)
   - Notlar: Mevcut API key sistemi yeterli, bu iyileştirme gelecek faz için
-  - Durum: 📋 Bekliyor
+  - **NOT:** Bu görev ertelendi. User istediğinde yapılacak. Gelecekteki analizlerde ignore edilecek.
+  - Durum: ⏸️ Ertelendi
 
 ---
 

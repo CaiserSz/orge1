@@ -642,19 +642,25 @@ except Exception as e:
 
 **⚠️ İyileştirme Fırsatları:**
 - Rate limiting yok (API key brute force koruması eksik)
-- API key rotation mekanizması yok
 - CORS policy tanımlı değil
-- API key'ler log'lara yazılıyor (kısaltılmış olsa da)
 - Session management'te güvenlik kontrolleri eksik olabilir
+
+**⏸️ ERTELENDİ (User İsteğine Bağlı - Gelecekteki Analizlerde Ignore Edilecek):**
+- API key rotation mekanizması yok (User istediğinde yapılacak)
+- API key'ler log'lara yazılıyor (kısaltılmış olsa da) (User istediğinde yapılacak)
+- JWT/OAuth2 authentication (User istediğinde yapılacak)
 
 **🔴 Kritik Sorunlar:**
 - Yok (genel olarak güvenlik iyi)
 
 **Öneriler:**
 1. Rate limiting ekle (IP-based ve API key-based)
-2. API key rotation mekanizması implement et
-3. CORS policy tanımla
-4. API key logging'i iyileştir (daha az bilgi logla)
+2. CORS policy tanımla
+
+**⏸️ ERTELENDİ (User İsteğine Bağlı):**
+- API key rotation mekanizması (User istediğinde yapılacak)
+- API key logging iyileştirmesi (User istediğinde yapılacak)
+- JWT/OAuth2 authentication (User istediğinde yapılacak)
 
 ### ⚡ Performance Expert Perspektifi
 
@@ -939,8 +945,13 @@ ESP32'nin internal logic'i bizim sorumluluğumuz değildir.
 
 4. **API Security İyileştirmesi** (Security Expert)
    - Rate limiting ekle
-   - API key rotation mekanizması
-   - Süre: 3-4 saat
+   - CORS policy tanımla
+   - Süre: 2-3 saat
+   
+   **⏸️ ERTELENDİ (User İsteğine Bağlı):**
+   - API key rotation mekanizması (User istediğinde yapılacak)
+   - API key logging iyileştirmesi (User istediğinde yapılacak)
+   - JWT/OAuth2 authentication (User istediğinde yapılacak)
 
 5. **Test Coverage Artırma** (Testing Expert)
    - Endpoint kombinasyon testleri
