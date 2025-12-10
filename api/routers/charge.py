@@ -9,6 +9,7 @@ Description: Charge control endpoints (start/stop)
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from api.auth import verify_api_key
+from api.exceptions import ESP32ConnectionError
 from api.models import APIResponse, ChargeStartRequest, ChargeStopRequest
 from api.rate_limiting import charge_rate_limit
 from api.routers.dependencies import get_bridge
@@ -40,6 +41,10 @@ async def start_charge(
     try:
         result = charge_service.start_charge(request_body, user_id=None, api_key=api_key)
         return APIResponse(**result)
+    except ESP32ConnectionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e)
+        )
     except ValueError as e:
         # Business logic hataları için uygun HTTP exception'a dönüştür
         error_msg = str(e)
@@ -85,6 +90,10 @@ async def stop_charge(
     try:
         result = charge_service.stop_charge(request, user_id=None, api_key=api_key)
         return APIResponse(**result)
+    except ESP32ConnectionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e)
+        )
     except ValueError as e:
         # Business logic hataları için uygun HTTP exception'a dönüştür
         error_msg = str(e)

@@ -43,6 +43,10 @@ async def set_current(
     try:
         result = current_service.set_current(request_body, user_id=None, api_key=api_key)
         return APIResponse(**result)
+    except ESP32ConnectionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e)
+        )
     except ValueError as e:
         # Business logic hataları için uygun HTTP exception'a dönüştür
         error_msg = str(e)
