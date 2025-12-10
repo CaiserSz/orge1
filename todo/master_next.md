@@ -80,16 +80,74 @@
   - Detaylar: `reports/API_TESTS_DEEPDIVE_ANALYSIS_20251210.md` dosyasına bakınız
   - Durum: 📋 Bekliyor
 
-### Öncelik 1: API Authentication İyileştirmesi (Gelecek Faz)
-- [ ] **Görev:** API güvenlik katmanı iyileştirmesi
+### Öncelik 1: API Security İyileştirmesi (Security Expert - Codebase Deep Dive Bulgusu)
+
+#### 🔒 Rate Limiting Implementasyonu
+- [ ] **Görev:** Rate limiting ekleme (IP-based ve API key-based)
+  - Açıklama: Codebase deep dive analizi sonucu Security Expert tarafından tespit edildi. DDoS saldırılarına ve brute force saldırılarına karşı koruma sağlamak için rate limiting eklenmeli.
+  - Öncelik: 1 (Yüksek)
+  - Tahmini Süre: 2-3 saat
+  - Durum: 🔒 Security Expert - Rate limiting eksik
+  - Detaylar: `reports/CODEBASE_DEEPDIVE_ANALYSIS_20251210.md` dosyasına bakınız
+  - İmplementasyon:
+    - slowapi kütüphanesi kullanılacak
+    - IP-based rate limiting (genel endpoint'ler için)
+    - API key-based rate limiting (kritik endpoint'ler için)
+    - Endpoint-specific rate limits (charge endpoint'leri için daha sıkı)
+  - Attack Scenarios:
+    - DDoS Attack: Sürekli `/api/charge/start` istekleri
+    - Resource Exhaustion: ESP32 bridge'i spam
+    - Brute Force: API key tahmin etme denemeleri
+  - Durum: 📋 Bekliyor
+
+#### 🔄 API Key Rotation Mekanizması
+- [ ] **Görev:** API key rotation mekanizması implementasyonu
+  - Açıklama: Codebase deep dive analizi sonucu Security Expert tarafından tespit edildi. API key'lerin periyodik olarak değiştirilmesi için mekanizma eklenmeli.
+  - Öncelik: 1 (Yüksek)
+  - Tahmini Süre: 2-3 saat
+  - Durum: 🔒 Security Expert - API key rotation eksik
+  - Detaylar: `reports/CODEBASE_DEEPDIVE_ANALYSIS_20251210.md` dosyasına bakınız
+  - İmplementasyon:
+    - Multiple API keys desteği
+    - API key expiration mekanizması
+    - Graceful rotation (eski key'ler belirli süre geçerli kalır)
+    - Key revocation mekanizması
+  - Durum: 📋 Bekliyor
+
+#### 🌐 CORS Policy Tanımlama
+- [ ] **Görev:** CORS policy tanımlama
+  - Açıklama: Codebase deep dive analizi sonucu Security Expert tarafından tespit edildi. Cross-origin request'ler için CORS policy tanımlanmalı.
+  - Öncelik: 1 (Yüksek)
+  - Tahmini Süre: 1 saat
+  - Durum: 🔒 Security Expert - CORS policy eksik
+  - Detaylar: `reports/CODEBASE_DEEPDIVE_ANALYSIS_20251210.md` dosyasına bakınız
+  - İmplementasyon:
+    - FastAPI CORSMiddleware kullanılacak
+    - Allowed origins tanımlanacak
+    - Allowed methods tanımlanacak
+    - Allowed headers tanımlanacak
+  - Durum: 📋 Bekliyor
+
+#### 📝 API Key Logging İyileştirmesi
+- [ ] **Görev:** API key logging iyileştirmesi
+  - Açıklama: Codebase deep dive analizi sonucu Security Expert tarafından tespit edildi. API key'ler log'lara yazılıyor (kısaltılmış olsa da). Daha az bilgi loglanmalı.
+  - Öncelik: 1 (Yüksek)
+  - Tahmini Süre: 30 dakika
+  - Durum: 🔒 Security Expert - API key logging iyileştirme gerekli
+  - Detaylar: `reports/CODEBASE_DEEPDIVE_ANALYSIS_20251210.md` dosyasına bakınız
+  - İmplementasyon:
+    - API key'ler log'lara yazılmamalı (veya sadece hash yazılmalı)
+    - Audit trail için sadece key ID veya hash kullanılmalı
+  - Durum: 📋 Bekliyor
+
+### Öncelik 1: API Authentication İyileştirmesi (Gelecek Faz - JWT/OAuth2)
+- [ ] **Görev:** API güvenlik katmanı iyileştirmesi (JWT/OAuth2)
   - Açıklama:
     - Mevcut API key sistemi var ve çalışıyor
     - JWT token veya OAuth2 eklenebilir (gelecek faz için)
-    - Rate limiting eklenebilir
-    - API key rotation mekanizması eklenebilir
   - Öncelik: 1 (Yüksek - Gelecek Faz)
-  - Tahmini Süre: 2-3 saat
-  - Bağımlılıklar: ✅ API test ve hata yönetimi (Tamamlandı)
+  - Tahmini Süre: 4-6 saat
+  - Bağımlılıklar: ✅ Rate limiting, API key rotation (Tamamlandıktan sonra)
   - Notlar: Mevcut API key sistemi yeterli, bu iyileştirme gelecek faz için
   - Durum: 📋 Bekliyor
 
