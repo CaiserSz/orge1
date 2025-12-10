@@ -671,6 +671,47 @@
                     <div class="response-section" id="response-/api/maxcurrent"></div>
                 </div>
             </div>
+
+            <!-- Session Management -->
+            <div class="endpoint-group">
+                <h2>Session Management</h2>
+
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/api/sessions/{session_id}</span>
+                    </div>
+                    <div class="endpoint-description">Belirli bir session'ı getir</div>
+                    <div class="request-body">
+                        <label>Session ID:</label>
+                        <input type="text" id="param-/api/sessions/{session_id}" placeholder="session-uuid-here" value="" oninput="updateCurlPreviewForPathParam('GET', '/api/sessions/{session_id}', 'param-/api/sessions/{session_id}', 'curl-/api/sessions/{session_id}')">
+                    </div>
+                    <div class="curl-preview">
+                        <label>💻 cURL Command (Edit edilebilir):</label>
+                        <textarea id="curl-/api/sessions/{session_id}"></textarea>
+                    </div>
+                    <button class="btn" onclick="testEndpointWithPathParam('GET', '/api/sessions/{session_id}', 'param-/api/sessions/{session_id}')">Test Et</button>
+                    <div class="response-section" id="response-/api/sessions/{session_id}"></div>
+                </div>
+
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/api/sessions/users/{user_id}/sessions</span>
+                    </div>
+                    <div class="endpoint-description">Belirli bir kullanıcının session'larını getir</div>
+                    <div class="request-body">
+                        <label>User ID:</label>
+                        <input type="text" id="param-/api/sessions/users/{user_id}/sessions" placeholder="user-id-here" value="" oninput="updateCurlPreviewForPathParam('GET', '/api/sessions/users/{user_id}/sessions', 'param-/api/sessions/users/{user_id}/sessions', 'curl-/api/sessions/users/{user_id}/sessions')">
+                    </div>
+                    <div class="curl-preview">
+                        <label>💻 cURL Command (Edit edilebilir):</label>
+                        <textarea id="curl-/api/sessions/users/{user_id}/sessions"></textarea>
+                    </div>
+                    <button class="btn" onclick="testEndpointWithPathParam('GET', '/api/sessions/users/{user_id}/sessions', 'param-/api/sessions/users/{user_id}/sessions')">Test Et</button>
+                    <div class="response-section" id="response-/api/sessions/users/{user_id}/sessions"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -705,6 +746,8 @@
             updateCurlPreview('POST', '/api/charge/start', 'body-/api/charge/start', 'curl-/api/charge/start');
             updateCurlPreview('POST', '/api/charge/stop', 'body-/api/charge/stop', 'curl-/api/charge/stop');
             updateCurlPreview('POST', '/api/maxcurrent', 'body-/api/maxcurrent', 'curl-/api/maxcurrent', true);
+            updateCurlPreviewForPathParam('GET', '/api/sessions/{session_id}', 'param-/api/sessions/{session_id}', 'curl-/api/sessions/{session_id}');
+            updateCurlPreviewForPathParam('GET', '/api/sessions/users/{user_id}/sessions', 'param-/api/sessions/users/{user_id}/sessions', 'curl-/api/sessions/users/{user_id}/sessions');
 
             // Start ESP32 status polling
             startStatusPolling();
@@ -1051,6 +1094,60 @@
             }
 
             return curlCmd;
+        }
+
+        function replacePathParams(path, paramValue) {
+            /**
+             * Path parametrelerini değerlerle değiştir
+             * Örnek: /api/sessions/{session_id} -> /api/sessions/123
+             */
+            if (!paramValue || paramValue.trim() === '') {
+                return path;
+            }
+            return path.replace(/\{[^}]+\}/g, paramValue.trim());
+        }
+
+        async function updateCurlPreviewForPathParam(method, pathTemplate, paramElementId, curlElementId) {
+            /**
+             * Path parametreli endpoint'ler için curl preview güncelle
+             */
+            const curlElement = document.getElementById(curlElementId);
+            if (!curlElement) return;
+
+            // Get API key
+            if (!cachedApiKey) {
+                cachedApiKey = await getApiKey();
+            }
+
+            // Get parameter value
+            const paramElement = document.getElementById(paramElementId);
+            const paramValue = paramElement ? paramElement.value.trim() : '';
+
+            // Replace path parameters
+            const actualPath = replacePathParams(pathTemplate, paramValue);
+
+            // Generate curl command
+            const curlCommand = generateCurlCommand(method, actualPath, cachedApiKey, null);
+            curlElement.value = curlCommand;
+        }
+
+        async function testEndpointWithPathParam(method, pathTemplate, paramElementId) {
+            /**
+             * Path parametreli endpoint'ler için test fonksiyonu
+             */
+            const paramElement = document.getElementById(paramElementId);
+            const paramValue = paramElement ? paramElement.value.trim() : '';
+
+            if (!paramValue) {
+                alert('Lütfen parametre değerini girin!');
+                return;
+            }
+
+            // Replace path parameters
+            const actualPath = replacePathParams(pathTemplate, paramValue);
+
+            // Use existing testEndpoint function with null body
+            await testEndpoint(method, actualPath, null);
         }
 
         async function displayResponse(section, data) {
