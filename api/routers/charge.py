@@ -29,12 +29,24 @@ async def start_charge(
     api_key: str = Depends(verify_api_key),
 ) -> APIResponse:
     """
-    Şarj başlatma
+    Şarj başlatma.
 
     ESP32'ye authorization komutu gönderir ve şarj izni verir.
 
     **ÖNEMLİ:** Sadece EV_CONNECTED (State=3) durumunda çalışır.
     Diğer state'lerde hata döndürülür.
+
+    Args:
+        request_body: Charge start request body.
+        request: FastAPI request object.
+        bridge: ESP32 bridge instance.
+        api_key: API key for authentication.
+
+    Returns:
+        APIResponse: Şarj başlatma sonucu içeren response.
+
+    Raises:
+        HTTPException: Geçersiz state veya ESP32 bağlantı hatası durumunda.
     """
     # Service layer kullan
     charge_service = ChargeService(bridge)
@@ -55,9 +67,21 @@ async def stop_charge(
     api_key: str = Depends(verify_api_key),
 ) -> APIResponse:
     """
-    Şarj durdurma
+    Şarj durdurma.
 
     ESP32'ye charge stop komutu gönderir ve şarjı sonlandırır.
+
+    Args:
+        request_body: Charge stop request body.
+        request: FastAPI request object.
+        bridge: ESP32 bridge instance.
+        api_key: API key for authentication.
+
+    Returns:
+        APIResponse: Şarj durdurma sonucu içeren response.
+
+    Raises:
+        HTTPException: ESP32 bağlantı hatası veya komut gönderme hatası durumunda.
     """
     # Service layer kullan
     charge_service = ChargeService(bridge)

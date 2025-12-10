@@ -25,9 +25,15 @@ router = APIRouter(prefix="/api/station", tags=["Station"])
 )  # 1 saat cache (station info nadiren değişir)
 async def get_station_info_endpoint() -> APIResponse:
     """
-    Şarj istasyonu bilgilerini al
+    Şarj istasyonu bilgilerini al.
 
     Formdan girilen istasyon bilgilerini döndürür.
+
+    Returns:
+        APIResponse: İstasyon bilgileri içeren response.
+
+    Raises:
+        HTTPException: İstasyon bilgisi bulunamazsa 404 döndürülür.
     """
     station_info = get_station_info()
 
@@ -45,9 +51,18 @@ async def get_station_info_endpoint() -> APIResponse:
 @router.post("/info")
 async def save_station_info_endpoint(station_data: Dict[str, Any]) -> APIResponse:
     """
-    Şarj istasyonu bilgilerini kaydet
+    Şarj istasyonu bilgilerini kaydet.
 
     Formdan girilen istasyon bilgilerini kaydeder.
+
+    Args:
+        station_data: İstasyon bilgileri dictionary.
+
+    Returns:
+        APIResponse: Kayıt başarılı mesajı içeren response.
+
+    Raises:
+        HTTPException: Kayıt başarısız olursa 500 döndürülür.
     """
     if save_station_info(station_data):
         # Station info cache'ini invalidate et
@@ -69,7 +84,7 @@ async def get_station_status(
     bridge: ESP32Bridge = Depends(get_bridge),
 ) -> APIResponse:
     """
-    Harita ve mobil uygulama için istasyon durum bilgisi
+    Harita ve mobil uygulama için istasyon durum bilgisi.
 
     Bu endpoint harita ve mobil uygulama için optimize edilmiş tek bir API çağrısıyla
     tüm gerekli bilgileri döndürür:
@@ -81,8 +96,14 @@ async def get_station_status(
     - Son aktivite zamanı
     - Gerçek zamanlı güç tüketimi (varsa)
 
+    Args:
+        bridge: ESP32 bridge instance.
+
     Returns:
-        Harita/mobil uygulama için optimize edilmiş istasyon durum bilgisi
+        APIResponse: Harita/mobil uygulama için optimize edilmiş istasyon durum bilgisi.
+
+    Raises:
+        HTTPException: İstasyon bilgisi bulunamazsa veya ESP32 bağlantı hatası durumunda.
     """
     try:
         # 1. İstasyon bilgilerini al

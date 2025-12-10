@@ -19,23 +19,25 @@ def validate_state(
     allow_none: bool = False,
 ) -> Tuple[int, str]:
     """
-    ESP32 state validation helper function
+    ESP32 state validation helper function.
 
     Bu fonksiyon, ESP32 state validation logic'ini merkezi bir yerde toplar.
     Tüm service'lerde tekrarlanan state validation kodunu azaltır.
 
     Args:
-        status_data: ESP32 status data dictionary (None olabilir)
-        endpoint: Endpoint adı (logging için)
-        user_id: User ID (logging için, optional)
-        allow_none: STATE None durumunda hata fırlatma (False) veya sadece warning (True)
+        status_data: ESP32 status data dictionary. None olabilir.
+        endpoint: Endpoint adı (logging için).
+        user_id: User ID (logging için, optional). Defaults to None.
+        allow_none: STATE None durumunda hata fırlatma (False) veya sadece warning (True).
+            Defaults to False.
 
     Returns:
-        Tuple[state_value, state_name]: State değeri ve state adı
+        Tuple[int, str]: State değeri ve state adı. allow_none=True ise (None, "UNKNOWN")
+            dönebilir.
 
     Raises:
-        InvalidStateError: Geçersiz state durumunda
-        ESP32ConnectionError: Status data None ise ve allow_none=False ise
+        InvalidStateError: Geçersiz state durumunda.
+        ESP32ConnectionError: Status data None ise ve allow_none=False ise.
     """
     # Status data kontrolü
     if not status_data:
@@ -121,18 +123,18 @@ def check_state_for_charge_start(
     user_id: Optional[str] = None,
 ) -> None:
     """
-    Charge start için state kontrolü
+    Charge start için state kontrolü.
 
     Sadece EV_CONNECTED (state=3) durumunda authorization gönderilebilir.
 
     Args:
-        state: State değeri
-        state_name: State adı
-        endpoint: Endpoint adı (logging için)
-        user_id: User ID (logging için, optional)
+        state: State değeri.
+        state_name: State adı.
+        endpoint: Endpoint adı (logging için).
+        user_id: User ID (logging için, optional). Defaults to None.
 
     Raises:
-        InvalidStateError: Geçersiz state durumunda
+        InvalidStateError: Geçersiz state durumunda.
     """
     if state != ESP32State.EV_CONNECTED.value:
         # State'e göre hata mesajı oluştur
@@ -167,18 +169,18 @@ def check_state_for_current_set(
     user_id: Optional[str] = None,
 ) -> None:
     """
-    Current set için state kontrolü
+    Current set için state kontrolü.
 
     Şarj aktifken (state >= CHARGING) akım değiştirilemez.
 
     Args:
-        state: State değeri (None olabilir)
-        state_name: State adı
-        endpoint: Endpoint adı (logging için)
-        user_id: User ID (logging için, optional)
+        state: State değeri. None olabilir.
+        state_name: State adı.
+        endpoint: Endpoint adı (logging için).
+        user_id: User ID (logging için, optional). Defaults to None.
 
     Raises:
-        InvalidStateError: Geçersiz state durumunda
+        InvalidStateError: Geçersiz state durumunda.
     """
     # State None ise kontrol yapma (akım ayarlama devam edebilir)
     if state is None:
@@ -206,18 +208,18 @@ def check_state_changed(
     user_id: Optional[str] = None,
 ) -> None:
     """
-    State değişikliği kontrolü (race condition önlemi)
+    State değişikliği kontrolü (race condition önlemi).
 
     Komut gönderilmeden önce state değişmiş mi kontrol eder.
 
     Args:
-        initial_state: İlk state değeri (None olabilir)
-        final_state: Son state değeri (None olabilir)
-        endpoint: Endpoint adı (logging için)
-        user_id: User ID (logging için, optional)
+        initial_state: İlk state değeri. None olabilir.
+        final_state: Son state değeri. None olabilir.
+        endpoint: Endpoint adı (logging için).
+        user_id: User ID (logging için, optional). Defaults to None.
 
     Raises:
-        InvalidStateError: State değişmişse
+        InvalidStateError: State değişmişse.
     """
     # Initial state None ise kontrol yapma
     if initial_state is None:

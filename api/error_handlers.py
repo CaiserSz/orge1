@@ -21,19 +21,27 @@ from api.exceptions import (
 
 def handle_api_errors(func: Callable) -> Callable:
     """
-    Common error handler decorator for API endpoints
+    Common error handler decorator for API endpoints.
 
     Bu decorator, API endpoint'lerinde tekrarlanan error handling pattern'ini
     merkezi bir yerde toplar. Tüm hataları uygun HTTP exception'lara dönüştürür.
 
-    Usage:
+    Args:
+        func: Decorated function (API endpoint).
+
+    Returns:
+        Decorated function wrapper.
+
+    Raises:
+        HTTPException: Uygun HTTP status code ile hata döndürülür.
+
+    Example:
+        ```python
         @router.post("/endpoint")
         @handle_api_errors
         async def my_endpoint(...):
             ...
-
-    Raises:
-        HTTPException: Uygun HTTP status code ile
+        ```
     """
 
     @wraps(func)

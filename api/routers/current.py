@@ -30,7 +30,7 @@ async def set_current(
     api_key: str = Depends(verify_api_key),
 ) -> APIResponse:
     """
-    Maksimum akım ayarlama
+    Maksimum akım ayarlama.
 
     ESP32'ye maksimum akım değerini ayarlar.
 
@@ -38,6 +38,18 @@ async def set_current(
     Şarj esnasında akım değiştirilemez (güvenlik nedeniyle).
 
     Geçerli akım aralığı: 6-32 amper (herhangi bir tam sayı)
+
+    Args:
+        request_body: Current set request body.
+        request: FastAPI request object.
+        bridge: ESP32 bridge instance.
+        api_key: API key for authentication.
+
+    Returns:
+        APIResponse: Akım ayarlama sonucu içeren response.
+
+    Raises:
+        HTTPException: Geçersiz akım değeri veya ESP32 bağlantı hatası durumunda.
     """
     # Service layer kullan
     current_service = CurrentService(bridge)
@@ -52,9 +64,12 @@ async def set_current(
 )  # 1 saat cache (sabit değerler)
 async def get_available_currents() -> APIResponse:
     """
-    Kullanılabilir akım değerlerini listele
+    Kullanılabilir akım değerlerini listele.
 
     ESP32'de ayarlanabilir akım aralığını döndürür.
+
+    Returns:
+        APIResponse: Kullanılabilir akım aralığı bilgileri içeren response.
     """
     return APIResponse(
         success=True,
