@@ -446,19 +446,25 @@
 
 ### Öncelik 0: Kod ve Dokümantasyon Standartlarına Uyum
 
-#### 🔴 Kritik: State Değerleri Standardizasyonu (API Testleri Deep Dive Bulgusu)
-- [ ] **Görev:** State değerleri standardizasyonu (Single Source of Truth)
+#### ✅ State Değerleri Standardizasyonu (API Testleri Deep Dive Bulgusu) - Tamamlandı
+- [x] **Görev:** State değerleri standardizasyonu (Single Source of Truth)
   - Açıklama: API testleri deep dive analizi sonucu tespit edildi. State değerleri birden fazla yerde hardcoded (api/routers/charge.py, api/routers/current.py, test dosyaları). ESP32State enum kullanılmalı.
   - Öncelik: 0 (Acil)
   - Tahmini Süre: 2-3 saat
-  - Durum: 🔴 Kritik - Single Source of Truth ihlali
+  - Durum: ✅ Tamamlandı (2025-12-10 11:30:00)
   - Detaylar: `reports/API_TESTS_DEEPDIVE_ANALYSIS_20251210.md` dosyasına bakınız
   - Aksiyonlar:
-    - `api/routers/charge.py`: ESP32State enum kullanılmalı
-    - `api/routers/current.py`: ESP32State enum kullanılmalı
-    - Tüm test dosyalarında ESP32State enum kullanılmalı
-    - Hardcoded state değerleri kaldırılmalı
-  - Durum: 📋 Bekliyor
+    - ✅ `api/routers/charge.py`: ESP32State enum zaten kullanılıyor (kontrol edildi)
+    - ✅ `api/routers/current.py`: ESP32State enum zaten kullanılıyor (kontrol edildi)
+    - ✅ Tüm test dosyalarında ESP32State enum kullanılıyor (güncellendi)
+    - ✅ Hardcoded state değerleri kaldırıldı
+  - Güncellenen Dosyalar:
+    - `tests/test_event_detector.py` - Tüm hardcoded state değerleri ESP32State enum ile değiştirildi
+    - `tests/test_error_handling.py` - Hardcoded state değerleri ESP32State enum ile değiştirildi
+    - `tests/test_integration_extended.py` - Hardcoded state değerleri ESP32State enum ile değiştirildi
+    - `tests/test_property_based.py` - Hardcoded state değerleri ESP32State enum ile değiştirildi
+    - `tests/api/test_state_edge_cases.py` - Hardcoded state değerleri ESP32State enum ile değiştirildi
+  - Durum: ✅ Tamamlandı
 
 #### 🟡 Yüksek: Mock Yapısı Standardizasyonu (API Testleri Deep Dive Bulgusu)
 - [ ] **Görev:** Mock yapısı standardizasyonu

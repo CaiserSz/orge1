@@ -1,13 +1,35 @@
 # Tamamlanan Görevler
 
 **Oluşturulma Tarihi:** 2025-12-08 18:20:00
-**Son Güncelleme:** 2025-12-10 10:30:00
+**Son Güncelleme:** 2025-12-10 11:30:00
 
 ---
 
 ## Tamamlanan Görevler Listesi
 
 ### 2025-12-10
+
+#### ✅ State Değerleri Standardizasyonu (11:30:00)
+- **Görev:** State değerleri standardizasyonu (Single Source of Truth)
+- **Detaylar:**
+  - ✅ Test dosyalarında hardcoded state değerleri ESP32State enum ile değiştirildi
+    - `tests/test_event_detector.py`: Tüm hardcoded state değerleri (1, 2, 3, 4, 5, 6, 7, 8) ESP32State enum ile değiştirildi
+    - `tests/test_error_handling.py`: Hardcoded state değerleri ESP32State enum ile değiştirildi
+    - `tests/test_integration_extended.py`: Hardcoded state değerleri ESP32State enum ile değiştirildi
+    - `tests/test_property_based.py`: Hardcoded state değerleri ESP32State enum ile değiştirildi
+    - `tests/api/test_state_edge_cases.py`: Hardcoded state değerleri ESP32State enum ile değiştirildi
+  - ✅ Router dosyaları kontrol edildi: Zaten ESP32State enum kullanıyorlar (doğru kullanım)
+    - `api/routers/charge.py`: ESP32State enum kullanılıyor ✅
+    - `api/routers/current.py`: ESP32State enum kullanılıyor ✅
+  - ✅ Testler doğrulandı: Test dosyalarındaki değişiklikler başarıyla test edildi
+- **Dosyalar:**
+  - `tests/test_event_detector.py`
+  - `tests/test_error_handling.py`
+  - `tests/test_integration_extended.py`
+  - `tests/test_property_based.py`
+  - `tests/api/test_state_edge_cases.py`
+- **Durum:** ✅ Tamamlandı
+- **Notlar:** Single Source of Truth prensibi uygulandı, tüm state değerleri artık ESP32State enum'dan geliyor
 
 #### ✅ API Test ve İyileştirme (10:30:00)
 - **Görev:** API endpoint'lerini test et ve iyileştir

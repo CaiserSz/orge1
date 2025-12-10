@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from api.main import app
+from api.event_detector import ESP32State
 from esp32.bridge import ESP32Bridge
 
 
@@ -28,13 +29,18 @@ class TestAPIStateEdgeCases:
     @patch("api.main.get_esp32_bridge")
     @patch.dict("os.environ", {"SECRET_API_KEY": "test-key-123"})
     def test_start_charge_all_valid_states(self, mock_get_bridge):
-        """Start charge - tüm geçerli state'ler (1-4)"""
+        """Start charge - tüm geçerli state'ler"""
         mock_bridge = Mock(spec=ESP32Bridge)
         mock_bridge.is_connected = True
         mock_bridge.send_authorization.return_value = True
         mock_get_bridge.return_value = mock_bridge
 
-        valid_states = [1, 2, 3, 4]
+        valid_states = [
+            ESP32State.IDLE.value,
+            ESP32State.CABLE_DETECT.value,
+            ESP32State.EV_CONNECTED.value,
+            ESP32State.READY.value,
+        ]
         for state in valid_states:
             mock_bridge.get_status.return_value = {"STATE": state}
 
@@ -47,13 +53,18 @@ class TestAPIStateEdgeCases:
     @patch("api.main.get_esp32_bridge")
     @patch.dict("os.environ", {"SECRET_API_KEY": "test-key-123"})
     def test_set_current_all_valid_states(self, mock_get_bridge):
-        """Set current - tüm geçerli state'ler (1-4)"""
+        """Set current - tüm geçerli state'ler"""
         mock_bridge = Mock(spec=ESP32Bridge)
         mock_bridge.is_connected = True
         mock_bridge.send_current_set.return_value = True
         mock_get_bridge.return_value = mock_bridge
 
-        valid_states = [1, 2, 3, 4]
+        valid_states = [
+            ESP32State.IDLE.value,
+            ESP32State.CABLE_DETECT.value,
+            ESP32State.EV_CONNECTED.value,
+            ESP32State.READY.value,
+        ]
         for state in valid_states:
             mock_bridge.get_status.return_value = {"STATE": state}
 

@@ -16,6 +16,7 @@ from hypothesis import given, strategies as st, assume, settings, HealthCheck
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from api.main import app
+from api.event_detector import ESP32State
 
 
 @pytest.fixture
@@ -23,28 +24,27 @@ def mock_bridge():
     """Mock ESP32 bridge"""
     mock = Mock()
     mock.is_connected = True
-    mock.get_status = Mock(return_value={
-        'STATE': 1,
-        'AUTH': 0,
-        'CABLE': 0,
-        'MAX': 16,
-        'CP': 0,
-        'PP': 0,
-        'CPV': 3920,
-        'PPV': 2455,
-        'RL': 0,
-        'LOCK': 0,
-        'MOTOR': 0,
-        'PWM': 255,
-        'PB': 0,
-        'STOP': 0
-    })
-    mock.get_status_sync = Mock(return_value={
-        'STATE': 1,
-        'AUTH': 0,
-        'CABLE': 0,
-        'MAX': 16
-    })
+    mock.get_status = Mock(
+        return_value={
+            "STATE": ESP32State.IDLE.value,
+            "AUTH": 0,
+            "CABLE": 0,
+            "MAX": 16,
+            "CP": 0,
+            "PP": 0,
+            "CPV": 3920,
+            "PPV": 2455,
+            "RL": 0,
+            "LOCK": 0,
+            "MOTOR": 0,
+            "PWM": 255,
+            "PB": 0,
+            "STOP": 0,
+        }
+    )
+    mock.get_status_sync = Mock(
+        return_value={"STATE": ESP32State.IDLE.value, "AUTH": 0, "CABLE": 0, "MAX": 16}
+    )
     mock.send_authorization = Mock(return_value=True)
     mock.send_charge_stop = Mock(return_value=True)
     mock.send_current_set = Mock(return_value=True)
@@ -55,9 +55,10 @@ def mock_bridge():
 def client(mock_bridge):
     """Test client"""
     import os
-    os.environ['SECRET_API_KEY'] = 'test-api-key'
 
-    with patch('api.main.get_esp32_bridge', return_value=mock_bridge):
+    os.environ["SECRET_API_KEY"] = "test-api-key"
+
+    with patch("api.main.get_esp32_bridge", return_value=mock_bridge):
         yield TestClient(app)
 
 
@@ -68,31 +69,39 @@ class TestPropertyBasedCurrentSetting:
     @settings(max_examples=50)
     def test_set_current_valid_range(self, client, mock_bridge, amperage):
         """Geçerli akım aralığında tüm değerler çalışmalı"""
-        mock_bridge.get_status.return_value = {'STATE': 1, 'MAX': 16}
+        mock_bridge.get_status.return_value = {
+            "STATE": ESP32State.IDLE.value,
+            "MAX": 16,
+        }
 
         response = client.post(
             "/api/maxcurrent",
             json={"amperage": amperage},
-            headers={"X-API-Key": "test-api-key"}
+            headers={"X-API-Key": "test-api-key"},
         )
 
         assert response.status_code == 200
-        assert response.json()['success'] is True
-        assert response.json()['data']['amperage'] == amperage
+        assert response.json()["success"] is True
+        assert response.json()["data"]["amperage"] == amperage
 
     @given(amperage=st.integers(min_value=6, max_value=32))
     @settings(max_examples=20)
     def test_set_current_all_valid_states(self, client, mock_bridge, amperage):
         """Tüm geçerli state'lerde akım ayarlanabilmeli"""
-        valid_states = [1, 2, 3, 4]
+        valid_states = [
+            ESP32State.IDLE.value,
+            ESP32State.CABLE_DETECT.value,
+            ESP32State.EV_CONNECTED.value,
+            ESP32State.READY.value,
+        ]
 
         for state in valid_states:
-            mock_bridge.get_status.return_value = {'STATE': state, 'MAX': 16}
+            mock_bridge.get_status.return_value = {"STATE": state, "MAX": 16}
 
             response = client.post(
                 "/api/maxcurrent",
                 json={"amperage": amperage},
-                headers={"X-API-Key": "test-api-key"}
+                headers={"X-API-Key": "test-api-key"},
             )
 
             assert response.status_code == 200
@@ -103,12 +112,15 @@ class TestPropertyBasedCurrentSetting:
         """Geçersiz akım değerleri reddedilmeli"""
         assume(amperage < 6 or amperage > 32)
 
-        mock_bridge.get_status.return_value = {'STATE': 1, 'MAX': 16}
+        mock_bridge.get_status.return_value = {
+            "STATE": ESP32State.IDLE.value,
+            "MAX": 16,
+        }
 
         response = client.post(
             "/api/maxcurrent",
             json={"amperage": amperage},
-            headers={"X-API-Key": "test-api-key"}
+            headers={"X-API-Key": "test-api-key"},
         )
 
         # Validation error (422) veya başka bir hata kodu
@@ -116,18 +128,23 @@ class TestPropertyBasedCurrentSetting:
 
     @given(
         amperage1=st.integers(min_value=6, max_value=32),
-        amperage2=st.integers(min_value=6, max_value=32)
+        amperage2=st.integers(min_value=6, max_value=32),
     )
     @settings(max_examples=20)
-    def test_set_current_multiple_times(self, client, mock_bridge, amperage1, amperage2):
+    def test_set_current_multiple_times(
+        self, client, mock_bridge, amperage1, amperage2
+    ):
         """Birden fazla akım ayarlama işlemi çalışmalı"""
-        mock_bridge.get_status.return_value = {'STATE': 1, 'MAX': 16}
+        mock_bridge.get_status.return_value = {
+            "STATE": ESP32State.IDLE.value,
+            "MAX": 16,
+        }
 
         # İlk akım ayarla
         response1 = client.post(
             "/api/maxcurrent",
             json={"amperage": amperage1},
-            headers={"X-API-Key": "test-api-key"}
+            headers={"X-API-Key": "test-api-key"},
         )
         assert response1.status_code == 200
 
@@ -135,13 +152,13 @@ class TestPropertyBasedCurrentSetting:
         response2 = client.post(
             "/api/maxcurrent",
             json={"amperage": amperage2},
-            headers={"X-API-Key": "test-api-key"}
+            headers={"X-API-Key": "test-api-key"},
         )
         assert response2.status_code == 200
 
         # Her iki işlem de başarılı olmalı
-        assert response1.json()['data']['amperage'] == amperage1
-        assert response2.json()['data']['amperage'] == amperage2
+        assert response1.json()["data"]["amperage"] == amperage1
+        assert response2.json()["data"]["amperage"] == amperage2
 
 
 class TestPropertyBasedStateTransitions:
@@ -151,28 +168,28 @@ class TestPropertyBasedStateTransitions:
     @settings(max_examples=20)
     def test_status_endpoint_all_states(self, client, mock_bridge, state):
         """Tüm state değerleri için status endpoint çalışmalı"""
-        mock_bridge.get_status.return_value = {'STATE': state, 'MAX': 16}
+        mock_bridge.get_status.return_value = {"STATE": state, "MAX": 16}
 
         response = client.get("/api/status")
 
         assert response.status_code == 200
-        assert response.json()['data']['STATE'] == state
+        assert response.json()["data"]["STATE"] == state
 
     @given(
         from_state=st.integers(min_value=1, max_value=4),
-        to_state=st.integers(min_value=5, max_value=8)
+        to_state=st.integers(min_value=5, max_value=8),
     )
     @settings(max_examples=20)
-    def test_start_charge_invalid_states(self, client, mock_bridge, from_state, to_state):
+    def test_start_charge_invalid_states(
+        self, client, mock_bridge, from_state, to_state
+    ):
         """Geçersiz state'lerde şarj başlatılamamalı"""
-        assume(to_state >= 5)  # Aktif şarj veya hata durumu
+        assume(to_state >= ESP32State.CHARGING.value)  # Aktif şarj veya hata durumu
 
-        mock_bridge.get_status.return_value = {'STATE': to_state, 'MAX': 16}
+        mock_bridge.get_status.return_value = {"STATE": to_state, "MAX": 16}
 
         response = client.post(
-            "/api/charge/start",
-            json={},
-            headers={"X-API-Key": "test-api-key"}
+            "/api/charge/start", json={}, headers={"X-API-Key": "test-api-key"}
         )
 
         assert response.status_code == 400
@@ -181,12 +198,10 @@ class TestPropertyBasedStateTransitions:
     @settings(max_examples=20)
     def test_start_charge_valid_states(self, client, mock_bridge, state):
         """Geçerli state'lerde şarj başlatılabilmeli"""
-        mock_bridge.get_status.return_value = {'STATE': state, 'MAX': 16}
+        mock_bridge.get_status.return_value = {"STATE": state, "MAX": 16}
 
         response = client.post(
-            "/api/charge/start",
-            json={},
-            headers={"X-API-Key": "test-api-key"}
+            "/api/charge/start", json={}, headers={"X-API-Key": "test-api-key"}
         )
 
         assert response.status_code == 200
@@ -196,7 +211,11 @@ class TestPropertyBasedAPIResponses:
     """Property-based API response testleri"""
 
     @given(
-        path=st.text(min_size=1, max_size=100, alphabet=st.characters(whitelist_categories=('Lu', 'Ll', 'Nd', 'Pc')))
+        path=st.text(
+            min_size=1,
+            max_size=100,
+            alphabet=st.characters(whitelist_categories=("Lu", "Ll", "Nd", "Pc")),
+        )
     )
     @settings(max_examples=30)
     def test_api_response_structure(self, client, mock_bridge, path):
@@ -215,31 +234,35 @@ class TestPropertyBasedAPIResponses:
         if response.status_code == 200:
             data = response.json()
             # APIResponse format kontrolü
-            assert 'success' in data
-            assert 'message' in data
-            assert 'data' in data
-            assert isinstance(data['success'], bool)
+            assert "success" in data
+            assert "message" in data
+            assert "data" in data
+            assert isinstance(data["success"], bool)
 
     @given(
         amperage=st.integers(min_value=6, max_value=32),
-        state=st.integers(min_value=1, max_value=4)
+        state=st.integers(
+            min_value=ESP32State.IDLE.value, max_value=ESP32State.READY.value
+        ),
     )
     @settings(max_examples=30)
-    def test_set_current_response_consistency(self, client, mock_bridge, amperage, state):
+    def test_set_current_response_consistency(
+        self, client, mock_bridge, amperage, state
+    ):
         """Set current response'ları tutarlı olmalı"""
-        mock_bridge.get_status.return_value = {'STATE': state, 'MAX': 16}
+        mock_bridge.get_status.return_value = {"STATE": state, "MAX": 16}
 
         response = client.post(
             "/api/maxcurrent",
             json={"amperage": amperage},
-            headers={"X-API-Key": "test-api-key"}
+            headers={"X-API-Key": "test-api-key"},
         )
 
         if response.status_code == 200:
             data = response.json()
-            assert data['success'] is True
-            assert data['data']['amperage'] == amperage
-            assert 'command' in data['data']
+            assert data["success"] is True
+            assert data["data"]["amperage"] == amperage
+            assert "command" in data["data"]
 
 
 class TestPropertyBasedErrorHandling:
@@ -247,43 +270,50 @@ class TestPropertyBasedErrorHandling:
 
     @given(
         invalid_amperage=st.one_of(
-            st.integers(max_value=5),
-            st.integers(min_value=33),
-            st.floats(),
-            st.text()
+            st.integers(max_value=5), st.integers(min_value=33), st.floats(), st.text()
         )
     )
     @settings(max_examples=30)
     def test_set_current_error_handling(self, client, mock_bridge, invalid_amperage):
         """Geçersiz akım değerleri için hata handling"""
-        mock_bridge.get_status.return_value = {'STATE': 1, 'MAX': 16}
+        mock_bridge.get_status.return_value = {
+            "STATE": ESP32State.IDLE.value,
+            "MAX": 16,
+        }
 
         # Sadece integer değerleri test et (float ve text validation error verir)
         if isinstance(invalid_amperage, int):
             response = client.post(
                 "/api/maxcurrent",
                 json={"amperage": invalid_amperage},
-                headers={"X-API-Key": "test-api-key"}
+                headers={"X-API-Key": "test-api-key"},
             )
 
             # Geçersiz değerler için hata döndürmeli
             if invalid_amperage < 6 or invalid_amperage > 32:
                 assert response.status_code != 200
 
-    @given(state=st.integers(min_value=5, max_value=8))
+    @given(
+        state=st.integers(
+            min_value=ESP32State.CHARGING.value, max_value=ESP32State.FAULT_HARD.value
+        )
+    )
     @settings(max_examples=20)
     def test_set_current_invalid_state_error(self, client, mock_bridge, state):
         """Geçersiz state'lerde akım ayarlama hatası"""
-        mock_bridge.get_status.return_value = {'STATE': state, 'MAX': 16}
+        mock_bridge.get_status.return_value = {"STATE": state, "MAX": 16}
 
         response = client.post(
             "/api/maxcurrent",
             json={"amperage": 16},
-            headers={"X-API-Key": "test-api-key"}
+            headers={"X-API-Key": "test-api-key"},
         )
 
         assert response.status_code == 400
-        assert "aktifken" in response.json()['detail'].lower() or "değiştirilemez" in response.json()['detail'].lower()
+        assert (
+            "aktifken" in response.json()["detail"].lower()
+            or "değiştirilemez" in response.json()["detail"].lower()
+        )
 
 
 class TestPropertyBasedConcurrency:
@@ -291,10 +321,14 @@ class TestPropertyBasedConcurrency:
 
     @given(
         num_requests=st.integers(min_value=1, max_value=20),
-        amperage=st.integers(min_value=6, max_value=32)
+        amperage=st.integers(min_value=6, max_value=32),
     )
-    @settings(max_examples=10, suppress_health_check=[HealthCheck.function_scoped_fixture])
-    def test_concurrent_status_requests(self, client, mock_bridge, num_requests, amperage):
+    @settings(
+        max_examples=10, suppress_health_check=[HealthCheck.function_scoped_fixture]
+    )
+    def test_concurrent_status_requests(
+        self, client, mock_bridge, num_requests, amperage
+    ):
         """Eşzamanlı status istekleri property-based"""
         import threading
 
@@ -316,4 +350,3 @@ class TestPropertyBasedConcurrency:
         # Tüm istekler başarılı olmalı
         assert all(status == 200 for status in results)
         assert len(results) == num_requests
-

@@ -8,14 +8,14 @@ Description: Hata yönetimi, edge case'ler ve exception handling testleri
 
 import pytest
 import sys
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from api.main import app
+from api.event_detector import ESP32State
 from fastapi.testclient import TestClient
-from fastapi import HTTPException
 
 
 @pytest.fixture
@@ -23,7 +23,7 @@ def mock_bridge():
     """Mock ESP32 bridge"""
     mock = Mock()
     mock.is_connected = True
-    mock.get_status = Mock(return_value={'STATE': 1})
+    mock.get_status = Mock(return_value={"STATE": 1})
     mock.send_authorization = Mock(return_value=True)
     mock.send_charge_stop = Mock(return_value=True)
     mock.send_current_set = Mock(return_value=True)
@@ -33,8 +33,8 @@ def mock_bridge():
 @pytest.fixture
 def client(mock_bridge):
     """Test client"""
-    with patch('api.routers.dependencies.get_bridge', return_value=mock_bridge):
-        with patch('esp32.bridge.get_esp32_bridge', return_value=mock_bridge):
+    with patch("api.routers.dependencies.get_bridge", return_value=mock_bridge):
+        with patch("esp32.bridge.get_esp32_bridge", return_value=mock_bridge):
             yield TestClient(app)
 
 
@@ -43,10 +43,10 @@ class TestErrorHandling:
 
     def test_esp32_not_connected(self, client):
         """ESP32 bağlı değilken endpoint'ler hata döndürmeli"""
-        with patch('api.routers.dependencies.get_bridge', return_value=None):
+        with patch("api.routers.dependencies.get_bridge", return_value=None):
             response = client.get("/api/status")
             assert response.status_code == 503
-            assert "bağlantı yok" in response.json()['detail'].lower()
+            assert "bağlantı yok" in response.json()["detail"].lower()
 
     def test_esp32_disconnected(self, client, mock_bridge):
         """ESP32 bağlantısı kopmuşken hata döndürmeli"""
@@ -69,14 +69,14 @@ class TestErrorHandling:
 
         response = client.post("/api/charge/start", json={"id_tag": "TEST"})
         assert response.status_code == 500
-        assert "gönderilemedi" in response.json()['detail'].lower()
+        assert "gönderilemedi" in response.json()["detail"].lower()
 
     def test_invalid_json_request(self, client):
         """Geçersiz JSON request hata döndürmeli"""
         response = client.post(
             "/api/charge/start",
             data="invalid json",
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
         assert response.status_code == 422  # Validation Error
 
@@ -125,7 +125,10 @@ class TestEdgeCases:
         """Float akım değeri reddedilmeli (sadece integer)"""
         response = client.post("/api/maxcurrent", json={"amperage": 16.5})
         # Pydantic integer validation'ı float'ı reddeder veya dönüştürür
-        assert response.status_code in [422, 200]  # Validation error veya otomatik dönüşüm
+        assert response.status_code in [
+            422,
+            200,
+        ]  # Validation error veya otomatik dönüşüm
 
     def test_very_large_current(self, client):
         """Çok büyük akım değeri reddedilmeli"""
@@ -194,24 +197,26 @@ class TestStateTransitions:
     def test_state_transition_sequence(self, client, mock_bridge):
         """Normal state geçiş sırası"""
         # 1. IDLE durumunda akım ayarla
-        mock_bridge.get_status.return_value = {'STATE': 1}
+        mock_bridge.get_status.return_value = {"STATE": ESP32State.IDLE.value}
         response = client.post("/api/maxcurrent", json={"amperage": 16})
         assert response.status_code == 200
 
         # 2. CABLE_DETECT durumunda şarj başlat
-        mock_bridge.get_status.return_value = {'STATE': 2}
+        mock_bridge.get_status.return_value = {"STATE": ESP32State.CABLE_DETECT.value}
         response = client.post("/api/charge/start", json={"id_tag": "TEST"})
         assert response.status_code == 200
 
         # 3. Şarj aktifken akım değiştirme denemesi
-        mock_bridge.get_status.return_value = {'STATE': 5}
+        mock_bridge.get_status.return_value = {"STATE": ESP32State.CHARGING.value}
         response = client.post("/api/maxcurrent", json={"amperage": 24})
         assert response.status_code == 400
 
     def test_all_state_values(self, client, mock_bridge):
         """Tüm state değerleri için kontrol"""
-        for state in range(0, 10):
-            mock_bridge.get_status.return_value = {'STATE': state}
+        # ESP32State enum değerlerini kullan
+        all_states = [state.value for state in ESP32State]
+        for state_value in all_states:
+            mock_bridge.get_status.return_value = {"STATE": state_value}
 
             # Status endpoint her zaman çalışmalı
             response = client.get("/api/status")
@@ -219,7 +224,7 @@ class TestStateTransitions:
 
             # State değerine göre start charge kontrolü
             response = client.post("/api/charge/start", json={"id_tag": "TEST"})
-            if state >= 5:
+            if state_value >= ESP32State.CHARGING.value:
                 assert response.status_code == 400
             else:
                 assert response.status_code == 200
@@ -251,12 +256,12 @@ class TestDataValidation:
     def test_status_response_structure(self, client, mock_bridge):
         """Status response yapısı doğru mu?"""
         mock_bridge.get_status.return_value = {
-            'STATE': 1,
-            'AUTH': 0,
-            'CABLE': 0,
-            'MAX': 16,
-            'CP': 0,
-            'PP': 0
+            "STATE": ESP32State.IDLE.value,
+            "AUTH": 0,
+            "CABLE": 0,
+            "MAX": 16,
+            "CP": 0,
+            "PP": 0,
         }
 
         response = client.get("/api/status")
@@ -264,22 +269,21 @@ class TestDataValidation:
         data = response.json()
 
         # Response yapısı kontrolü
-        assert 'success' in data
-        assert 'message' in data
-        assert 'data' in data
-        assert 'timestamp' in data
+        assert "success" in data
+        assert "message" in data
+        assert "data" in data
+        assert "timestamp" in data
 
         # Data içeriği kontrolü
-        assert 'STATE' in data['data']
-        assert 'AUTH' in data['data']
+        assert "STATE" in data["data"]
+        assert "AUTH" in data["data"]
 
     def test_error_response_structure(self, client):
         """Hata response yapısı doğru mu?"""
-        with patch('api.routers.dependencies.get_bridge', return_value=None):
+        with patch("api.routers.dependencies.get_bridge", return_value=None):
             response = client.get("/api/status")
             assert response.status_code == 503
 
             # Hata response'u kontrol et
             # FastAPI HTTPException detail field'ı döndürür
-            assert 'detail' in response.json()
-
+            assert "detail" in response.json()

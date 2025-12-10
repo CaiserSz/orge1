@@ -8,7 +8,6 @@ Description: Genişletilmiş integration testleri - gerçek senaryolar
 
 import pytest
 import sys
-import time
 from unittest.mock import Mock, patch
 from pathlib import Path
 from fastapi.testclient import TestClient
@@ -16,6 +15,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from api.main import app
+from api.event_detector import ESP32State
 
 
 @pytest.fixture
@@ -23,28 +23,27 @@ def mock_bridge():
     """Mock ESP32 bridge"""
     mock = Mock()
     mock.is_connected = True
-    mock.get_status = Mock(return_value={
-        'STATE': 1,
-        'AUTH': 0,
-        'CABLE': 0,
-        'MAX': 16,
-        'CP': 0,
-        'PP': 0,
-        'CPV': 3920,
-        'PPV': 2455,
-        'RL': 0,
-        'LOCK': 0,
-        'MOTOR': 0,
-        'PWM': 255,
-        'PB': 0,
-        'STOP': 0
-    })
-    mock.get_status_sync = Mock(return_value={
-        'STATE': 1,
-        'AUTH': 0,
-        'CABLE': 0,
-        'MAX': 16
-    })
+    mock.get_status = Mock(
+        return_value={
+            "STATE": ESP32State.IDLE.value,
+            "AUTH": 0,
+            "CABLE": 0,
+            "MAX": 16,
+            "CP": 0,
+            "PP": 0,
+            "CPV": 3920,
+            "PPV": 2455,
+            "RL": 0,
+            "LOCK": 0,
+            "MOTOR": 0,
+            "PWM": 255,
+            "PB": 0,
+            "STOP": 0,
+        }
+    )
+    mock.get_status_sync = Mock(
+        return_value={"STATE": ESP32State.IDLE.value, "AUTH": 0, "CABLE": 0, "MAX": 16}
+    )
     mock.send_authorization = Mock(return_value=True)
     mock.send_charge_stop = Mock(return_value=True)
     mock.send_current_set = Mock(return_value=True)
@@ -55,9 +54,10 @@ def mock_bridge():
 def client(mock_bridge):
     """Test client"""
     import os
-    os.environ['SECRET_API_KEY'] = 'test-api-key'
 
-    with patch('api.main.get_esp32_bridge', return_value=mock_bridge):
+    os.environ["SECRET_API_KEY"] = "test-api-key"
+
+    with patch("api.main.get_esp32_bridge", return_value=mock_bridge):
         yield TestClient(app)
 
 
@@ -67,59 +67,70 @@ class TestCompleteChargingWorkflow:
     def test_complete_charging_workflow_idle_to_charging(self, client, mock_bridge):
         """Tam şarj workflow - IDLE'dan CHARGING'e"""
         # 1. Başlangıç durumu: IDLE
-        mock_bridge.get_status.return_value = {'STATE': 1, 'MAX': 16}
+        mock_bridge.get_status.return_value = {
+            "STATE": ESP32State.IDLE.value,
+            "MAX": 16,
+        }
 
         # 2. Akım ayarla
         response = client.post(
             "/api/maxcurrent",
             json={"amperage": 16},
-            headers={"X-API-Key": "test-api-key"}
+            headers={"X-API-Key": "test-api-key"},
         )
         assert response.status_code == 200
 
         # 3. State değiş: CABLE_DETECT
-        mock_bridge.get_status.return_value = {'STATE': 2, 'MAX': 16}
+        mock_bridge.get_status.return_value = {
+            "STATE": ESP32State.CABLE_DETECT.value,
+            "MAX": 16,
+        }
 
         # 4. Şarj başlat
         response = client.post(
-            "/api/charge/start",
-            json={},
-            headers={"X-API-Key": "test-api-key"}
+            "/api/charge/start", json={}, headers={"X-API-Key": "test-api-key"}
         )
         assert response.status_code == 200
 
         # 5. State değiş: CHARGING
-        mock_bridge.get_status.return_value = {'STATE': 5, 'MAX': 16}
+        mock_bridge.get_status.return_value = {
+            "STATE": ESP32State.CHARGING.value,
+            "MAX": 16,
+        }
 
         # 6. Status kontrol et
         response = client.get("/api/status")
         assert response.status_code == 200
-        assert response.json()['data']['STATE'] == 5
+        assert response.json()["data"]["STATE"] == ESP32State.CHARGING.value
 
         # 7. Şarj durdur
         response = client.post(
-            "/api/charge/stop",
-            json={},
-            headers={"X-API-Key": "test-api-key"}
+            "/api/charge/stop", json={}, headers={"X-API-Key": "test-api-key"}
         )
         assert response.status_code == 200
 
         # 8. State değiş: IDLE
-        mock_bridge.get_status.return_value = {'STATE': 1, 'MAX': 16}
+        mock_bridge.get_status.return_value = {
+            "STATE": ESP32State.IDLE.value,
+            "MAX": 16,
+        }
 
         # 9. Final status kontrol
         response = client.get("/api/status")
         assert response.status_code == 200
-        assert response.json()['data']['STATE'] == 1
+        assert response.json()["data"]["STATE"] == ESP32State.IDLE.value
 
     def test_charging_workflow_with_multiple_current_changes(self, client, mock_bridge):
         """Şarj workflow - birden fazla akım değişikliği"""
         # 1. İlk akım ayarla
-        mock_bridge.get_status.return_value = {'STATE': 1, 'MAX': 16}
+        mock_bridge.get_status.return_value = {
+            "STATE": ESP32State.IDLE.value,
+            "MAX": 16,
+        }
         response = client.post(
             "/api/maxcurrent",
             json={"amperage": 10},
-            headers={"X-API-Key": "test-api-key"}
+            headers={"X-API-Key": "test-api-key"},
         )
         assert response.status_code == 200
 
@@ -127,7 +138,7 @@ class TestCompleteChargingWorkflow:
         response = client.post(
             "/api/maxcurrent",
             json={"amperage": 20},
-            headers={"X-API-Key": "test-api-key"}
+            headers={"X-API-Key": "test-api-key"},
         )
         assert response.status_code == 200
 
@@ -135,7 +146,7 @@ class TestCompleteChargingWorkflow:
         response = client.post(
             "/api/maxcurrent",
             json={"amperage": 16},
-            headers={"X-API-Key": "test-api-key"}
+            headers={"X-API-Key": "test-api-key"},
         )
         assert response.status_code == 200
 
@@ -145,22 +156,21 @@ class TestCompleteChargingWorkflow:
     def test_charging_workflow_error_recovery(self, client, mock_bridge):
         """Şarj workflow - hata kurtarma"""
         # 1. Şarj başlatma denemesi - başarısız komut
-        mock_bridge.get_status.return_value = {'STATE': 1, 'MAX': 16}
+        mock_bridge.get_status.return_value = {
+            "STATE": ESP32State.IDLE.value,
+            "MAX": 16,
+        }
         mock_bridge.send_authorization.return_value = False
 
         response = client.post(
-            "/api/charge/start",
-            json={},
-            headers={"X-API-Key": "test-api-key"}
+            "/api/charge/start", json={}, headers={"X-API-Key": "test-api-key"}
         )
         assert response.status_code == 500
 
         # 2. Komut başarılı olana kadar tekrar dene
         mock_bridge.send_authorization.return_value = True
         response = client.post(
-            "/api/charge/start",
-            json={},
-            headers={"X-API-Key": "test-api-key"}
+            "/api/charge/start", json={}, headers={"X-API-Key": "test-api-key"}
         )
         assert response.status_code == 200
 
@@ -201,7 +211,7 @@ class TestConcurrentOperations:
             response = client.post(
                 "/api/maxcurrent",
                 json={"amperage": amperage},
-                headers={"X-API-Key": "test-api-key"}
+                headers={"X-API-Key": "test-api-key"},
             )
             results.append(response.status_code)
 
@@ -226,46 +236,58 @@ class TestStateTransitionScenarios:
     def test_all_valid_state_transitions(self, client, mock_bridge):
         """Tüm geçerli state transition'ları"""
         valid_transitions = [
-            (1, 2),  # IDLE -> CABLE_DETECT
-            (2, 3),  # CABLE_DETECT -> EV_CONNECTED
-            (3, 4),  # EV_CONNECTED -> READY
-            (4, 5),  # READY -> CHARGING
-            (5, 6),  # CHARGING -> PAUSED
-            (6, 5),  # PAUSED -> CHARGING
-            (5, 7),  # CHARGING -> STOPPED
-            (7, 1),  # STOPPED -> IDLE
+            (
+                ESP32State.IDLE.value,
+                ESP32State.CABLE_DETECT.value,
+            ),  # IDLE -> CABLE_DETECT
+            (
+                ESP32State.CABLE_DETECT.value,
+                ESP32State.EV_CONNECTED.value,
+            ),  # CABLE_DETECT -> EV_CONNECTED
+            (
+                ESP32State.EV_CONNECTED.value,
+                ESP32State.READY.value,
+            ),  # EV_CONNECTED -> READY
+            (ESP32State.READY.value, ESP32State.CHARGING.value),  # READY -> CHARGING
+            (ESP32State.CHARGING.value, ESP32State.PAUSED.value),  # CHARGING -> PAUSED
+            (ESP32State.PAUSED.value, ESP32State.CHARGING.value),  # PAUSED -> CHARGING
+            (
+                ESP32State.CHARGING.value,
+                ESP32State.STOPPED.value,
+            ),  # CHARGING -> STOPPED
+            (ESP32State.STOPPED.value, ESP32State.IDLE.value),  # STOPPED -> IDLE
         ]
 
         for from_state, to_state in valid_transitions:
-            mock_bridge.get_status.return_value = {'STATE': from_state, 'MAX': 16}
+            mock_bridge.get_status.return_value = {"STATE": from_state, "MAX": 16}
 
             # State transition'ı simüle et
-            if to_state == 5:  # CHARGING
+            if to_state == ESP32State.CHARGING.value:  # CHARGING
                 response = client.post(
-                    "/api/charge/start",
-                    json={},
-                    headers={"X-API-Key": "test-api-key"}
+                    "/api/charge/start", json={}, headers={"X-API-Key": "test-api-key"}
                 )
-                # State 1-4 arası ise başarılı olmalı
-                if from_state < 5:
+                # State IDLE-READY arası ise başarılı olmalı
+                if from_state < ESP32State.CHARGING.value:
                     assert response.status_code == 200
-            elif from_state == 5 and to_state == 7:  # CHARGING -> STOPPED
+            elif (
+                from_state == ESP32State.CHARGING.value
+                and to_state == ESP32State.STOPPED.value
+            ):  # CHARGING -> STOPPED
                 response = client.post(
-                    "/api/charge/stop",
-                    json={},
-                    headers={"X-API-Key": "test-api-key"}
+                    "/api/charge/stop", json={}, headers={"X-API-Key": "test-api-key"}
                 )
                 assert response.status_code == 200
 
     def test_invalid_state_transitions(self, client, mock_bridge):
         """Geçersiz state transition'ları"""
         # CHARGING durumunda şarj başlatma denemesi
-        mock_bridge.get_status.return_value = {'STATE': 5, 'MAX': 16}
+        mock_bridge.get_status.return_value = {
+            "STATE": ESP32State.CHARGING.value,
+            "MAX": 16,
+        }
 
         response = client.post(
-            "/api/charge/start",
-            json={},
-            headers={"X-API-Key": "test-api-key"}
+            "/api/charge/start", json={}, headers={"X-API-Key": "test-api-key"}
         )
         assert response.status_code == 400
 
@@ -273,7 +295,7 @@ class TestStateTransitionScenarios:
         response = client.post(
             "/api/maxcurrent",
             json={"amperage": 20},
-            headers={"X-API-Key": "test-api-key"}
+            headers={"X-API-Key": "test-api-key"},
         )
         assert response.status_code == 400
 
@@ -299,10 +321,10 @@ class TestAPIResponseConsistency:
             if response.status_code == 200:
                 data = response.json()
                 # APIResponse format kontrolü
-                assert 'success' in data
-                assert isinstance(data['success'], bool)
-                assert 'message' in data
-                assert 'data' in data
+                assert "success" in data
+                assert isinstance(data["success"], bool)
+                assert "message" in data
+                assert "data" in data
 
     def test_error_responses_consistent_format(self, client, mock_bridge):
         """Hata response'ları tutarlı format döndürüyor mu?"""
@@ -311,17 +333,14 @@ class TestAPIResponseConsistency:
         assert response.status_code == 404
 
         # 401 hatası (API key yok)
-        response = client.post(
-            "/api/charge/start",
-            json={}
-        )
+        response = client.post("/api/charge/start", json={})
         assert response.status_code == 401
 
         # 422 hatası (validation error) - API key ile
         response = client.post(
             "/api/maxcurrent",
             json={"amperage": 5},  # Geçersiz değer
-            headers={"X-API-Key": "test-api-key"}
+            headers={"X-API-Key": "test-api-key"},
         )
         assert response.status_code == 422
 
@@ -335,27 +354,26 @@ class TestStationInfoWorkflow:
             "station_id": "TEST-001",
             "name": "Test Station",
             "location": "Test Location",
-            "max_current": 32
+            "max_current": 32,
         }
 
         # 1. Station info kaydet
-        with patch('api.main.save_station_info', return_value=True):
+        with patch("api.main.save_station_info", return_value=True):
             response = client.post("/api/station/info", json=test_data)
             assert response.status_code == 200
 
         # 2. Station info al
-        with patch('api.main.get_station_info', return_value=test_data):
+        with patch("api.main.get_station_info", return_value=test_data):
             response = client.get("/api/station/info")
             assert response.status_code == 200
             data = response.json()
-            assert data['data']['station_id'] == "TEST-001"
-            assert data['data']['name'] == "Test Station"
+            assert data["data"]["station_id"] == "TEST-001"
+            assert data["data"]["name"] == "Test Station"
 
     def test_station_info_not_found_flow(self, client):
         """Station info bulunamadığında workflow"""
         # Station info yok
-        with patch('api.main.get_station_info', return_value=None):
+        with patch("api.main.get_station_info", return_value=None):
             response = client.get("/api/station/info")
             assert response.status_code == 404
-            assert "bulunamadı" in response.json()['detail']
-
+            assert "bulunamadı" in response.json()["detail"]
