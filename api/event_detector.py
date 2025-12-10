@@ -155,6 +155,9 @@ class EventDetector:
             # Authorization verildikten sonra direkt CHARGING state'ine geçebilir
             (ESP32State.IDLE.value, ESP32State.CHARGING.value): EventType.CHARGE_STARTED,
             (ESP32State.CHARGING.value, ESP32State.PAUSED.value): EventType.CHARGE_PAUSED,
+            # PAUSED → CHARGING transition (şarja devam etme)
+            # Suspended durumundan şarja devam edildiğinde CHARGE_STARTED event'i üretilmeli
+            (ESP32State.PAUSED.value, ESP32State.CHARGING.value): EventType.CHARGE_STARTED,
             (ESP32State.CHARGING.value, ESP32State.STOPPED.value): EventType.CHARGE_STOPPED,
             (ESP32State.PAUSED.value, ESP32State.STOPPED.value): EventType.CHARGE_STOPPED,
             (ESP32State.CABLE_DETECT.value, ESP32State.IDLE.value): EventType.CABLE_DISCONNECTED,
