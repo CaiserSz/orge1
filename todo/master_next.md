@@ -43,7 +43,7 @@
   - Durum: 🟡 Acil - STATE verileri yönetimini iyileştir
   - Detaylar: `reports/CODEBASE_DEEPDIVE_ANALYSIS_20251210.md` dosyasına bakınız
   - Odak Noktaları:
-    - ESP32'ye gönderdiğimiz komutlar: authorization, current set, charge stop
+    - ESP32'ye gönderdiğimiz komutlar: status request, authorization, current set, charge stop
     - ESP32'den aldığımız STATE verileri: periyodik ve komut response'ları
     - STATE verilerine göre backend süreç yönetimi
   - İyileştirme Stratejisi:
