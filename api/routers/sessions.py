@@ -209,14 +209,18 @@ async def get_user_sessions(
     """
     Belirli bir kullanıcının session'larını döndür
 
+    **Not:** Varsayılan olarak sadece geçmiş session'ları (ACTIVE hariç) döndürür.
+    Aktif session'ı görmek için `status=ACTIVE` parametresini kullanın.
+
     Args:
         user_id: User ID
         limit: Maksimum döndürülecek session sayısı
         offset: Başlangıç offset'i
-        status_filter: Session durumu filtresi
+        status_filter: Session durumu filtresi (ACTIVE, COMPLETED, CANCELLED, FAULTED)
+                      Belirtilmezse ACTIVE hariç tüm geçmiş session'lar döndürülür
 
     Returns:
-        User'ın session listesi
+        User'ın session listesi (varsayılan: sadece geçmiş session'lar)
     """
     try:
         session_manager = get_session_manager()
