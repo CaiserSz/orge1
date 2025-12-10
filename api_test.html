@@ -809,9 +809,33 @@
                 <div class="endpoint">
                     <div class="endpoint-header">
                         <span class="method get">GET</span>
+                        <span class="endpoint-path">/api/sessions/users/{user_id}/current</span>
+                    </div>
+                    <div class="endpoint-description">
+                        <strong>⭐ Kullanıcı Aktif Session</strong><br>
+                        Belirli bir kullanıcının aktif session'ını getirir. Eğer aktif session yoksa null döner.
+                    </div>
+                    <div class="request-body">
+                        <label>User ID:</label>
+                        <input type="text" id="param-/api/sessions/users/{user_id}/current" placeholder="user-id-here" value="" oninput="updateCurlPreviewForPathParam('GET', '/api/sessions/users/{user_id}/current', 'param-/api/sessions/users/{user_id}/current', 'curl-/api/sessions/users/{user_id}/current')">
+                    </div>
+                    <div class="curl-preview">
+                        <label>💻 cURL Command (Edit edilebilir):</label>
+                        <textarea id="curl-/api/sessions/users/{user_id}/current"></textarea>
+                    </div>
+                    <button class="btn" onclick="testEndpointWithPathParam('GET', '/api/sessions/users/{user_id}/current', 'param-/api/sessions/users/{user_id}/current')">Test Et</button>
+                    <div class="response-section" id="response-/api/sessions/users/{user_id}/current"></div>
+                </div>
+
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
                         <span class="endpoint-path">/api/sessions/users/{user_id}/sessions</span>
                     </div>
-                    <div class="endpoint-description">Belirli bir kullanıcının session'larını getir</div>
+                    <div class="endpoint-description">
+                        <strong>📜 Kullanıcı Geçmiş Session'ları</strong><br>
+                        Belirli bir kullanıcının geçmiş session'larını getirir (ACTIVE hariç - tamamlanmış, iptal edilmiş veya hata durumundaki session'lar).
+                    </div>
                     <div class="request-body">
                         <label>User ID:</label>
                         <input type="text" id="param-/api/sessions/users/{user_id}/sessions" placeholder="user-id-here" value="" oninput="updateCurlPreviewForPathParam('GET', '/api/sessions/users/{user_id}/sessions', 'param-/api/sessions/users/{user_id}/sessions', 'curl-/api/sessions/users/{user_id}/sessions')">
@@ -857,16 +881,70 @@
         // Initialize curl previews and status bar on page load
         document.addEventListener('DOMContentLoaded', async () => {
             cachedApiKey = await getApiKey();
+
+            // Load default values for input fields
+            await loadDefaultValues();
+
             updateCurlPreview('POST', '/api/charge/start', 'body-/api/charge/start', 'curl-/api/charge/start');
             updateCurlPreview('POST', '/api/charge/stop', 'body-/api/charge/stop', 'curl-/api/charge/stop');
             updateCurlPreview('POST', '/api/maxcurrent', 'body-/api/maxcurrent', 'curl-/api/maxcurrent', true);
             updateCurlPreview('GET', '/api/sessions/current', null, 'curl-/api/sessions/current');
             updateCurlPreviewForPathParam('GET', '/api/sessions/{session_id}', 'param-/api/sessions/{session_id}', 'curl-/api/sessions/{session_id}');
+            updateCurlPreviewForPathParam('GET', '/api/sessions/users/{user_id}/current', 'param-/api/sessions/users/{user_id}/current', 'curl-/api/sessions/users/{user_id}/current');
             updateCurlPreviewForPathParam('GET', '/api/sessions/users/{user_id}/sessions', 'param-/api/sessions/users/{user_id}/sessions', 'curl-/api/sessions/users/{user_id}/sessions');
 
             // Start ESP32 status polling
             startStatusPolling();
         });
+
+        // Load default values for input fields
+        async function loadDefaultValues() {
+            try {
+                // Get User ID from /api/test/key endpoint
+                const keyResponse = await fetch(`${API_BASE_URL}/api/test/key`);
+                if (keyResponse.ok) {
+                    const keyData = await keyResponse.json();
+                    const userId = keyData.user_id;
+
+                    if (userId) {
+                        // Set User ID in all user_id input fields
+                        const userIdInputs = [
+                            'param-/api/sessions/users/{user_id}/current',
+                            'param-/api/sessions/users/{user_id}/sessions'
+                        ];
+
+                        userIdInputs.forEach(inputId => {
+                            const input = document.getElementById(inputId);
+                            if (input && !input.value) {
+                                input.value = userId;
+                                // Trigger oninput event to update curl preview
+                                input.dispatchEvent(new Event('input'));
+                            }
+                        });
+                    }
+                }
+
+                // Get current session ID from /api/sessions/current endpoint
+                const sessionResponse = await fetch(`${API_BASE_URL}/api/sessions/current`);
+                if (sessionResponse.ok) {
+                    const sessionData = await sessionResponse.json();
+                    const session = sessionData.session;
+
+                    if (session && session.session_id) {
+                        // Set Session ID in session_id input field
+                        const sessionIdInput = document.getElementById('param-/api/sessions/{session_id}');
+                        if (sessionIdInput && !sessionIdInput.value) {
+                            sessionIdInput.value = session.session_id;
+                            // Trigger oninput event to update curl preview
+                            sessionIdInput.dispatchEvent(new Event('input'));
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading default values:', error);
+                // Non-critical error, continue without defaults
+            }
+        }
 
         async function startStatusPolling() {
             // İlk güncelleme
