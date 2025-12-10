@@ -9,57 +9,17 @@ Description: api/main.py için kapsamlı endpoint testleri
 import pytest
 import sys
 import os
-import tempfile
-from unittest.mock import Mock, patch, mock_open
+from unittest.mock import Mock, patch
 from pathlib import Path
-from fastapi.testclient import TestClient
 
 # Proje root'unu path'e ekle
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from api.main import app
+from api.event_detector import ESP32State
 
-
-@pytest.fixture
-def mock_esp32_bridge():
-    """Mock ESP32 bridge fixture"""
-    mock_bridge = Mock()
-    mock_bridge.is_connected = True
-    mock_bridge.get_status = Mock(return_value={
-        'STATE': 1,
-        'AUTH': 0,
-        'CABLE': 0,
-        'MAX': 16,
-        'CP': 0,
-        'PP': 0,
-        'CPV': 3920,
-        'PPV': 2455,
-        'RL': 0,
-        'LOCK': 0,
-        'MOTOR': 0,
-        'PWM': 255,
-        'PB': 0,
-        'STOP': 0
-    })
-    mock_bridge.get_status_sync = Mock(return_value={
-        'STATE': 1,
-        'AUTH': 0,
-        'CABLE': 0,
-        'MAX': 16
-    })
-    mock_bridge.send_authorization = Mock(return_value=True)
-    mock_bridge.send_charge_stop = Mock(return_value=True)
-    mock_bridge.send_current_set = Mock(return_value=True)
-    return mock_bridge
-
-
-@pytest.fixture
-def client(mock_esp32_bridge):
-    """Test client fixture"""
-    os.environ['SECRET_API_KEY'] = 'test-api-key'
-
-    with patch('api.main.get_esp32_bridge', return_value=mock_esp32_bridge):
-        yield TestClient(app)
+# conftest.py'den fixture'ları import et
+# pytest otomatik olarak conftest.py'deki fixture'ları bulur
+# mock_esp32_bridge, client fixture'ları conftest.py'den gelir
 
 
 class TestRootEndpoints:
@@ -282,7 +242,7 @@ class TestHealthCheckEdgeCases:
 
     def test_health_check_status_available(self, client, mock_esp32_bridge):
         """Health check - status mevcut"""
-        mock_esp32_bridge.get_status.return_value = {'STATE': 1}
+        mock_esp32_bridge.get_status.return_value = {'STATE': ESP32State.IDLE.value}
 
         response = client.get("/api/health")
         assert response.status_code == 200
@@ -314,11 +274,11 @@ class TestStatusEndpointEdgeCases:
     def test_status_get_status_sync_success(self, client, mock_esp32_bridge):
         """Status - get_status_sync başarılı"""
         mock_esp32_bridge.get_status.return_value = None
-        mock_esp32_bridge.get_status_sync.return_value = {'STATE': 1}
+        mock_esp32_bridge.get_status_sync.return_value = {'STATE': ESP32State.IDLE.value}
 
         response = client.get("/api/status")
         assert response.status_code == 200
         data = response.json()
         assert data['success'] is True
-        assert data['data']['STATE'] == 1
+        assert data['data']['STATE'] == ESP32State.IDLE.value
 

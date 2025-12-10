@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from api.main import app
+from api.event_detector import ESP32State
 from esp32.bridge import ESP32Bridge
 
 
@@ -26,8 +27,8 @@ class TestAPIEdgeCases:
         self.client = TestClient(app)
         self.mock_bridge = Mock(spec=ESP32Bridge)
         self.mock_bridge.is_connected = True
-        self.mock_bridge.get_status = Mock(return_value={"STATE": 1})
-        self.mock_bridge.get_status_sync = Mock(return_value={"STATE": 1})
+        self.mock_bridge.get_status = Mock(return_value={"STATE": ESP32State.IDLE.value})
+        self.mock_bridge.get_status_sync = Mock(return_value={"STATE": ESP32State.IDLE.value})
         self.mock_bridge.send_authorization = Mock(return_value=True)
         self.mock_bridge.send_charge_stop = Mock(return_value=True)
         self.mock_bridge.send_current_set = Mock(return_value=True)
@@ -107,7 +108,7 @@ class TestAPIEdgeCases:
     @patch.dict("os.environ", {"SECRET_API_KEY": "test-key-123"})
     def test_start_charge_state_5_charging(self, mock_get_bridge):
         """Start charge - STATE=5 (CHARGING) durumu"""
-        self.mock_bridge.get_status.return_value = {"STATE": 5}
+        self.mock_bridge.get_status.return_value = {"STATE": ESP32State.CHARGING.value}
         mock_get_bridge.return_value = self.mock_bridge
 
         response = self.client.post(
@@ -121,7 +122,7 @@ class TestAPIEdgeCases:
     @patch.dict("os.environ", {"SECRET_API_KEY": "test-key-123"})
     def test_start_charge_state_8_fault(self, mock_get_bridge):
         """Start charge - STATE=8 (FAULT_HARD) durumu"""
-        self.mock_bridge.get_status.return_value = {"STATE": 8}
+        self.mock_bridge.get_status.return_value = {"STATE": ESP32State.FAULT_HARD.value}
         mock_get_bridge.return_value = self.mock_bridge
 
         response = self.client.post(
@@ -135,7 +136,7 @@ class TestAPIEdgeCases:
     @patch.dict("os.environ", {"SECRET_API_KEY": "test-key-123"})
     def test_start_charge_authorization_failure(self, mock_get_bridge):
         """Start charge - authorization komutu başarısız"""
-        self.mock_bridge.get_status.return_value = {"STATE": 1}
+        self.mock_bridge.get_status.return_value = {"STATE": ESP32State.IDLE.value}
         self.mock_bridge.send_authorization.return_value = False
         mock_get_bridge.return_value = self.mock_bridge
 
@@ -192,7 +193,7 @@ class TestAPIEdgeCases:
     @patch.dict("os.environ", {"SECRET_API_KEY": "test-key-123"})
     def test_set_current_state_5_charging(self, mock_get_bridge):
         """Set current - STATE=5 (CHARGING) durumu"""
-        self.mock_bridge.get_status.return_value = {"STATE": 5}
+        self.mock_bridge.get_status.return_value = {"STATE": ESP32State.CHARGING.value}
         mock_get_bridge.return_value = self.mock_bridge
 
         response = self.client.post(
@@ -208,7 +209,7 @@ class TestAPIEdgeCases:
     @patch.dict("os.environ", {"SECRET_API_KEY": "test-key-123"})
     def test_set_current_command_failure(self, mock_get_bridge):
         """Set current - komut başarısız"""
-        self.mock_bridge.get_status.return_value = {"STATE": 1}
+        self.mock_bridge.get_status.return_value = {"STATE": ESP32State.IDLE.value}
         self.mock_bridge.send_current_set.return_value = False
         mock_get_bridge.return_value = self.mock_bridge
 

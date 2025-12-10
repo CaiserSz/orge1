@@ -10,51 +10,15 @@ import pytest
 import sys
 from unittest.mock import Mock, MagicMock, patch, AsyncMock
 from pathlib import Path
-from fastapi.testclient import TestClient
 
 # Proje root'unu path'e ekle
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from api.main import app
+from api.event_detector import ESP32State
 
-
-@pytest.fixture
-def mock_esp32_bridge():
-    """Mock ESP32 bridge fixture"""
-    mock_bridge = Mock()
-    mock_bridge.is_connected = True
-    mock_bridge.get_status = Mock(return_value={
-        'STATE': 1,
-        'AUTH': 0,
-        'CABLE': 0,
-        'MAX': 16,
-        'CP': 0,
-        'PP': 0,
-        'CPV': 3920,
-        'PPV': 2455,
-        'RL': 0,
-        'LOCK': 0,
-        'MOTOR': 0,
-        'PWM': 255,
-        'PB': 0,
-        'STOP': 0
-    })
-    mock_bridge.send_authorization = Mock(return_value=True)
-    mock_bridge.send_charge_stop = Mock(return_value=True)
-    mock_bridge.send_current_set = Mock(return_value=True)
-    return mock_bridge
-
-
-@pytest.fixture
-def client(mock_esp32_bridge):
-    """Test client fixture"""
-    import os
-    # Test için API key set et
-    os.environ['SECRET_API_KEY'] = 'test-api-key'
-
-    with patch('api.routers.dependencies.get_bridge', return_value=mock_esp32_bridge):
-        with patch('esp32.bridge.get_esp32_bridge', return_value=mock_esp32_bridge):
-            yield TestClient(app)
+# conftest.py'den fixture'ları import et
+# pytest otomatik olarak conftest.py'deki fixture'ları bulur
+# mock_esp32_bridge, client, test_headers fixture'ları conftest.py'den gelir
 
 
 class TestAPIEndpoints:
@@ -79,12 +43,19 @@ class TestAPIEndpoints:
         assert 'STATE' in data['data']
         mock_esp32_bridge.get_status.assert_called()
 
-    def test_start_charge_endpoint(self, client, mock_esp32_bridge):
+    def test_start_charge_endpoint(self, client, mock_esp32_bridge, test_headers):
         """Start charge endpoint çalışıyor mu?"""
+        # Mock bridge'i EV_CONNECTED state'e ayarla
+        mock_esp32_bridge.get_status.return_value = {
+            'STATE': ESP32State.EV_CONNECTED.value,
+            'AUTH': 0,
+            'CABLE': 0,
+            'MAX': 16
+        }
         response = client.post(
             "/api/charge/start",
             json={},
-            headers={"X-API-Key": "test-api-key"}
+            headers=test_headers
         )
         assert response.status_code == 200
         data = response.json()
@@ -92,12 +63,12 @@ class TestAPIEndpoints:
         assert data['message'] == "Şarj başlatma komutu gönderildi"
         mock_esp32_bridge.send_authorization.assert_called_once()
 
-    def test_stop_charge_endpoint(self, client, mock_esp32_bridge):
+    def test_stop_charge_endpoint(self, client, mock_esp32_bridge, test_headers):
         """Stop charge endpoint çalışıyor mu?"""
         response = client.post(
             "/api/charge/stop",
             json={},
-            headers={"X-API-Key": "test-api-key"}
+            headers=test_headers
         )
         assert response.status_code == 200
         data = response.json()
@@ -105,12 +76,12 @@ class TestAPIEndpoints:
         assert data['message'] == "Şarj durdurma komutu gönderildi"
         mock_esp32_bridge.send_charge_stop.assert_called_once()
 
-    def test_set_current_8A(self, client, mock_esp32_bridge):
+    def test_set_current_8A(self, client, mock_esp32_bridge, test_headers):
         """Set current 8A endpoint çalışıyor mu?"""
         response = client.post(
             "/api/maxcurrent",
             json={"amperage": 8},
-            headers={"X-API-Key": "test-api-key"}
+            headers=test_headers
         )
         assert response.status_code == 200
         data = response.json()
@@ -123,7 +94,7 @@ class TestAPIEndpoints:
         response = client.post(
             "/api/maxcurrent",
             json={"amperage": 16},
-            headers={"X-API-Key": "test-api-key"}
+            headers=test_headers
         )
         assert response.status_code == 200
         data = response.json()
@@ -136,7 +107,7 @@ class TestAPIEndpoints:
         response = client.post(
             "/api/maxcurrent",
             json={"amperage": 24},
-            headers={"X-API-Key": "test-api-key"}
+            headers=test_headers
         )
         assert response.status_code == 200
         data = response.json()
@@ -149,7 +120,7 @@ class TestAPIEndpoints:
         response = client.post(
             "/api/maxcurrent",
             json={"amperage": 32},
-            headers={"X-API-Key": "test-api-key"}
+            headers=test_headers
         )
         assert response.status_code == 200
         data = response.json()
@@ -176,7 +147,7 @@ class TestAPIEndpoints:
     def test_start_charge_when_already_charging(self, client, mock_esp32_bridge):
         """Aktif şarj varken tekrar başlatma denemesi reddedilmeli"""
         mock_esp32_bridge.get_status.return_value = {
-            'STATE': 5,  # SARJ_BASLADI
+            'STATE': ESP32State.CHARGING.value,  # CHARGING
             'AUTH': 1,
             'CABLE': 16,
             'MAX': 16
@@ -185,7 +156,7 @@ class TestAPIEndpoints:
         response = client.post(
             "/api/charge/start",
             json={},
-            headers={"X-API-Key": "test-api-key"}
+            headers=test_headers
         )
         assert response.status_code == 400
         assert "zaten aktif" in response.json()['detail'].lower()
@@ -193,7 +164,7 @@ class TestAPIEndpoints:
     def test_set_current_when_charging(self, client, mock_esp32_bridge):
         """Şarj aktifken akım değiştirme denemesi reddedilmeli"""
         mock_esp32_bridge.get_status.return_value = {
-            'STATE': 5,  # SARJ_BASLADI
+            'STATE': ESP32State.CHARGING.value,  # CHARGING
             'AUTH': 1,
             'CABLE': 16,
             'MAX': 16
@@ -202,7 +173,7 @@ class TestAPIEndpoints:
         response = client.post(
             "/api/maxcurrent",
             json={"amperage": 24},
-            headers={"X-API-Key": "test-api-key"}
+            headers=test_headers
         )
         assert response.status_code == 400
         assert "aktifken" in response.json()['detail'].lower()

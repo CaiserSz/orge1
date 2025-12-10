@@ -12,6 +12,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, status, Depends
 from esp32.bridge import ESP32Bridge
 from api.auth import verify_api_key
+from api.event_detector import ESP32State
 from api.logging_config import log_event, system_logger
 from api.routers.dependencies import get_bridge
 from api.models import APIResponse, CurrentSetRequest
@@ -70,14 +71,15 @@ async def set_current(
     current_status = bridge.get_status()
     if current_status:
         state = current_status.get("STATE", 0)
-        # STATE=1: IDLE (akım ayarlanabilir)
-        # STATE=2: CABLE_DETECT (kablo algılandı, akım ayarlanabilir)
-        # STATE=3: EV_CONNECTED (araç bağlı, akım ayarlanabilir)
-        # STATE=4: SARJA_HAZIR (şarja hazır, akım ayarlanabilir)
-        # STATE=5+: Aktif şarj veya hata durumları (akım değiştirilemez)
-        # Eğer şarj aktifse veya hata durumundaysa (STATE >= 5) hata döndür
-        if state >= 5:  # STATE >= 5 aktif şarj veya hata durumu
-            error_msg = f"Şarj aktifken akım değiştirilemez (State: {state})"
+        # STATE < CHARGING: Akım ayarlanabilir (IDLE, CABLE_DETECT, EV_CONNECTED, READY)
+        # STATE >= CHARGING: Aktif şarj veya hata durumları (akım değiştirilemez)
+        # Eğer şarj aktifse veya hata durumundaysa (STATE >= CHARGING) hata döndür
+        if state >= ESP32State.CHARGING.value:  # STATE >= CHARGING aktif şarj veya hata durumu
+            try:
+                state_name = ESP32State(state).name
+            except ValueError:
+                state_name = f"UNKNOWN_{state}"
+            error_msg = f"Şarj aktifken akım değiştirilemez (State: {state_name})"
             system_logger.warning(
                 f"Current set rejected: {error_msg}",
                 extra={

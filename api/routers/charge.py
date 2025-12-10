@@ -13,6 +13,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from api.auth import verify_api_key
+from api.event_detector import ESP32State
 from api.logging_config import log_event, system_logger
 from api.models import APIResponse, ChargeStartRequest, ChargeStopRequest
 from api.routers.dependencies import get_bridge
@@ -74,32 +75,25 @@ async def start_charge(
 
     state = current_status.get("STATE", 0)
 
-    # STATE=1: IDLE (kablo takılı değil, şarj başlatılamaz)
-    # STATE=2: CABLE_DETECT (kablo algılandı, şarj başlatılamaz)
-    # STATE=3: EV_CONNECTED (araç bağlı, şarj başlatılabilir) ✅
-    # STATE=4: SARJA_HAZIR (şarja hazır, şarj başlatılamaz - authorization zaten verilmiş)
-    # STATE=5+: Aktif şarj veya hata durumları (şarj başlatılamaz)
+    # State değerini ESP32State enum ile kontrol et
+    try:
+        esp32_state = ESP32State(state)
+        state_name = esp32_state.name
+    except ValueError:
+        # Bilinmeyen state değeri
+        state_name = f"UNKNOWN_{state}"
+        esp32_state = None
 
     # Sadece EV_CONNECTED (state=3) durumunda authorization gönderilebilir
-    if state != 3:  # EV_CONNECTED
-        state_names = {
-            1: "IDLE",
-            2: "CABLE_DETECT",
-            4: "READY",
-            5: "CHARGING",
-            6: "PAUSED",
-            7: "STOPPED",
-            8: "FAULT_HARD",
-        }
-        state_name = state_names.get(state, f"UNKNOWN_{state}")
-
-        if state == 1:
+    if state != ESP32State.EV_CONNECTED.value:
+        # State'e göre hata mesajı oluştur
+        if state == ESP32State.IDLE.value:
             detail = "Şarj başlatılamaz (State: IDLE). Kablo takılı değil."
-        elif state == 2:
+        elif state == ESP32State.CABLE_DETECT.value:
             detail = "Şarj başlatılamaz (State: CABLE_DETECT). Araç bağlı değil."
-        elif state == 4:
+        elif state == ESP32State.READY.value:
             detail = "Şarj başlatılamaz (State: READY). Authorization zaten verilmiş."
-        elif state >= 5:
+        elif state >= ESP32State.CHARGING.value:
             detail = f"Şarj başlatılamaz (State: {state_name}). Şarj zaten aktif veya hata durumunda."
         else:
             detail = f"Şarj başlatılamaz (State: {state_name}). Sadece EV_CONNECTED durumunda authorization gönderilebilir."

@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from api.main import app
+from api.event_detector import ESP32State
 from esp32.bridge import ESP32Bridge
 
 
@@ -31,7 +32,7 @@ class TestAPIInputValidation:
         """Set current - minimum değer (6A)"""
         mock_bridge = Mock(spec=ESP32Bridge)
         mock_bridge.is_connected = True
-        mock_bridge.get_status.return_value = {"STATE": 1}
+        mock_bridge.get_status.return_value = {"STATE": ESP32State.IDLE.value}
         mock_bridge.send_current_set.return_value = True
         mock_get_bridge.return_value = mock_bridge
 
@@ -50,7 +51,7 @@ class TestAPIInputValidation:
         """Set current - maksimum değer (32A)"""
         mock_bridge = Mock(spec=ESP32Bridge)
         mock_bridge.is_connected = True
-        mock_bridge.get_status.return_value = {"STATE": 1}
+        mock_bridge.get_status.return_value = {"STATE": ESP32State.IDLE.value}
         mock_bridge.send_current_set.return_value = True
         mock_get_bridge.return_value = mock_bridge
 
@@ -69,7 +70,7 @@ class TestAPIInputValidation:
         """Set current - minimum altı (5A)"""
         mock_bridge = Mock(spec=ESP32Bridge)
         mock_bridge.is_connected = True
-        mock_bridge.get_status.return_value = {"STATE": 1}
+        mock_bridge.get_status.return_value = {"STATE": ESP32State.IDLE.value}
         mock_get_bridge.return_value = mock_bridge
 
         response = self.client.post(
@@ -86,7 +87,7 @@ class TestAPIInputValidation:
         """Set current - maksimum üstü (33A)"""
         mock_bridge = Mock(spec=ESP32Bridge)
         mock_bridge.is_connected = True
-        mock_bridge.get_status.return_value = {"STATE": 1}
+        mock_bridge.get_status.return_value = {"STATE": ESP32State.IDLE.value}
         mock_get_bridge.return_value = mock_bridge
 
         response = self.client.post(
@@ -113,7 +114,7 @@ class TestAPIInputValidation:
         """Set current - geçersiz tip (string)"""
         mock_bridge = Mock(spec=ESP32Bridge)
         mock_bridge.is_connected = True
-        mock_bridge.get_status.return_value = {"STATE": 1}
+        mock_bridge.get_status.return_value = {"STATE": ESP32State.IDLE.value}
         mock_get_bridge.return_value = mock_bridge
 
         response = self.client.post(
