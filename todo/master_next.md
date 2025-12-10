@@ -363,17 +363,25 @@
     - `tests/test_cors.py` - CORS testleri
   - Durum: ✅ Tamamlandı
 
-#### 📝 API Key Logging İyileştirmesi
-- [ ] **Görev:** API key logging iyileştirmesi
+#### ✅ API Key Logging İyileştirmesi - Tamamlandı (18:15:00)
+- [x] **Görev:** API key logging iyileştirmesi
   - Açıklama: Codebase deep dive analizi sonucu Security Expert tarafından tespit edildi. API key'ler log'lara yazılıyor (kısaltılmış olsa da). Daha az bilgi loglanmalı.
   - Öncelik: 1 (Yüksek)
   - Tahmini Süre: 30 dakika
-  - Durum: 🔒 Security Expert - API key logging iyileştirme gerekli
+  - Durum: ✅ Tamamlandı (2025-12-10 18:15:00)
   - Detaylar: `reports/CODEBASE_DEEPDIVE_ANALYSIS_20251210.md` dosyasına bakınız
   - İmplementasyon:
-    - API key'ler log'lara yazılmamalı (veya sadece hash yazılmalı)
-    - Audit trail için sadece key ID veya hash kullanılmalı
-  - Durum: 📋 Bekliyor
+    - ✅ API key'ler log'lara yazılmamalı (veya sadece hash yazılmalı)
+    - ✅ Audit trail için sadece key ID veya hash kullanılmalı
+  - Yapılan İyileştirmeler:
+    - ✅ `api/services/charge_service.py`: API key logging kaldırıldı, hash kullanılıyor (SHA256, ilk 16 karakter)
+    - ✅ `api/services/current_service.py`: API key logging kaldırıldı, hash kullanılıyor (SHA256, ilk 16 karakter)
+    - ✅ `api_key` field'ı `api_key_hash` olarak değiştirildi
+    - ✅ Rate limiting'de zaten hash kullanılıyordu (değişiklik gerekmedi)
+  - Dosyalar:
+    - `api/services/charge_service.py` - API key hash kullanımı (güncellendi)
+    - `api/services/current_service.py` - API key hash kullanımı (güncellendi)
+  - Durum: ✅ Tamamlandı
 
 ### Öncelik 1: API Authentication İyileştirmesi (Gelecek Faz - JWT/OAuth2)
 - [ ] **Görev:** API güvenlik katmanı iyileştirmesi (JWT/OAuth2)

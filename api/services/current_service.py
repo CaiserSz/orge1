@@ -8,6 +8,7 @@ Description: Current control business logic service layer
 
 from datetime import datetime
 from typing import Dict, Any, Optional
+import hashlib
 
 from api.logging_config import system_logger
 from api.models import CurrentSetRequest
@@ -60,7 +61,11 @@ class CurrentService(BaseService):
                 event_data={
                     "user_id": user_id,
                     "amperage": request_body.amperage,
-                    "api_key": api_key[:10] + "..." if api_key else None,
+                    "api_key_hash": (
+                        hashlib.sha256(api_key.encode()).hexdigest()[:16]
+                        if api_key
+                        else None
+                    ),
                     "timestamp": datetime.now().isoformat(),
                 },
             )

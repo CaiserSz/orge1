@@ -9,6 +9,32 @@
 
 ### 2025-12-10
 
+#### ✅ API Key Logging İyileştirmesi (18:15:00)
+- **Görev:** API key logging iyileştirmesi
+- **Açıklama:** Codebase deep dive analizi sonucu Security Expert tarafından tespit edildi. API key'ler log'lara yazılıyor (kısaltılmış olsa da). Daha az bilgi loglanmalı.
+- **Öncelik:** 1 (Yüksek)
+- **Tahmini Süre:** 30 dakika
+- **Durum:** ✅ Tamamlandı
+- **Başlangıç:** 2025-12-10 18:00:00
+- **Bitiş:** 2025-12-10 18:15:00
+- **Detaylar:** `reports/CODEBASE_DEEPDIVE_ANALYSIS_20251210.md` dosyasına bakınız
+- **İmplementasyon:**
+  - ✅ API key'ler log'lara yazılmamalı (veya sadece hash yazılmalı)
+  - ✅ Audit trail için sadece key ID veya hash kullanılmalı
+- **Yapılan İyileştirmeler:**
+  - ✅ `api/services/charge_service.py`: API key logging kaldırıldı, hash kullanılıyor (SHA256, ilk 16 karakter)
+  - ✅ `api/services/current_service.py`: API key logging kaldırıldı, hash kullanılıyor (SHA256, ilk 16 karakter)
+  - ✅ `api_key` field'ı `api_key_hash` olarak değiştirildi
+  - ✅ Rate limiting'de zaten hash kullanılıyordu (değişiklik gerekmedi)
+- **Dosyalar:**
+  - `api/services/charge_service.py` - API key hash kullanımı (güncellendi)
+  - `api/services/current_service.py` - API key hash kullanımı (güncellendi)
+- **Güvenlik İyileştirmeleri:**
+  - ✅ API key'ler artık log'lara yazılmıyor
+  - ✅ Sadece hash (SHA256, ilk 16 karakter) loglanıyor
+  - ✅ Audit trail için hash kullanılıyor
+  - ✅ Güvenlik skoru artırıldı
+
 #### ✅ Monitoring/Alerting Ekleme (18:00:00)
 - **Görev:** Monitoring/alerting ekleme
 - **Açıklama:** Codebase deep dive analizi sonucu DevOps Expert tarafından tespit edildi. Sistem monitoring ve alerting eksik.

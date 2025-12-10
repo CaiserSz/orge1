@@ -14,8 +14,11 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251210-019
-**Tarih:** 2025-12-10 18:00:00
+**Checkpoint ID:** CP-20251210-020
+**Tarih:** 2025-12-10 18:15:00
+**Durum:** ✅ API Key Logging İyileştirmesi Tamamlandı
+
+### Önceki Checkpoint: CP-20251210-019 (2025-12-10 18:00:00)
 **Durum:** ✅ Monitoring/Alerting Ekleme Tamamlandı
 
 ### Önceki Checkpoint: CP-20251210-018 (2025-12-10 17:30:00)
@@ -85,6 +88,20 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 **Durum:** ✅ Logging Sistemi ve Kritik Düzeltmeler Tamamlandı
 
 ### Son Tamamlanan İş
+- **Görev:** API Key Logging İyileştirmesi
+- **Durum:** ✅ Tamamlandı
+- **Tarih:** 2025-12-10 18:15:00
+- **Detaylar:**
+  - ✅ API key'ler log'lara yazılmamalı (veya sadece hash yazılmalı)
+  - ✅ Audit trail için sadece key ID veya hash kullanılmalı
+  - ✅ `api/services/charge_service.py`: API key logging kaldırıldı, hash kullanılıyor
+  - ✅ `api/services/current_service.py`: API key logging kaldırıldı, hash kullanılıyor
+  - ✅ `api_key` field'ı `api_key_hash` olarak değiştirildi
+- **Beklenen İyileştirmeler:**
+  - Güvenlik skoru artırıldı
+  - API key'ler artık log'lara yazılmıyor
+
+### Önceki Tamamlanan İş
 - **Görev:** Monitoring/Alerting Ekleme
 - **Durum:** ✅ Tamamlandı
 - **Tarih:** 2025-12-10 18:00:00

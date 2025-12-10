@@ -8,6 +8,7 @@ Description: Charge control business logic service layer
 
 from datetime import datetime
 from typing import Dict, Any, Optional
+import hashlib
 
 from api.logging_config import system_logger
 from api.models import ChargeStartRequest, ChargeStopRequest
@@ -61,7 +62,11 @@ class ChargeService(BaseService):
                 event_type="charge_start",
                 event_data={
                     "user_id": user_id,
-                    "api_key": api_key[:10] + "..." if api_key else None,
+                    "api_key_hash": (
+                        hashlib.sha256(api_key.encode()).hexdigest()[:16]
+                        if api_key
+                        else None
+                    ),
                     "timestamp": datetime.now().isoformat(),
                 },
             )
@@ -154,7 +159,11 @@ class ChargeService(BaseService):
                 event_type="charge_stop",
                 event_data={
                     "user_id": user_id,
-                    "api_key": api_key[:10] + "..." if api_key else None,
+                    "api_key_hash": (
+                        hashlib.sha256(api_key.encode()).hexdigest()[:16]
+                        if api_key
+                        else None
+                    ),
                     "timestamp": datetime.now().isoformat(),
                 },
             )
