@@ -464,18 +464,26 @@
     - `tests/api/test_state_edge_cases.py` - Hardcoded state değerleri ESP32State enum ile değiştirildi
   - Durum: ✅ Tamamlandı
 
-#### 🟡 Yüksek: Mock Yapısı Standardizasyonu (API Testleri Deep Dive Bulgusu)
-- [ ] **Görev:** Mock yapısı standardizasyonu
+#### ✅ Mock Yapısı Standardizasyonu - Tamamlandı
+- [x] **Görev:** Mock yapısı standardizasyonu
   - Açıklama: Farklı test dosyalarında farklı mock yöntemleri kullanılıyor. Standart test fixture oluşturulmalı (tests/conftest.py).
   - Öncelik: 0 (Acil)
   - Tahmini Süre: 1-2 saat
-  - Durum: 🟡 Yüksek - Test tutarlılığı için gerekli
+  - Durum: ✅ Tamamlandı (2025-12-10 12:30:00)
   - Detaylar: `reports/API_TESTS_DEEPDIVE_ANALYSIS_20251210.md` dosyasına bakınız
-  - Aksiyonlar:
-    - Standart test fixture oluşturulmalı (`tests/conftest.py`)
-    - Tüm test dosyalarında aynı fixture kullanılmalı
-    - Mock yöntemleri standardize edilmeli
-  - Durum: 📋 Bekliyor
+  - Yapılan İyileştirmeler:
+    - ✅ Tüm test dosyaları `conftest.py`'deki standart fixture'ları kullanıyor (`mock_esp32_bridge`, `client`, `test_headers`)
+    - ✅ Kendi `mock_bridge` fixture'ları kaldırıldı
+    - ✅ Hardcoded state değerleri ESP32State enum ile değiştirildi
+    - ✅ Mock yöntemleri standardize edildi
+  - Güncellenen Dosyalar:
+    - `tests/test_error_handling.py` - mock_bridge → mock_esp32_bridge
+    - `tests/test_integration_extended.py` - mock_bridge → mock_esp32_bridge
+    - `tests/test_property_based.py` - mock_bridge → mock_esp32_bridge
+    - `tests/test_state_logic.py` - mock_bridge → mock_esp32_bridge
+    - `tests/test_integration.py` - mock_bridge → mock_esp32_bridge, hardcoded state → ESP32State enum
+    - `tests/test_performance.py` - mock_bridge → mock_esp32_bridge
+  - Durum: ✅ Tamamlandı
 
 - [x] **Görev:** `project_info_20251208_145614.md` bölümleme ✅ Tamamlandı
   - Açıklama: Maksimum sınır (1200 satır) aşıldı (1245 satır). Bölümlere ayrıldı

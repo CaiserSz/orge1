@@ -8,7 +8,7 @@ Description: Performance testleri - pytest-benchmark kullanarak
 
 import pytest
 import sys
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 from pathlib import Path
 from fastapi.testclient import TestClient
 
@@ -17,46 +17,18 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from api.main import app
 
 
-@pytest.fixture
-def mock_bridge():
-    """Mock ESP32 bridge"""
-    mock = Mock()
-    mock.is_connected = True
-    mock.get_status = Mock(return_value={
-        'STATE': 1,
-        'AUTH': 0,
-        'CABLE': 0,
-        'MAX': 16,
-        'CP': 0,
-        'PP': 0,
-        'CPV': 3920,
-        'PPV': 2455,
-        'RL': 0,
-        'LOCK': 0,
-        'MOTOR': 0,
-        'PWM': 255,
-        'PB': 0,
-        'STOP': 0
-    })
-    mock.get_status_sync = Mock(return_value={
-        'STATE': 1,
-        'AUTH': 0,
-        'CABLE': 0,
-        'MAX': 16
-    })
-    mock.send_authorization = Mock(return_value=True)
-    mock.send_charge_stop = Mock(return_value=True)
-    mock.send_current_set = Mock(return_value=True)
-    return mock
+# conftest.py'deki standart fixture'ları kullan
+# mock_esp32_bridge, client, test_headers fixture'ları conftest.py'den gelir
 
 
 @pytest.fixture
-def client(mock_bridge):
+def client(mock_esp32_bridge):
     """Test client"""
     import os
-    os.environ['SECRET_API_KEY'] = 'test-api-key'
 
-    with patch('api.main.get_esp32_bridge', return_value=mock_bridge):
+    os.environ["SECRET_API_KEY"] = "test-api-key"
+
+    with patch("api.main.get_esp32_bridge", return_value=mock_esp32_bridge):
         yield TestClient(app)
 
 
@@ -84,7 +56,7 @@ class TestAPIPerformance:
             client.post,
             "/api/maxcurrent",
             json={"amperage": 16},
-            headers={"X-API-Key": "test-api-key"}
+            headers={"X-API-Key": "test-api-key"},
         )
         assert result.status_code == 200
 
@@ -94,7 +66,7 @@ class TestAPIPerformance:
             client.post,
             "/api/charge/start",
             json={},
-            headers={"X-API-Key": "test-api-key"}
+            headers={"X-API-Key": "test-api-key"},
         )
         assert result.status_code == 200
 
@@ -104,7 +76,7 @@ class TestAPIPerformance:
             client.post,
             "/api/charge/stop",
             json={},
-            headers={"X-API-Key": "test-api-key"}
+            headers={"X-API-Key": "test-api-key"},
         )
         assert result.status_code == 200
 
@@ -148,7 +120,7 @@ class TestConcurrentPerformance:
                 response = client.post(
                     "/api/maxcurrent",
                     json={"amperage": amperage},
-                    headers={"X-API-Key": "test-api-key"}
+                    headers={"X-API-Key": "test-api-key"},
                 )
                 results.append(response.status_code)
 
@@ -201,10 +173,9 @@ class TestResponseTimeThresholds:
         response = client.post(
             "/api/maxcurrent",
             json={"amperage": 16},
-            headers={"X-API-Key": "test-api-key"}
+            headers={"X-API-Key": "test-api-key"},
         )
         elapsed_time = (time.time() - start_time) * 1000  # milliseconds
 
         assert response.status_code == 200
         assert elapsed_time < 200  # 200ms'den az olmalı
-

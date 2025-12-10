@@ -18,56 +18,17 @@ from api.main import app
 from api.event_detector import ESP32State
 
 
-@pytest.fixture
-def mock_bridge():
-    """Mock ESP32 bridge"""
-    mock = Mock()
-    mock.is_connected = True
-    mock.get_status = Mock(
-        return_value={
-            "STATE": ESP32State.IDLE.value,
-            "AUTH": 0,
-            "CABLE": 0,
-            "MAX": 16,
-            "CP": 0,
-            "PP": 0,
-            "CPV": 3920,
-            "PPV": 2455,
-            "RL": 0,
-            "LOCK": 0,
-            "MOTOR": 0,
-            "PWM": 255,
-            "PB": 0,
-            "STOP": 0,
-        }
-    )
-    mock.get_status_sync = Mock(
-        return_value={"STATE": ESP32State.IDLE.value, "AUTH": 0, "CABLE": 0, "MAX": 16}
-    )
-    mock.send_authorization = Mock(return_value=True)
-    mock.send_charge_stop = Mock(return_value=True)
-    mock.send_current_set = Mock(return_value=True)
-    return mock
-
-
-@pytest.fixture
-def client(mock_bridge):
-    """Test client"""
-    import os
-
-    os.environ["SECRET_API_KEY"] = "test-api-key"
-
-    with patch("api.main.get_esp32_bridge", return_value=mock_bridge):
-        yield TestClient(app)
+# conftest.py'deki standart fixture'ları kullan
+# mock_esp32_bridge, client, test_headers fixture'ları conftest.py'den gelir
 
 
 class TestCompleteChargingWorkflow:
     """Tam şarj workflow testleri"""
 
-    def test_complete_charging_workflow_idle_to_charging(self, client, mock_bridge):
+    def test_complete_charging_workflow_idle_to_charging(self, client, mock_esp32_bridge, test_headers):
         """Tam şarj workflow - IDLE'dan CHARGING'e"""
         # 1. Başlangıç durumu: IDLE
-        mock_bridge.get_status.return_value = {
+        mock_esp32_bridge.get_status.return_value = {
             "STATE": ESP32State.IDLE.value,
             "MAX": 16,
         }
@@ -81,7 +42,7 @@ class TestCompleteChargingWorkflow:
         assert response.status_code == 200
 
         # 3. State değiş: CABLE_DETECT
-        mock_bridge.get_status.return_value = {
+        mock_esp32_bridge.get_status.return_value = {
             "STATE": ESP32State.CABLE_DETECT.value,
             "MAX": 16,
         }
@@ -93,7 +54,7 @@ class TestCompleteChargingWorkflow:
         assert response.status_code == 200
 
         # 5. State değiş: CHARGING
-        mock_bridge.get_status.return_value = {
+        mock_esp32_bridge.get_status.return_value = {
             "STATE": ESP32State.CHARGING.value,
             "MAX": 16,
         }
@@ -110,7 +71,7 @@ class TestCompleteChargingWorkflow:
         assert response.status_code == 200
 
         # 8. State değiş: IDLE
-        mock_bridge.get_status.return_value = {
+        mock_esp32_bridge.get_status.return_value = {
             "STATE": ESP32State.IDLE.value,
             "MAX": 16,
         }
@@ -120,10 +81,10 @@ class TestCompleteChargingWorkflow:
         assert response.status_code == 200
         assert response.json()["data"]["STATE"] == ESP32State.IDLE.value
 
-    def test_charging_workflow_with_multiple_current_changes(self, client, mock_bridge):
+    def test_charging_workflow_with_multiple_current_changes(self, client, mock_esp32_bridge, test_headers):
         """Şarj workflow - birden fazla akım değişikliği"""
         # 1. İlk akım ayarla
-        mock_bridge.get_status.return_value = {
+        mock_esp32_bridge.get_status.return_value = {
             "STATE": ESP32State.IDLE.value,
             "MAX": 16,
         }
@@ -151,16 +112,16 @@ class TestCompleteChargingWorkflow:
         assert response.status_code == 200
 
         # Tüm akım değişiklikleri başarılı olmalı
-        assert mock_bridge.send_current_set.call_count == 3
+        assert mock_esp32_bridge.send_current_set.call_count == 3
 
-    def test_charging_workflow_error_recovery(self, client, mock_bridge):
+    def test_charging_workflow_error_recovery(self, client, mock_esp32_bridge, test_headers):
         """Şarj workflow - hata kurtarma"""
         # 1. Şarj başlatma denemesi - başarısız komut
-        mock_bridge.get_status.return_value = {
+        mock_esp32_bridge.get_status.return_value = {
             "STATE": ESP32State.IDLE.value,
             "MAX": 16,
         }
-        mock_bridge.send_authorization.return_value = False
+        mock_esp32_bridge.send_authorization.return_value = False
 
         response = client.post(
             "/api/charge/start", json={}, headers={"X-API-Key": "test-api-key"}
@@ -168,7 +129,7 @@ class TestCompleteChargingWorkflow:
         assert response.status_code == 500
 
         # 2. Komut başarılı olana kadar tekrar dene
-        mock_bridge.send_authorization.return_value = True
+        mock_esp32_bridge.send_authorization.return_value = True
         response = client.post(
             "/api/charge/start", json={}, headers={"X-API-Key": "test-api-key"}
         )
@@ -178,7 +139,7 @@ class TestCompleteChargingWorkflow:
 class TestConcurrentOperations:
     """Eşzamanlı operasyon testleri"""
 
-    def test_concurrent_status_requests(self, client, mock_bridge):
+    def test_concurrent_status_requests(self, client, mock_esp32_bridge):
         """Eşzamanlı status istekleri"""
         import threading
 
@@ -201,7 +162,7 @@ class TestConcurrentOperations:
         assert all(status == 200 for status in results)
         assert len(results) == 10
 
-    def test_concurrent_current_set_requests(self, client, mock_bridge):
+    def test_concurrent_current_set_requests(self, client, mock_esp32_bridge, test_headers):
         """Eşzamanlı akım ayarlama istekleri"""
         import threading
 
@@ -233,7 +194,7 @@ class TestConcurrentOperations:
 class TestStateTransitionScenarios:
     """State transition senaryoları"""
 
-    def test_all_valid_state_transitions(self, client, mock_bridge):
+    def test_all_valid_state_transitions(self, client, mock_esp32_bridge, test_headers):
         """Tüm geçerli state transition'ları"""
         valid_transitions = [
             (
@@ -259,7 +220,7 @@ class TestStateTransitionScenarios:
         ]
 
         for from_state, to_state in valid_transitions:
-            mock_bridge.get_status.return_value = {"STATE": from_state, "MAX": 16}
+            mock_esp32_bridge.get_status.return_value = {"STATE": from_state, "MAX": 16}
 
             # State transition'ı simüle et
             if to_state == ESP32State.CHARGING.value:  # CHARGING
@@ -278,10 +239,10 @@ class TestStateTransitionScenarios:
                 )
                 assert response.status_code == 200
 
-    def test_invalid_state_transitions(self, client, mock_bridge):
+    def test_invalid_state_transitions(self, client, mock_esp32_bridge, test_headers):
         """Geçersiz state transition'ları"""
         # CHARGING durumunda şarj başlatma denemesi
-        mock_bridge.get_status.return_value = {
+        mock_esp32_bridge.get_status.return_value = {
             "STATE": ESP32State.CHARGING.value,
             "MAX": 16,
         }
@@ -303,7 +264,7 @@ class TestStateTransitionScenarios:
 class TestAPIResponseConsistency:
     """API response tutarlılık testleri"""
 
-    def test_all_endpoints_return_consistent_format(self, client, mock_bridge):
+    def test_all_endpoints_return_consistent_format(self, client, mock_esp32_bridge):
         """Tüm endpoint'ler tutarlı format döndürüyor mu?"""
         endpoints = [
             ("GET", "/api/health"),
@@ -326,7 +287,7 @@ class TestAPIResponseConsistency:
                 assert "message" in data
                 assert "data" in data
 
-    def test_error_responses_consistent_format(self, client, mock_bridge):
+    def test_error_responses_consistent_format(self, client, mock_esp32_bridge):
         """Hata response'ları tutarlı format döndürüyor mu?"""
         # 404 hatası
         response = client.get("/api/nonexistent")

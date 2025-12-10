@@ -18,24 +18,8 @@ from api.event_detector import ESP32State
 from fastapi.testclient import TestClient
 
 
-@pytest.fixture
-def mock_bridge():
-    """Mock ESP32 bridge"""
-    mock = Mock()
-    mock.is_connected = True
-    mock.get_status = Mock(return_value={"STATE": 1})
-    mock.send_authorization = Mock(return_value=True)
-    mock.send_charge_stop = Mock(return_value=True)
-    mock.send_current_set = Mock(return_value=True)
-    return mock
-
-
-@pytest.fixture
-def client(mock_bridge):
-    """Test client"""
-    with patch("api.routers.dependencies.get_bridge", return_value=mock_bridge):
-        with patch("esp32.bridge.get_esp32_bridge", return_value=mock_bridge):
-            yield TestClient(app)
+# conftest.py'deki standart fixture'ları kullan
+# mock_esp32_bridge, client, test_headers fixture'ları conftest.py'den gelir
 
 
 class TestErrorHandling:
@@ -48,26 +32,26 @@ class TestErrorHandling:
             assert response.status_code == 503
             assert "bağlantı yok" in response.json()["detail"].lower()
 
-    def test_esp32_disconnected(self, client, mock_bridge):
+    def test_esp32_disconnected(self, client, mock_esp32_bridge):
         """ESP32 bağlantısı kopmuşken hata döndürmeli"""
-        mock_bridge.is_connected = False
+        mock_esp32_bridge.is_connected = False
 
         response = client.get("/api/status")
         assert response.status_code == 503
 
-    def test_get_status_timeout(self, client, mock_bridge):
+    def test_get_status_timeout(self, client, mock_esp32_bridge):
         """Status alınamazsa timeout hatası döndürmeli"""
-        mock_bridge.get_status.return_value = None
-        mock_bridge.get_status_sync = Mock(return_value=None)
+        mock_esp32_bridge.get_status.return_value = None
+        mock_esp32_bridge.get_status_sync = Mock(return_value=None)
 
         response = client.get("/api/status")
         assert response.status_code == 504  # Gateway Timeout
 
-    def test_send_command_failure(self, client, mock_bridge):
+    def test_send_command_failure(self, client, mock_esp32_bridge, test_headers):
         """Komut gönderilemezse hata döndürmeli"""
-        mock_bridge.send_authorization.return_value = False
+        mock_esp32_bridge.send_authorization.return_value = False
 
-        response = client.post("/api/charge/start", json={"id_tag": "TEST"})
+        response = client.post("/api/charge/start", json={"id_tag": "TEST"}, headers=test_headers)
         assert response.status_code == 500
         assert "gönderilemedi" in response.json()["detail"].lower()
 
@@ -91,7 +75,7 @@ class TestErrorHandling:
 class TestEdgeCases:
     """Edge case testleri"""
 
-    def test_boundary_current_values(self, client, mock_bridge):
+    def test_boundary_current_values(self, client, mock_esp32_bridge, test_headers):
         """Sınır değerleri test et (6A ve 32A)"""
         # Minimum değer: 6A
         response = client.post("/api/maxcurrent", json={"amperage": 6})
@@ -135,16 +119,16 @@ class TestEdgeCases:
         response = client.post("/api/maxcurrent", json={"amperage": 999999})
         assert response.status_code == 422
 
-    def test_empty_id_tag(self, client, mock_bridge):
+    def test_empty_id_tag(self, client, mock_esp32_bridge, test_headers):
         """Boş id_tag ile şarj başlatma"""
-        response = client.post("/api/charge/start", json={"id_tag": ""})
+        response = client.post("/api/charge/start", json={"id_tag": ""}, headers=test_headers)
         # Boş string geçerli olabilir veya reddedilebilir
         assert response.status_code in [200, 422]
 
-    def test_very_long_id_tag(self, client, mock_bridge):
+    def test_very_long_id_tag(self, client, mock_esp32_bridge, test_headers):
         """Çok uzun id_tag ile şarj başlatma"""
         long_tag = "A" * 1000
-        response = client.post("/api/charge/start", json={"id_tag": long_tag})
+        response = client.post("/api/charge/start", json={"id_tag": long_tag}, headers=test_headers)
         # Çok uzun string reddedilebilir veya kabul edilebilir
         assert response.status_code in [200, 422]
 
@@ -152,7 +136,7 @@ class TestEdgeCases:
 class TestConcurrentRequests:
     """Eşzamanlı istek testleri"""
 
-    def test_concurrent_status_requests(self, client, mock_bridge):
+    def test_concurrent_status_requests(self, client, mock_esp32_bridge):
         """Eşzamanlı status istekleri"""
         import threading
 
@@ -171,14 +155,14 @@ class TestConcurrentRequests:
         # Tüm istekler başarılı olmalı
         assert all(code == 200 for code in results)
 
-    def test_concurrent_start_charge(self, client, mock_bridge):
+    def test_concurrent_start_charge(self, client, mock_esp32_bridge, test_headers):
         """Eşzamanlı şarj başlatma istekleri"""
         import threading
 
         results = []
 
         def make_request():
-            response = client.post("/api/charge/start", json={"id_tag": "TEST"})
+            response = client.post("/api/charge/start", json={"id_tag": "TEST"}, headers=test_headers)
             results.append(response.status_code)
 
         threads = [threading.Thread(target=make_request) for _ in range(5)]
@@ -194,36 +178,36 @@ class TestConcurrentRequests:
 class TestStateTransitions:
     """State geçiş testleri"""
 
-    def test_state_transition_sequence(self, client, mock_bridge):
+    def test_state_transition_sequence(self, client, mock_esp32_bridge, test_headers):
         """Normal state geçiş sırası"""
         # 1. IDLE durumunda akım ayarla
-        mock_bridge.get_status.return_value = {"STATE": ESP32State.IDLE.value}
-        response = client.post("/api/maxcurrent", json={"amperage": 16})
+        mock_esp32_bridge.get_status = Mock(return_value={"STATE": ESP32State.IDLE.value})
+        response = client.post("/api/maxcurrent", json={"amperage": 16}, headers=test_headers)
         assert response.status_code == 200
 
-        # 2. CABLE_DETECT durumunda şarj başlat
-        mock_bridge.get_status.return_value = {"STATE": ESP32State.CABLE_DETECT.value}
-        response = client.post("/api/charge/start", json={"id_tag": "TEST"})
+        # 2. EV_CONNECTED durumunda şarj başlat (CABLE_DETECT değil, EV_CONNECTED gerekli)
+        mock_esp32_bridge.get_status = Mock(return_value={"STATE": ESP32State.EV_CONNECTED.value})
+        response = client.post("/api/charge/start", json={"id_tag": "TEST"}, headers=test_headers)
         assert response.status_code == 200
 
         # 3. Şarj aktifken akım değiştirme denemesi
-        mock_bridge.get_status.return_value = {"STATE": ESP32State.CHARGING.value}
-        response = client.post("/api/maxcurrent", json={"amperage": 24})
+        mock_esp32_bridge.get_status = Mock(return_value={"STATE": ESP32State.CHARGING.value})
+        response = client.post("/api/maxcurrent", json={"amperage": 24}, headers=test_headers)
         assert response.status_code == 400
 
-    def test_all_state_values(self, client, mock_bridge):
+    def test_all_state_values(self, client, mock_esp32_bridge, test_headers):
         """Tüm state değerleri için kontrol"""
         # ESP32State enum değerlerini kullan
         all_states = [state.value for state in ESP32State]
         for state_value in all_states:
-            mock_bridge.get_status.return_value = {"STATE": state_value}
+            mock_esp32_bridge.get_status.return_value = {"STATE": state_value}
 
             # Status endpoint her zaman çalışmalı
             response = client.get("/api/status")
             assert response.status_code == 200
 
             # State değerine göre start charge kontrolü
-            response = client.post("/api/charge/start", json={"id_tag": "TEST"})
+            response = client.post("/api/charge/start", json={"id_tag": "TEST"}, headers=test_headers)
             if state_value >= ESP32State.CHARGING.value:
                 assert response.status_code == 400
             else:
@@ -233,18 +217,18 @@ class TestStateTransitions:
 class TestSerialCommunication:
     """Serial communication hata senaryoları"""
 
-    def test_serial_write_exception(self, client, mock_bridge):
+    def test_serial_write_exception(self, client, mock_esp32_bridge, test_headers):
         """Serial write exception durumu"""
-        mock_bridge.send_authorization.side_effect = Exception("Serial write failed")
+        mock_esp32_bridge.send_authorization.side_effect = Exception("Serial write failed")
 
-        response = client.post("/api/charge/start", json={"id_tag": "TEST"})
+        response = client.post("/api/charge/start", json={"id_tag": "TEST"}, headers=test_headers)
         # Exception yakalanmalı ve 500 hatası döndürülmeli
         assert response.status_code == 500
 
-    def test_serial_read_timeout(self, client, mock_bridge):
+    def test_serial_read_timeout(self, client, mock_esp32_bridge):
         """Serial read timeout durumu"""
-        mock_bridge.get_status.return_value = None
-        mock_bridge.get_status_sync = Mock(return_value=None)
+        mock_esp32_bridge.get_status.return_value = None
+        mock_esp32_bridge.get_status_sync = Mock(return_value=None)
 
         response = client.get("/api/status")
         assert response.status_code == 504
@@ -253,9 +237,9 @@ class TestSerialCommunication:
 class TestDataValidation:
     """Veri doğrulama testleri"""
 
-    def test_status_response_structure(self, client, mock_bridge):
+    def test_status_response_structure(self, client, mock_esp32_bridge):
         """Status response yapısı doğru mu?"""
-        mock_bridge.get_status.return_value = {
+        mock_esp32_bridge.get_status.return_value = {
             "STATE": ESP32State.IDLE.value,
             "AUTH": 0,
             "CABLE": 0,
