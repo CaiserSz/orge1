@@ -14,8 +14,11 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251210-021
-**Tarih:** 2025-12-10 18:30:00
+**Checkpoint ID:** CP-20251210-022
+**Tarih:** 2025-12-10 18:45:00
+**Durum:** ✅ Error Recovery İyileştirmesi Tamamlandı
+
+### Önceki Checkpoint: CP-20251210-021 (2025-12-10 18:30:00)
 **Durum:** ✅ Retry Logic Ekleme Tamamlandı
 
 ### Önceki Checkpoint: CP-20251210-020 (2025-12-10 18:15:00)
@@ -91,6 +94,25 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 **Durum:** ✅ Logging Sistemi ve Kritik Düzeltmeler Tamamlandı
 
 ### Son Tamamlanan İş
+- **Görev:** Error Recovery İyileştirmesi
+- **Durum:** ✅ Tamamlandı
+- **Tarih:** 2025-12-10 18:45:00
+- **Detaylar:**
+  - ✅ Connection error recovery (exponential backoff retry)
+  - ✅ Timeout handling iyileştirmesi (get_status_sync, _wait_for_ack)
+  - ✅ Retry logic eklenmeli (retry modülü kullanılıyor)
+  - ✅ `reconnect()` fonksiyonunda exponential backoff retry eklendi
+  - ✅ `get_status_sync()` fonksiyonunda timeout handling iyileştirildi
+  - ✅ `_read_status_messages()` fonksiyonunda error recovery iyileştirildi
+  - ✅ `_monitor_loop()` fonksiyonunda exponential backoff bekleme eklendi
+  - ✅ Bağlantı durumu monitoring eklendi
+  - ✅ Kapsamlı dokümantasyon (`docs/esp32/ERROR_RECOVERY.md`)
+- **Beklenen İyileştirmeler:**
+  - Daha güvenilir ESP32-RPi iletişimi
+  - Exponential backoff retry ile daha iyi error recovery
+  - Bağlantı durumu monitoring ile erken hata tespiti
+
+### Önceki Tamamlanan İş
 - **Görev:** Retry Logic Ekleme
 - **Durum:** ✅ Tamamlandı
 - **Tarih:** 2025-12-10 18:30:00

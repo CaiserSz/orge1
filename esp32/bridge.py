@@ -169,11 +169,11 @@ class ESP32Bridge:
         self, max_retries: Optional[int] = None, retry_delay: Optional[float] = None
     ) -> bool:
         """
-        ESP32 bağlantısını yeniden kur (reconnection mekanizması)
+        ESP32 bağlantısını yeniden kur (reconnection mekanizması - exponential backoff)
 
         Args:
             max_retries: Maksimum yeniden deneme sayısı (None ise varsayılan kullanılır)
-            retry_delay: Yeniden deneme aralığı (saniye, None ise varsayılan kullanılır)
+            retry_delay: İlk yeniden deneme aralığı (saniye, None ise varsayılan kullanılır)
 
         Returns:
             Başarı durumu
@@ -183,7 +183,16 @@ class ESP32Bridge:
             return False
 
         max_retries = max_retries or self._max_reconnect_attempts
-        retry_delay = retry_delay or self._reconnect_delay
+        initial_delay = retry_delay or self._reconnect_delay
+
+        # Exponential backoff retry config
+        retry_config = RetryConfig(
+            max_retries=max_retries,
+            initial_delay=initial_delay,
+            max_delay=30.0,  # Maksimum 30 saniye bekleme
+            strategy=RetryStrategy.EXPONENTIAL,
+            multiplier=2.0,
+        )
 
         esp32_logger.info(f"ESP32 reconnection başlatılıyor (max {max_retries} deneme)")
 
@@ -202,7 +211,11 @@ class ESP32Bridge:
                 esp32_logger.warning(f"Reconnection denemesi {attempt} başarısız: {e}")
 
             if attempt < max_retries:
-                time.sleep(retry_delay)
+                delay = retry_config.calculate_delay(attempt - 1)
+                esp32_logger.debug(
+                    f"Reconnection retry delay: {delay:.2f}s (attempt {attempt}/{max_retries})"
+                )
+                time.sleep(delay)
 
         self._reconnect_attempts += 1
         esp32_logger.error(
@@ -775,22 +788,38 @@ class ESP32Bridge:
                                 pass
 
         except serial.SerialException as e:
-            # Serial port hatası - reconnection dene
+            # Serial port hatası - reconnection dene (improved error recovery)
             error_msg = str(e)
             esp32_logger.error(f"Serial port hatası: {error_msg}")
 
+            # Connection error recovery - farklı hata türleri için farklı recovery stratejileri
             if (
                 "device disconnected" in error_msg.lower()
                 or "multiple access" in error_msg.lower()
+                or "device or resource busy" in error_msg.lower()
             ):
                 if self._reconnect_enabled and self.is_connected:
                     esp32_logger.warning(
                         "Serial port bağlantısı kopmuş, reconnection deneniyor"
                     )
                     self.is_connected = False
+                    # Exponential backoff ile reconnect (retry modülü kullanılıyor)
                     self.reconnect()
+            elif "timeout" in error_msg.lower():
+                # Timeout hatası - bağlantı hala açık olabilir, sadece uyarı ver
+                esp32_logger.warning(f"Serial port timeout: {error_msg}")
+                # Bağlantı durumunu kontrol et
+                if self.serial_connection and not self.serial_connection.is_open:
+                    self.is_connected = False
+                    if self._reconnect_enabled:
+                        self.reconnect()
             else:
                 esp32_logger.error(f"Status okuma hatası: {e}", exc_info=True)
+                # Bilinmeyen hata - bağlantı durumunu kontrol et
+                if self.serial_connection and not self.serial_connection.is_open:
+                    self.is_connected = False
+                    if self._reconnect_enabled:
+                        self.reconnect()
         except Exception as e:
             esp32_logger.error(f"Status okuma hatası: {e}", exc_info=True)
 
@@ -894,7 +923,15 @@ class ESP32Bridge:
                         esp32_logger.warning(
                             f"Monitor loop: {max_consecutive_errors} ardışık hata, reconnection duraklatılıyor"
                         )
-                        time.sleep(30)  # 30 saniye bekle
+                        # Exponential backoff ile bekleme (30 saniye yerine artan süre)
+                        wait_time = min(
+                            30 * (2 ** (consecutive_errors - max_consecutive_errors)),
+                            300,
+                        )  # Max 5 dakika
+                        esp32_logger.info(
+                            f"Monitor loop: {wait_time:.1f} saniye bekleniyor"
+                        )
+                        time.sleep(wait_time)
                         consecutive_errors = 0  # Sayaç sıfırla ve tekrar dene
             except Exception as e:
                 # Loop crash etmemeli - hata logla ve devam et
@@ -939,24 +976,48 @@ class ESP32Bridge:
 
     def get_status_sync(self, timeout: float = 2.0) -> Optional[Dict[str, Any]]:
         """
-        Status komutu gönder ve yanıt bekle (senkron)
+        Status komutu gönder ve yanıt bekle (senkron - improved timeout handling)
 
         Args:
             timeout: Timeout süresi (saniye)
 
         Returns:
-            Durum dict'i veya None
+            Durum dict'i veya None (timeout veya bağlantı hatası)
         """
+        # Bağlantı kontrolü
+        if (
+            not self.is_connected
+            or not self.serial_connection
+            or not self.serial_connection.is_open
+        ):
+            esp32_logger.warning("get_status_sync: ESP32 bağlantısı yok")
+            return None
+
         if not self.send_status_request():
+            esp32_logger.warning("get_status_sync: Status komutu gönderilemedi")
             return None
 
         start_time = time.time()
+        check_interval = 0.05  # 50ms check interval (daha responsive)
+        last_check_time = start_time
+
         while time.time() - start_time < timeout:
-            status = self.get_status()
+            # Bağlantı durumunu kontrol et (her 0.5 saniyede bir)
+            if time.time() - last_check_time > 0.5:
+                if not self.serial_connection or not self.serial_connection.is_open:
+                    esp32_logger.warning("get_status_sync: Bağlantı kopmuş")
+                    self.is_connected = False
+                    return None
+                last_check_time = time.time()
+
+            status = self.get_status(max_age_seconds=timeout)
             if status:
                 return status
-            time.sleep(0.1)
+            time.sleep(check_interval)
 
+        esp32_logger.warning(
+            f"get_status_sync: Timeout ({timeout}s) - status alınamadı"
+        )
         return None
 
     def get_status_history(self, limit: int = 10) -> list:
