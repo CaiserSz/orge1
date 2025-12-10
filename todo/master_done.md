@@ -9,6 +9,113 @@
 
 ### 2025-12-10
 
+#### ✅ Metrik Endpoint'leri Eklendi (08:45:00)
+- **Görev:** Session metriklerini döndüren API endpoint'leri eklendi
+- **Detaylar:**
+  - GET /api/sessions/{session_id}/metrics - Session metrikleri
+  - GET /api/sessions/stats/energy - Enerji istatistikleri
+  - GET /api/sessions/stats/power - Güç istatistikleri
+  - User ID filtresi desteği
+  - Tüm metrikler döndürülüyor
+- **Dosyalar:** `api/routers/sessions.py`
+- **Durum:** ✅ Tamamlandı
+- **Commit:** c296e60, 64d6fd8
+
+#### ✅ Test Dosyaları Refactoring (09:00:00)
+- **Görev:** Test dosyaları suite'lere bölündü
+- **Detaylar:**
+  - test_api_edge_cases.py (476 satır) → 4 dosyaya bölündü
+    - tests/api/test_edge_cases.py (234 satır)
+    - tests/api/test_input_validation.py (126 satır)
+    - tests/api/test_error_handling.py (46 satır)
+    - tests/api/test_state_edge_cases.py (102 satır)
+  - test_additional_edge_cases.py (471 satır) → 5 dosyaya bölündü
+    - tests/event_detector/test_additional_edge_cases.py (171 satır)
+    - tests/logging/test_additional_edge_cases.py (120 satır)
+    - tests/esp32/test_bridge_additional_edge_cases.py (139 satır)
+    - tests/api/test_main_additional_edge_cases.py (43 satır)
+    - tests/concurrency/test_edge_cases.py (86 satır)
+  - Test suite klasörleri oluşturuldu
+  - Eski dosyalar backup olarak saklandı
+- **Dosyalar:** `tests/api/`, `tests/event_detector/`, `tests/logging/`, `tests/esp32/`, `tests/concurrency/`
+- **Durum:** ✅ Tamamlandı
+- **Commit:** 045bb33, c17a6cf
+
+#### ✅ Connection Management İyileştirmesi (08:25:00)
+- **Görev:** Database connection management iyileştirildi
+- **Detaylar:**
+  - Persistent connection implementasyonu eklendi
+  - WAL mode aktif edildi (PRAGMA journal_mode=WAL)
+  - Cache size optimize edildi (PRAGMA cache_size=-10000)
+  - Synchronous mode optimize edildi (PRAGMA synchronous=NORMAL)
+  - Foreign keys aktif edildi (PRAGMA foreign_keys=ON)
+  - Thread-safe connection yönetimi
+- **Dosyalar:** `api/database.py`
+- **Durum:** ✅ Tamamlandı
+- **Commit:** (yakında eklenecek)
+
+#### ✅ User ID Entegrasyonu (08:00:00)
+- **Görev:** user_id database şemasına ve API'ye entegre edildi
+- **Detaylar:**
+  - user_id kolonu sessions ve session_events tablolarına eklendi
+  - SessionManager user_id entegrasyonu
+  - API endpoint'lerine user_id filtresi eklendi
+  - GET /api/users/{user_id}/sessions endpoint'i eklendi
+- **Dosyalar:** `api/database.py`, `api/session/manager.py`, `api/routers/sessions.py`
+- **Durum:** ✅ Tamamlandı
+- **Commit:** (yakında eklenecek)
+
+#### ✅ Events Normalization (07:45:00)
+- **Görev:** Events JSON blob'u normalize edildi - session_events tablosu oluşturuldu
+- **Detaylar:**
+  - session_events tablosu oluşturuldu
+  - Event'ler normalize edildi
+  - Index'ler eklendi (session_id, event_type, timestamp)
+  - Database.create_event() ve get_session_events() metodları eklendi
+  - SessionManager event'leri session_events tablosuna kaydediyor
+  - Backward compatibility sağlandı (events JSON'ı da korunuyor)
+  - Migration script eklendi
+- **Dosyalar:** `api/database.py`, `api/session/manager.py`
+- **Durum:** ✅ Tamamlandı
+- **Commit:** (yakında eklenecek)
+
+#### ✅ Metrik Hesaplama Mantığı (07:30:00)
+- **Görev:** Session metriklerini hesaplayan mantık eklendi
+- **Detaylar:**
+  - api/session/metrics.py oluşturuldu (SessionMetricsCalculator)
+  - SessionManager'a metrik entegrasyonu eklendi
+  - Real-time metrik güncelleme çalışıyor
+  - Final metrik hesaplama çalışıyor
+  - Metrikler database'e kaydediliyor
+- **Dosyalar:** `api/session/metrics.py`, `api/session/manager.py`
+- **Durum:** ✅ Tamamlandı
+- **Commit:** (yakında eklenecek)
+
+#### ✅ Database Şema Migration (07:20:00)
+- **Görev:** Timestamp alanları INTEGER'a çevrildi ve şarj metrikleri eklendi
+- **Detaylar:**
+  - Timestamp kolonları INTEGER'a çevrildi
+  - Migration script eklendi (_migrate_timestamp_columns)
+  - Şarj metrikleri eklendi (duration, energy, power, current, voltage)
+  - Migration script eklendi (_migrate_metrics_columns)
+  - Mevcut veriler migrate edildi
+  - Database şeması güncellendi
+- **Dosyalar:** `api/database.py`
+- **Durum:** ✅ Tamamlandı
+- **Commit:** (yakında eklenecek)
+
+#### ✅ Session Manager Modülü Refactoring (05:00:00)
+- **Görev:** api/session_manager.py modüllere bölündü
+- **Detaylar:**
+  - api/session/status.py (19 satır) - SessionStatus enum
+  - api/session/session.py (104 satır) - ChargingSession sınıfı
+  - api/session/manager.py (368 satır) - SessionManager sınıfı
+  - api/session/metrics.py - SessionMetricsCalculator sınıfı
+  - api/session/__init__.py (14 satır) - Public API
+- **Dosyalar:** `api/session/`
+- **Durum:** ✅ Tamamlandı
+- **Commit:** (yakında eklenecek)
+
 #### ✅ Session Management Modülü Implementasyonu (03:45:00)
 - **Görev:** Session Management modülü geliştirildi ve API'ye entegre edildi
 - **Detaylar:**

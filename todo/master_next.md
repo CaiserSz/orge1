@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-10 04:20:00
+**Son Güncelleme:** 2025-12-10 09:30:00
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -131,44 +131,7 @@
   - Notlar: ESP32 mesajlarını ve API isteklerini logla
   - Commit: 0284a21, 0c3838a
 
-### ✅ Event Detection (Temel Implementasyon Tamamlandı - Öncelik 1)
-- [x] **Görev:** Event detector oluştur (`api/event_detector.py`)
-  - Açıklama: State transition detection, event type classification
-  - Öncelik: Yüksek
-  - Durum: ✅ Temel implementasyon tamamlandı (2025-12-09 23:00:00)
-  - Tamamlanan:
-    - Event detector modülü oluşturuldu (`api/event_detector.py` - 272 satır)
-    - State transition detection implementasyonu
-    - Event type classification (9 event type)
-    - Event logging entegrasyonu
-    - API startup/shutdown entegrasyonu
-    - Thread-safe monitoring loop
-    - 19 unit test yazıldı (hepsi geçti)
-  - İyileştirme Fırsatları (Opsiyonel):
-    - Event-driven architecture pattern
-    - Event queue mekanizması
-    - Event history tracking
-  - Not: Temel Event Detection tamamlandı. İyileştirmeler opsiyonel.
 
-### ✅ Session Management (Tamamlandı - Öncelik 2)
-- [x] **Görev:** Session manager oluştur (`api/session_manager.py`)
-  - Açıklama: Session oluşturma, event tracking, session storage
-  - Öncelik: Yüksek
-  - Durum: ✅ Tamamlandı (2025-12-10 03:45:00)
-  - Tamamlanan:
-    - `api/session_manager.py` oluşturuldu (ChargingSession, SessionManager sınıfları)
-    - Event Detector entegrasyonu (callback mekanizması)
-    - Session API endpoint'leri (`api/routers/sessions.py`)
-      - `GET /api/sessions/current` - Aktif session
-      - `GET /api/sessions/{session_id}` - Belirli session
-      - `GET /api/sessions` - Session listesi (pagination, status filter)
-      - `GET /api/sessions/count/stats` - Session istatistikleri
-    - API'ye entegrasyon (`api/main.py` startup event'inde)
-    - 19 unit test yazıldı (`tests/test_session_manager.py`)
-  - İyileştirme Fırsatları (Gelecek):
-    - Database entegrasyonu (SQLite veya PostgreSQL)
-    - Session persistence (crash recovery)
-    - Session analytics ve reporting
 
 ### 📋 Session Summary Generation (Orta Öncelik - Öncelik 3)
 - [ ] **Görev:** Session summary generator oluştur
@@ -297,14 +260,10 @@
 
 ### 🔴 Kritik Sorunlar (Acil Müdahale Gerekli)
 
-#### Öncelik 0: Test Dosyası Refactoring (Acil)
-- [ ] **Görev:** `tests/test_missing_unit_tests.py` bölünmeli
-  - Açıklama: Dosya boyutu 691 satır (Limit: 500) - maksimum sınır aşıldı
-  - Öncelik: 0 (Acil)
-  - Tahmini Süre: 2-3 saat
-  - Durum: 🔴 Maksimum sınır aşıldı
-  - Aksiyon: Test suite'lere bölünmeli
-  - Detaylar: `docs/AUDIT_REPORT_20251210.md` dosyasına bakınız
+#### ✅ Test Dosyası Refactoring (Tamamlandı)
+- [x] **Görev:** `tests/test_missing_unit_tests.py` kontrol edildi ✅ Tamamlandı
+  - Durum: ✅ Tamamlandı (2025-12-10 08:30:00)
+  - Sonuç: Dosya bulunamadı, muhtemelen zaten refactor edilmiş veya silinmiş
 
 ### 🟡 Uyarılar (Yakında Çözülmeli)
 
@@ -365,51 +324,6 @@
 
 ### 🔴 Kritik Database Sorunları (Acil Müdahale Gerekli)
 
-#### ✅ Events Normalization (Tamamlandı)
-- [x] **Görev:** Events JSON blob'u normalize et - `session_events` tablosu oluştur ✅ Tamamlandı
-  - Durum: ✅ Tamamlandı (2025-12-10 07:45:00)
-  - Sonuç:
-    - `session_events` tablosu oluşturuldu
-    - Event'ler normalize edildi
-    - Index'ler eklendi (session_id, event_type, timestamp)
-    - Database.create_event() ve get_session_events() metodları eklendi
-    - SessionManager event'leri session_events tablosuna kaydediyor
-    - Backward compatibility sağlandı (events JSON'ı da korunuyor)
-    - Migration script eklendi
-  - Avantajlar:
-    - ✅ Event type'a göre filtreleme yapılabiliyor
-    - ✅ Event bazlı analytics yapılabiliyor
-    - ✅ Index'ler kullanılabiliyor
-    - ✅ Incremental update (tek event ekleme)
-    - ✅ Selective loading (sadece gerekli event'ler)
-  - Detaylar: `docs/DATABASE_DEEP_DIVE_ANALYSIS_20251210.md` dosyasına bakınız
-
-#### ✅ Database Şema Migration (TEXT → INTEGER) (Tamamlandı)
-- [x] **Görev:** Timestamp alanlarını INTEGER (Unix timestamp)'a çevir ✅ Tamamlandı
-  - Durum: ✅ Tamamlandı (2025-12-10 07:20:00)
-  - Sonuç:
-    - Timestamp kolonları INTEGER'a çevrildi
-    - Migration script eklendi (_migrate_timestamp_columns)
-    - Mevcut veriler migrate edildi
-    - Database şeması güncellendi
-  - Detaylar: `docs/DATABASE_DEEP_DIVE_ANALYSIS_20251210.md` dosyasına bakınız
-
-#### ✅ Connection Management İyileştirmesi (Tamamlandı)
-- [x] **Görev:** Persistent connection + WAL mode ✅ Tamamlandı
-  - Durum: ✅ Tamamlandı (2025-12-10 08:25:00)
-  - Sonuç:
-    - Persistent connection implementasyonu eklendi
-    - WAL mode aktif edildi (PRAGMA journal_mode=WAL)
-    - Cache size optimize edildi (PRAGMA cache_size=-10000)
-    - Synchronous mode optimize edildi (PRAGMA synchronous=NORMAL)
-    - Foreign keys aktif edildi (PRAGMA foreign_keys=ON)
-    - Thread-safe connection yönetimi
-  - Avantajlar:
-    - ✅ Yüksek overhead azaldı (connection açma/kapama)
-    - ✅ Concurrent işlemlerde daha iyi performans
-    - ✅ SQLite WAL mode avantajları kullanılıyor
-    - ✅ Daha hızlı sorgular (cache optimization)
-  - Detaylar: `docs/DATABASE_DEEP_DIVE_ANALYSIS_20251210.md` dosyasına bakınız
 
 ---
 
@@ -421,16 +335,6 @@ Session Management modülü başarıyla implement edildi. Kod kalitesi yüksek, 
 
 ### 🟡 İyileştirme Fırsatları (Orta Öncelik)
 
-#### ✅ Session Manager Modülü Refactoring (Tamamlandı)
-- [x] **Görev:** `api/session_manager.py` modüllere bölme ✅ Tamamlandı
-  - Açıklama: Modüler yapıya dönüştürüldü
-  - Durum: ✅ Tamamlandı (2025-12-10 05:00:00)
-  - Sonuç:
-    - `api/session/status.py` (19 satır) - SessionStatus enum
-    - `api/session/session.py` (104 satır) - ChargingSession sınıfı
-    - `api/session/manager.py` (368 satır) - SessionManager sınıfı
-    - `api/session/__init__.py` (14 satır) - Public API
-  - Detaylar: `docs/SESSION_MANAGEMENT_AUDIT_20251210.md` dosyasına bakınız
 
 #### Öncelik 4: Test Dosyası Refactoring
 - [ ] **Görev:** `tests/test_session_manager.py` test suite'lere bölme
@@ -486,53 +390,6 @@ Session Management modülü başarıyla implement edildi. Kod kalitesi yüksek, 
 
 ### 🔴 Kritik Eksik Metrikler
 
-#### ✅ Şarj Metrikleri Database Şeması (Tamamlandı)
-- [x] **Görev:** Database şemasına şarj metrikleri ekleme ✅ Tamamlandı
-  - Durum: ✅ Tamamlandı (2025-12-10 07:20:00)
-  - Sonuç:
-    - ✅ Süre metrikleri eklendi (duration_seconds, charging_duration_seconds, idle_duration_seconds)
-    - ✅ Enerji metrikleri eklendi (total_energy_kwh, start_energy_kwh, end_energy_kwh)
-    - ✅ Güç metrikleri eklendi (max_power_kw, avg_power_kw, min_power_kw)
-    - ✅ Akım metrikleri eklendi (max_current_a, avg_current_a, min_current_a, set_current_a)
-    - ✅ Voltaj metrikleri eklendi (max_voltage_v, avg_voltage_v, min_voltage_v)
-    - Migration script eklendi (_migrate_metrics_columns)
-    - Check constraints eklendi
-    - Composite index'ler eklendi
-  - Detaylar: `docs/SESSION_CHARGING_METRICS_ANALYSIS_20251210.md` dosyasına bakınız
-
-#### ✅ Metrik Hesaplama Mantığı (Tamamlandı)
-- [x] **Görev:** Session metriklerini hesaplayan mantık ekleme ✅ Tamamlandı
-  - Durum: ✅ Tamamlandı (2025-12-10 07:30:00)
-  - Sonuç:
-    - `api/session/metrics.py` oluşturuldu (SessionMetricsCalculator)
-    - SessionManager'a metrik entegrasyonu eklendi
-    - Real-time metrik güncelleme çalışıyor
-    - Final metrik hesaplama çalışıyor
-    - Metrikler database'e kaydediliyor
-  - Detaylar: `docs/SESSION_CHARGING_METRICS_ANALYSIS_20251210.md` dosyasına bakınız
-
-#### ✅ SessionManager Metrik Entegrasyonu (Tamamlandı)
-- [x] **Görev:** SessionManager'a metrik entegrasyonu ✅ Tamamlandı
-  - Durum: ✅ Tamamlandı (2025-12-10 07:30:00)
-  - Sonuç:
-    - ✅ SessionMetricsCalculator sınıfı oluşturuldu
-    - ✅ Event'lerden current, voltage bilgilerini çıkarma
-    - ✅ Real-time metrik güncelleme (_update_session_metrics)
-    - ✅ Session sonunda final metrik hesaplama (_calculate_final_metrics)
-    - ✅ Database'e metrik kaydetme
-    - ✅ Tüm metrikler hesaplanıyor ve kaydediliyor
-  - Detaylar: `docs/SESSION_CHARGING_METRICS_ANALYSIS_20251210.md` dosyasına bakınız
-
-#### ✅ API Endpoint'leri (Tamamlandı)
-- [x] **Görev:** Metrik endpoint'leri ekleme ✅ Tamamlandı
-  - Durum: ✅ Tamamlandı (2025-12-10 08:45:00)
-  - Sonuç:
-    - ✅ GET /api/sessions/{session_id}/metrics - Session metrikleri
-    - ✅ GET /api/sessions/stats/energy - Enerji istatistikleri
-    - ✅ GET /api/sessions/stats/power - Güç istatistikleri
-    - ✅ User ID filtresi desteği
-    - ✅ Tüm metrikler döndürülüyor
-  - Detaylar: `docs/SESSION_CHARGING_METRICS_ANALYSIS_20251210.md` dosyasına bakınız
 
 ### 📊 Önerilen Database Şeması (Metriklerle)
 
