@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-10 09:50:00
+**Son Güncelleme:** 2025-12-10 14:47:00
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -771,4 +771,45 @@ CREATE TABLE sessions (
 ```
 
 **Detaylar:** `docs/SESSION_CHARGING_METRICS_ANALYSIS_20251210.md` dosyasına bakınız
+
+---
+
+## Öncelik 8: Sistem İyileştirmeleri (Düşük Öncelik)
+
+### Workspace Temizliği ve Optimizasyonu
+
+- [ ] **Görev:** Workspace temizliği
+  - Açıklama: Workspace boyutu 129.61 MB (Limit: 100 MB). env/ (90 MB) ve logs/ (19 MB) normal ama temizlik yapılabilir. Eski log dosyaları arşivlenebilir.
+  - Öncelik: 8
+  - Tahmini Süre: 30 dakika
+  - Durum: 📋 Bekliyor
+  - Detaylar: `scripts/workspace_auto_check.py` raporuna bakınız
+
+- [ ] **Görev:** Eski log dosyalarını arşivleme
+  - Açıklama: 30+ günlük log dosyaları arşivlenebilir. Log klasörü şu anda 19 MB.
+  - Öncelik: 8
+  - Tahmini Süre: 15 dakika
+  - Durum: 📋 Bekliyor
+
+- [ ] **Görev:** Code quality tools kurulumu
+  - Açıklama: Black ve ruff modülleri kurulabilir (formatting ve linting için). Şu anda modüller yok ama kritik değil.
+  - Öncelik: 8
+  - Tahmini Süre: 15 dakika
+  - Durum: 📋 Bekliyor
+  - Detaylar: `scripts/code_quality_auto_check.py` raporuna bakınız
+
+### Database İyileştirmeleri
+
+- [ ] **Görev:** Eski session'lar için user_id migration
+  - Açıklama: 105 adet eski session'da user_id yok. Bu session'lar user_id özelliği eklenmeden önceki session'lar. Migration yapılabilir ama kritik değil.
+  - Öncelik: 8
+  - Tahmini Süre: 1-2 saat
+  - Durum: 📋 Bekliyor
+  - Not: Yeni session'larda user_id var ✅
+
+- [ ] **Görev:** Test session'larını temizleme
+  - Açıklama: 2 adet test session'da events yok (CANCELLED status). Bu session'lar test amaçlı oluşturulmuş olabilir.
+  - Öncelik: 8
+  - Tahmini Süre: 15 dakika
+  - Durum: 📋 Bekliyor
 
