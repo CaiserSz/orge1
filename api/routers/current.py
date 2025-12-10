@@ -138,7 +138,7 @@ async def set_current(
     success = bridge.send_current_set(request_body.amperage)
 
     if not success:
-        error_msg = f"Akım ayarlama komutu gönderilemedi ({request.amperage}A)"
+        error_msg = f"Akım ayarlama komutu gönderilemedi ({request_body.amperage}A)"
         system_logger.error(
             f"Current set failed: {error_msg}",
             extra={
@@ -154,8 +154,8 @@ async def set_current(
 
     return APIResponse(
         success=True,
-        message=f"Akım ayarlandı: {request.amperage}A",
-        data={"amperage": request.amperage, "command": "current_set"},
+        message=f"Akım ayarlandı: {request_body.amperage}A",
+        data={"amperage": request_body.amperage, "command": "current_set"},
     )
 
 
