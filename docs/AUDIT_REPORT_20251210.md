@@ -1,18 +1,18 @@
 # Genel Audit Raporu - 2025-12-10
 
-**Oluşturulma Tarihi:** 2025-12-10 01:35:00  
-**Son Güncelleme:** 2025-12-10 01:35:00  
-**Version:** 1.0.0  
+**Oluşturulma Tarihi:** 2025-12-10 01:35:00
+**Son Güncelleme:** 2025-12-10 01:35:00
+**Version:** 1.0.0
 **Audit Kapsamı:** Son 2 saatteki tüm değişiklikler ve genel sistem durumu
 
 ---
 
 ## 📊 Executive Summary
 
-**Genel Durum:** ✅ İyi  
-**Kritik Sorunlar:** 1 (Test dosyası boyutu)  
-**Uyarılar:** 3 (Workspace boyutu, test dosyaları, kod kalitesi araçları)  
-**Tamamlanan Görevler:** 6 (Son 2 saatte)  
+**Genel Durum:** ✅ İyi
+**Kritik Sorunlar:** 1 (Test dosyası boyutu)
+**Uyarılar:** 3 (Workspace boyutu, test dosyaları, kod kalitesi araçları)
+**Tamamlanan Görevler:** 6 (Son 2 saatte)
 **Sistem Sağlığı:** ✅ Çok İyi
 
 ---
@@ -91,7 +91,7 @@ e38d400 fix(api): /api/test/key endpoint test sayfası için aktif edildi
 74cf7e0 fix(api): JavaScript syntax hatası düzeltildi
 ```
 
-**Toplam:** 7 commit  
+**Toplam:** 7 commit
 **Değişiklikler:** 31 dosya, 2488 ekleme, 138 silme
 
 ---
@@ -417,6 +417,6 @@ e38d400 fix(api): /api/test/key endpoint test sayfası için aktif edildi
 
 ---
 
-**Audit Tarihi:** 2025-12-10 01:35:00  
+**Audit Tarihi:** 2025-12-10 01:35:00
 **Sonraki Audit:** Önerilen: 2025-12-11 (24 saat sonra)
 

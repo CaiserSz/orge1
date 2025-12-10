@@ -1,7 +1,7 @@
 # Analiz Ignore Listesi
 
-**Oluşturulma Tarihi:** 2025-12-10 11:45:00  
-**Son Güncelleme:** 2025-12-10 11:45:00  
+**Oluşturulma Tarihi:** 2025-12-10 11:45:00
+**Son Güncelleme:** 2025-12-10 11:45:00
 **Versiyon:** 1.0.0
 
 ## Amaç

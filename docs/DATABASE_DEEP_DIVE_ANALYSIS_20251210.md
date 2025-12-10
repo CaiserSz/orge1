@@ -1,20 +1,20 @@
 # Database Deep Dive Analizi - Session Management
 
-**Oluşturulma Tarihi:** 2025-12-10 06:00:00  
-**Son Güncelleme:** 2025-12-10 06:00:00  
-**Version:** 1.0.0  
+**Oluşturulma Tarihi:** 2025-12-10 06:00:00
+**Son Güncelleme:** 2025-12-10 06:00:00
+**Version:** 1.0.0
 **Analiz Kapsamı:** Database şeması, normalizasyon, query patterns, scalability
 
 ---
 
 ## 📊 Executive Summary
 
-**Genel Durum:** 🟡 Yetersiz - İyileştirme Gerekli  
-**Database Şeması:** 🔴 Kritik Sorunlar Var  
-**Normalizasyon:** 🔴 Denormalized (JSON blobs)  
-**Query Performance:** 🟡 İyileştirme Gerekli  
-**Scalability:** 🔴 Büyük Ölçekte Sorunlu  
-**Data Integrity:** 🟡 Check Constraints Yok  
+**Genel Durum:** 🟡 Yetersiz - İyileştirme Gerekli
+**Database Şeması:** 🔴 Kritik Sorunlar Var
+**Normalizasyon:** 🔴 Denormalized (JSON blobs)
+**Query Performance:** 🟡 İyileştirme Gerekli
+**Scalability:** 🔴 Büyük Ölçekte Sorunlu
+**Data Integrity:** 🟡 Check Constraints Yok
 
 **Genel Skor:** 5.5/10
 
@@ -226,13 +226,13 @@ SELECT * FROM sessions WHERE start_time >= ? AND start_time <= ?
 
 **Çözüm: Composite Index'ler**
 ```sql
-CREATE INDEX idx_sessions_status_start_time 
+CREATE INDEX idx_sessions_status_start_time
 ON sessions(status, start_time DESC)
 
-CREATE INDEX idx_sessions_status_end_time 
+CREATE INDEX idx_sessions_status_end_time
 ON sessions(status, end_time DESC)
 
-CREATE INDEX idx_sessions_start_time_range 
+CREATE INDEX idx_sessions_start_time_range
 ON sessions(start_time DESC, end_time DESC)
 ```
 
@@ -296,7 +296,7 @@ class Database:
         self.conn.execute("PRAGMA synchronous=NORMAL")
         self.conn.execute("PRAGMA cache_size=10000")
         self.conn.execute("PRAGMA foreign_keys=ON")
-    
+
     def _get_connection(self):
         return self.conn  # Aynı connection
 ```
@@ -316,20 +316,20 @@ CREATE TABLE sessions (
     start_state INTEGER NOT NULL CHECK(start_state >= 0 AND start_state <= 8),
     end_state INTEGER CHECK(end_state IS NULL OR (end_state >= 0 AND end_state <= 8)),
     status TEXT NOT NULL CHECK(status IN ('ACTIVE', 'COMPLETED', 'CANCELLED', 'FAULTED')),
-    
+
     -- Hesaplanmış alanlar (materialized)
     duration_seconds INTEGER CHECK(duration_seconds IS NULL OR duration_seconds >= 0),
     event_count INTEGER DEFAULT 0 CHECK(event_count >= 0),
-    
+
     -- Gelecek için hazırlık (meter entegrasyonu)
     total_energy_kwh REAL CHECK(total_energy_kwh IS NULL OR total_energy_kwh >= 0),
     avg_current REAL CHECK(avg_current IS NULL OR avg_current >= 0),
     max_current INTEGER CHECK(max_current IS NULL OR max_current >= 0),
     min_current INTEGER CHECK(min_current IS NULL OR min_current >= 0),
-    
+
     -- Metadata (JSON - geçici, normalize edilebilir)
     metadata TEXT NOT NULL DEFAULT '{}',      -- JSON (backward compatibility)
-    
+
     -- Audit fields
     created_at INTEGER NOT NULL,              -- Unix timestamp
     updated_at INTEGER NOT NULL                -- Unix timestamp
@@ -370,7 +370,7 @@ CREATE INDEX idx_sessions_status ON sessions(status)
 CREATE INDEX idx_sessions_end_time ON sessions(end_time DESC)
 CREATE INDEX idx_sessions_status_start_time ON sessions(status, start_time DESC)
 CREATE INDEX idx_sessions_status_end_time ON sessions(status, end_time DESC)
-CREATE INDEX idx_sessions_active ON sessions(start_time DESC) 
+CREATE INDEX idx_sessions_active ON sessions(start_time DESC)
     WHERE status = 'ACTIVE' AND end_time IS NULL
 CREATE INDEX idx_sessions_start_time_range ON sessions(start_time DESC, end_time DESC)
 
@@ -449,7 +449,7 @@ LIMIT 1
 **İyileştirme:**
 ```sql
 -- Partial index ile optimize
-CREATE INDEX idx_sessions_active ON sessions(start_time DESC) 
+CREATE INDEX idx_sessions_active ON sessions(start_time DESC)
 WHERE status = 'ACTIVE' AND end_time IS NULL
 ```
 
@@ -490,11 +490,11 @@ ORDER BY start_time DESC
 **İyileştirme:**
 ```sql
 -- Normalized events table ile
-SELECT DISTINCT session_id 
-FROM session_events 
+SELECT DISTINCT session_id
+FROM session_events
 WHERE event_type = 'CHARGE_STARTED'
 
-SELECT s.* 
+SELECT s.*
 FROM sessions s
 JOIN session_events e ON s.session_id = e.session_id
 WHERE e.event_type = 'FAULT_DETECTED'
@@ -523,9 +523,9 @@ events = json.loads(events_json)  # ~10-20ms overhead
 ```python
 # Normalized table ile
 # Sadece gerekli event'ler yüklenir
-SELECT * FROM session_events 
-WHERE session_id = ? 
-ORDER BY event_timestamp DESC 
+SELECT * FROM session_events
+WHERE session_id = ?
+ORDER BY event_timestamp DESC
 LIMIT 100
 # ~1-2ms
 ```
@@ -547,7 +547,7 @@ UPDATE sessions SET events = ? WHERE session_id = ?  # ~200 KB write
 **İyileştirme:**
 ```sql
 -- Normalized table ile
-INSERT INTO session_events (session_id, event_type, ...) 
+INSERT INTO session_events (session_id, event_type, ...)
 VALUES (?, ?, ...)
 -- ~1ms
 ```
@@ -658,7 +658,7 @@ class Database:
         self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self._configure_database()
         self._initialize_schema()
-    
+
     def _configure_database(self):
         """SQLite optimizasyonları"""
         self.conn.execute("PRAGMA journal_mode=WAL")
@@ -666,7 +666,7 @@ class Database:
         self.conn.execute("PRAGMA cache_size=10000")
         self.conn.execute("PRAGMA foreign_keys=ON")
         self.conn.execute("PRAGMA temp_store=MEMORY")
-    
+
     def _get_connection(self):
         return self.conn  # Persistent connection
 ```
@@ -679,7 +679,7 @@ def create_event(self, session_id: str, event_type: str, event_data: Dict):
     cursor = self.conn.cursor()
     cursor.execute(
         """
-        INSERT INTO session_events 
+        INSERT INTO session_events
         (session_id, event_type, event_timestamp, from_state, to_state, event_data)
         VALUES (?, ?, ?, ?, ?, ?)
         """,

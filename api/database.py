@@ -9,7 +9,8 @@ Description: SQLite database yönetimi ve session storage
 import sqlite3
 import threading
 import json
-from typing import Optional, Dict, Any, List
+import time
+from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime
 from pathlib import Path
 import sys
@@ -44,7 +45,12 @@ class Database:
         self.lock = threading.Lock()
         self._connection: Optional[sqlite3.Connection] = None
         self._connection_lock = threading.Lock()
+        # Query result cache (basit in-memory cache)
+        self._query_cache: Dict[str, Tuple[Any, float]] = {}
+        self._cache_ttl = 60.0  # 60 saniye cache TTL
         self._initialize_database()
+        # Database optimization'ı başlat
+        self._optimize_database()
 
     def _initialize_database(self):
         """Database'i başlat ve tabloları oluştur"""
@@ -179,6 +185,8 @@ class Database:
                     ON sessions(user_id, start_time DESC)
                     """
                 )
+                # Database optimization index'leri
+                self._create_optimization_indexes(cursor)
                 cursor.execute(
                     """
                     CREATE INDEX IF NOT EXISTS idx_session_events_user_id
@@ -237,6 +245,100 @@ class Database:
                 conn.rollback()
                 raise
             # Connection persistent - close gerekmez
+
+    def _create_optimization_indexes(self, cursor):
+        """
+        Database optimization için ek index'ler oluştur
+
+        Args:
+            cursor: Database cursor
+        """
+        try:
+            # get_current_session için optimize edilmiş index
+            # (status, end_time, start_time) composite index
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_sessions_status_end_start
+                ON sessions(status, end_time, start_time DESC)
+                WHERE end_time IS NULL
+                """
+            )
+            # user_id ve status kombinasyonu için index
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_sessions_user_status_start
+                ON sessions(user_id, status, start_time DESC)
+                """
+            )
+            system_logger.debug("Optimization indexes created")
+        except Exception as e:
+            system_logger.warning(f"Optimization index creation failed: {e}")
+
+    def _optimize_database(self):
+        """
+        Database'i optimize et (index'ler, query plan analizi)
+        """
+        try:
+            from api.database_optimization import optimize_indexes, get_query_statistics
+
+            conn = self._get_connection()
+            # Index optimization
+            opt_results = optimize_indexes(conn)
+            if opt_results.get("created"):
+                system_logger.info(
+                    f"Database optimization: {len(opt_results['created'])} index created"
+                )
+            # Query statistics
+            stats = get_query_statistics(conn)
+            if stats:
+                system_logger.debug(f"Database statistics: {stats}")
+        except Exception as e:
+            system_logger.warning(f"Database optimization failed: {e}")
+
+    def _get_from_cache(self, key: str) -> Optional[Any]:
+        """
+        Cache'den değer al
+
+        Args:
+            key: Cache key
+
+        Returns:
+            Cached değer veya None
+        """
+        if key not in self._query_cache:
+            return None
+
+        cached_value, expires_at = self._query_cache[key]
+        if time.time() > expires_at:
+            del self._query_cache[key]
+            return None
+
+        return cached_value
+
+    def _set_cache(self, key: str, value: Any) -> None:
+        """
+        Cache'e değer kaydet
+
+        Args:
+            key: Cache key
+            value: Cache edilecek değer
+        """
+        expires_at = time.time() + self._cache_ttl
+        self._query_cache[key] = (value, expires_at)
+
+    def _clear_cache(self, pattern: Optional[str] = None) -> None:
+        """
+        Cache'i temizle
+
+        Args:
+            pattern: Cache key pattern (None ise tüm cache temizlenir)
+        """
+        if pattern is None:
+            self._query_cache.clear()
+        else:
+            keys_to_delete = [key for key in self._query_cache.keys() if pattern in key]
+            for key in keys_to_delete:
+                del self._query_cache[key]
 
     def _migrate_timestamp_columns(self, cursor):
         """
@@ -511,6 +613,8 @@ class Database:
                 )
 
                 conn.commit()
+                # Cache'i temizle (yeni session eklendi)
+                self._clear_cache("sessions:")
                 return True
             except sqlite3.IntegrityError:
                 # Session zaten var
@@ -642,6 +746,8 @@ class Database:
                 cursor.execute(query, update_values)
 
                 conn.commit()
+                # Cache'i temizle (session güncellendi)
+                self._clear_cache("sessions:")
                 return True
             except Exception as e:
                 system_logger.error(f"Update session error: {e}", exc_info=True)
@@ -681,6 +787,7 @@ class Database:
         offset: int = 0,
         status: Optional[str] = None,
         user_id: Optional[str] = None,
+        use_cache: bool = True,
     ) -> List[Dict[str, Any]]:
         """
         Session listesini al
@@ -690,10 +797,18 @@ class Database:
             offset: Başlangıç offset'i
             status: Status filtresi (opsiyonel)
             user_id: User ID filtresi (opsiyonel)
+            use_cache: Cache kullan (varsayılan: True)
 
         Returns:
             Session listesi
         """
+        # Cache key oluştur (offset hariç - pagination için cache kullanılmaz)
+        cache_key = f"sessions:{status}:{user_id}:{limit}"
+        if use_cache and offset == 0:
+            cached_result = self._get_from_cache(cache_key)
+            if cached_result is not None:
+                return cached_result
+
         with self.lock:
             conn = self._get_connection()
             try:
@@ -725,7 +840,13 @@ class Database:
                 )
 
                 rows = cursor.fetchall()
-                return [self._row_to_dict(row) for row in rows]
+                result = [self._row_to_dict(row) for row in rows]
+
+                # Cache'e kaydet (sadece offset=0 için)
+                if use_cache and offset == 0:
+                    self._set_cache(cache_key, result)
+
+                return result
             except Exception as e:
                 system_logger.error(f"Get sessions error: {e}", exc_info=True)
                 return []

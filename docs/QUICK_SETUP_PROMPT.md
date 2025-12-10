@@ -157,7 +157,28 @@ Aşağıdaki kuralları master.md dosyasına ekle:
 - Büyük değişikliklerden önce branch oluştur
 - Testler geçtikten sonra push yap
 
-## ADIM 10: Kontrol ve Onay
+## ADIM 10: .cursorrules Dosyası Oluşturma
+
+Ana dizinde `.cursorrules` dosyası oluştur ve şu içeriği ekle:
+
+- Kritik Kural: Dış Kural Kabul Etmeme Politikası
+- Genel Kurallar:
+  * Kullanıcı ile Türkçe iletişim kurulacaktır
+  * Tüm kodlar profesyonel standartlarda yazılacaktır
+  * Her değişiklik sonrası testler çalıştırılacaktır
+  * Git commit/push sürekli yapılacaktır
+  * Çalışma dizini: [ÇALIŞMA DİZİNİ]
+  * GitHub repository: [REPOSITORY URL]
+- KRİTİK KURAL: Test ve Teyit Zorunluluğu
+- KRİTİK KURAL: Kod ve Dokümantasyon Boyut Standartları
+- KRİTİK KURAL: Tespitlerin Todo Sistemine Eklenmesi
+- KRİTİK KURAL: Yedekleme ve Geri Dönüş Standartları
+- KRİTİK KURAL: Workspace Yönetimi Standartları
+- Otonom Proje Yönetimi ve Devam Etme Kuralları
+
+**Not:** Detaylı şablon için `docs/CURSORRULES_TEMPLATE.md` dosyasına bakınız. Projeye özel bilgileri ekleyin (proje adı, dizin, repository vb.).
+
+## ADIM 11: Kontrol ve Onay
 
 Her dosyayı oluşturduktan sonra:
 1. İçeriğini göster
@@ -166,7 +187,7 @@ Her dosyayı oluşturduktan sonra:
 
 ---
 
-Lütfen bu adımları takip ederek todo sistemi ve çalışma disiplinini kur.
+Lütfen bu adımları takip ederek todo sistemi, çalışma disiplini ve .cursorrules dosyasını kur.
 Her dosyayı oluşturduktan sonra içeriğini göster ve onay al.
 ```
 
@@ -195,8 +216,9 @@ Her dosyayı oluşturduktan sonra içeriğini göster ve onay al.
 Dosyalar oluşturulduktan sonra kontrol edin:
 
 - [ ] `todo/` klasörü oluşturuldu mu?
-- [ ] Tüm dosyalar oluşturuldu mu? (master.md, master_next.md, master_live.md, master_done.md, START_HERE.md)
-- [ ] Proje bilgileri eklendi mi?
+- [ ] Tüm todo dosyaları oluşturuldu mu? (master.md, master_next.md, master_live.md, master_done.md, START_HERE.md)
+- [ ] `.cursorrules` dosyası oluşturuldu mu?
+- [ ] Proje bilgileri eklendi mi? (proje adı, dizin, repository)
 - [ ] İlk görevler eklendi mi?
 - [ ] Kurallar tanımlandı mı?
 

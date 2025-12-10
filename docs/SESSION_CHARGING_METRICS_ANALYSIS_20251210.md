@@ -1,18 +1,18 @@
 # Session Charging Metrics Analizi ve İyileştirme Planı
 
-**Oluşturulma Tarihi:** 2025-12-10 06:30:00  
-**Son Güncelleme:** 2025-12-10 06:30:00  
-**Version:** 1.0.0  
+**Oluşturulma Tarihi:** 2025-12-10 06:30:00
+**Son Güncelleme:** 2025-12-10 06:30:00
+**Version:** 1.0.0
 **Analiz Kapsamı:** Şarj metrikleri, enerji takibi, güç analizi
 
 ---
 
 ## 📊 Executive Summary
 
-**Mevcut Durum:** 🔴 Eksik - Kritik Metrikler Yok  
-**Gerekli Metrikler:** 🟡 Kısmen Mevcut  
-**Database Şeması:** 🔴 Metrikler İçin Hazır Değil  
-**Hesaplama Mantığı:** 🔴 Yok  
+**Mevcut Durum:** 🔴 Eksik - Kritik Metrikler Yok
+**Gerekli Metrikler:** 🟡 Kısmen Mevcut
+**Database Şeması:** 🔴 Metrikler İçin Hazır Değil
+**Hesaplama Mantığı:** 🔴 Yok
 
 **Genel Skor:** 3.0/10
 
@@ -125,38 +125,38 @@ CREATE TABLE sessions (
     start_state INTEGER NOT NULL CHECK(start_state >= 0 AND start_state <= 8),
     end_state INTEGER CHECK(end_state IS NULL OR (end_state >= 0 AND end_state <= 8)),
     status TEXT NOT NULL CHECK(status IN ('ACTIVE', 'COMPLETED', 'CANCELLED', 'FAULTED')),
-    
+
     -- Süre metrikleri
     duration_seconds INTEGER CHECK(duration_seconds IS NULL OR duration_seconds >= 0),
     charging_duration_seconds INTEGER CHECK(charging_duration_seconds IS NULL OR charging_duration_seconds >= 0),
     idle_duration_seconds INTEGER CHECK(idle_duration_seconds IS NULL OR idle_duration_seconds >= 0),
-    
+
     -- Enerji metrikleri
     total_energy_kwh REAL CHECK(total_energy_kwh IS NULL OR total_energy_kwh >= 0),
     start_energy_kwh REAL CHECK(start_energy_kwh IS NULL OR start_energy_kwh >= 0),
     end_energy_kwh REAL CHECK(end_energy_kwh IS NULL OR end_energy_kwh >= 0),
-    
+
     -- Güç metrikleri
     max_power_kw REAL CHECK(max_power_kw IS NULL OR max_power_kw >= 0),
     avg_power_kw REAL CHECK(avg_power_kw IS NULL OR avg_power_kw >= 0),
     min_power_kw REAL CHECK(min_power_kw IS NULL OR min_power_kw >= 0),
-    
+
     -- Akım metrikleri
     max_current_a REAL CHECK(max_current_a IS NULL OR max_current_a >= 0),
     avg_current_a REAL CHECK(avg_current_a IS NULL OR avg_current_a >= 0),
     min_current_a REAL CHECK(min_current_a IS NULL OR min_current_a >= 0),
     set_current_a REAL CHECK(set_current_a IS NULL OR set_current_a >= 0),
-    
+
     -- Voltaj metrikleri
     max_voltage_v REAL CHECK(max_voltage_v IS NULL OR max_voltage_v >= 0),
     avg_voltage_v REAL CHECK(avg_voltage_v IS NULL OR avg_voltage_v >= 0),
     min_voltage_v REAL CHECK(min_voltage_v IS NULL OR min_voltage_v >= 0),
-    
+
     -- Event ve metadata
     event_count INTEGER DEFAULT 0 CHECK(event_count >= 0),
     events TEXT NOT NULL DEFAULT '[]',         -- JSON (backward compatibility)
     metadata TEXT NOT NULL DEFAULT '{}',      -- JSON
-    
+
     -- Audit fields
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
@@ -175,16 +175,16 @@ CREATE TABLE session_events (
     to_state INTEGER,
     from_state_name TEXT,
     to_state_name TEXT,
-    
+
     -- Metrikler (her event'te)
     current_a REAL,                            -- Akım (A)
     voltage_v REAL,                            -- Voltaj (V)
     power_kw REAL,                             -- Güç (kW) - calculated
     energy_kwh REAL,                           -- Enerji (kWh) - cumulative
-    
+
     -- Status bilgileri
     status_data TEXT,                          -- JSON (full status)
-    
+
     -- Additional data
     event_data TEXT,                           -- JSON (additional data)
     created_at INTEGER NOT NULL,
@@ -202,17 +202,17 @@ CREATE TABLE session_events (
 def calculate_power(current_a: float, voltage_v: float) -> float:
     """
     Güç hesaplama: P = V × I
-    
+
     Args:
         current_a: Akım (Amper)
         voltage_v: Voltaj (Volt)
-    
+
     Returns:
         Güç (kW)
     """
     if current_a is None or voltage_v is None:
         return None
-    
+
     power_w = current_a * voltage_v  # Watt
     power_kw = power_w / 1000.0      # Kilowatt
     return round(power_kw, 3)
@@ -224,17 +224,17 @@ def calculate_power(current_a: float, voltage_v: float) -> float:
 def calculate_energy(power_kw: float, duration_hours: float) -> float:
     """
     Enerji hesaplama: E = P × t
-    
+
     Args:
         power_kw: Güç (kW)
         duration_hours: Süre (saat)
-    
+
     Returns:
         Enerji (kWh)
     """
     if power_kw is None or duration_hours is None:
         return None
-    
+
     energy_kwh = power_kw * duration_hours
     return round(energy_kwh, 3)
 ```
@@ -244,7 +244,7 @@ def calculate_energy(power_kw: float, duration_hours: float) -> float:
 ```python
 class SessionMetricsCalculator:
     """Session metriklerini hesaplayan sınıf"""
-    
+
     def __init__(self, session: ChargingSession):
         self.session = session
         self.currents = []
@@ -252,67 +252,67 @@ class SessionMetricsCalculator:
         self.powers = []
         self.start_time = None
         self.charging_start_time = None
-    
+
     def add_event(self, event: Dict[str, Any]):
         """Event ekle ve metrikleri güncelle"""
         status = event.get('status', {})
         current_a = status.get('CURRENT')
         voltage_v = status.get('CPV') or status.get('PPV')
-        
+
         if current_a is not None:
             self.currents.append(current_a)
-        
+
         if voltage_v is not None:
             self.voltages.append(voltage_v)
-        
+
         if current_a is not None and voltage_v is not None:
             power_kw = calculate_power(current_a, voltage_v)
             self.powers.append(power_kw)
-        
+
         # Charging state kontrolü
         if event.get('to_state') == ESP32State.CHARGING.value:
             self.charging_start_time = datetime.now()
-    
+
     def calculate_metrics(self) -> Dict[str, Any]:
         """Tüm metrikleri hesapla"""
         metrics = {}
-        
+
         # Süre metrikleri
         if self.session.end_time:
             duration = (self.session.end_time - self.session.start_time).total_seconds()
             metrics['duration_seconds'] = int(duration)
-            
+
             if self.charging_start_time:
                 charging_duration = (self.session.end_time - self.charging_start_time).total_seconds()
                 metrics['charging_duration_seconds'] = int(charging_duration)
                 metrics['idle_duration_seconds'] = int(duration - charging_duration)
-        
+
         # Akım metrikleri
         if self.currents:
             metrics['max_current_a'] = max(self.currents)
             metrics['avg_current_a'] = sum(self.currents) / len(self.currents)
             metrics['min_current_a'] = min(self.currents)
-        
+
         # Voltaj metrikleri
         if self.voltages:
             metrics['max_voltage_v'] = max(self.voltages)
             metrics['avg_voltage_v'] = sum(self.voltages) / len(self.voltages)
             metrics['min_voltage_v'] = min(self.voltages)
-        
+
         # Güç metrikleri
         if self.powers:
             metrics['max_power_kw'] = max(self.powers)
             metrics['avg_power_kw'] = sum(self.powers) / len(self.powers)
             metrics['min_power_kw'] = min(self.powers)
-        
+
         # Enerji hesaplama (güç × süre)
         if metrics.get('avg_power_kw') and metrics.get('charging_duration_seconds'):
             duration_hours = metrics['charging_duration_seconds'] / 3600.0
             metrics['total_energy_kwh'] = calculate_energy(
-                metrics['avg_power_kw'], 
+                metrics['avg_power_kw'],
                 duration_hours
             )
-        
+
         return metrics
 ```
 
@@ -329,39 +329,39 @@ class SessionManager:
         if self.current_session:
             # Event ekle
             self.current_session.add_event(event_type, event_data)
-            
+
             # Metrikleri güncelle
             self._update_session_metrics(event_data)
-            
+
             # Database'e kaydet
             self.db.update_session(
                 session_id=self.current_session.session_id,
                 events=self.current_session.events,
                 metrics=self.current_session.metrics  # Yeni alan
             )
-    
+
     def _update_session_metrics(self, event_data: Dict[str, Any]):
         """Session metriklerini güncelle"""
         status = event_data.get('status', {})
         current_a = status.get('CURRENT')
         voltage_v = status.get('CPV') or status.get('PPV')
-        
+
         if current_a is not None:
             # Maksimum akım güncelle
             if self.current_session.metrics.get('max_current_a', 0) < current_a:
                 self.current_session.metrics['max_current_a'] = current_a
-            
+
             # Minimum akım güncelle
             if self.current_session.metrics.get('min_current_a') is None:
                 self.current_session.metrics['min_current_a'] = current_a
             elif self.current_session.metrics['min_current_a'] > current_a:
                 self.current_session.metrics['min_current_a'] = current_a
-        
+
         if voltage_v is not None:
             # Voltaj metrikleri güncelle
             if self.current_session.metrics.get('max_voltage_v', 0) < voltage_v:
                 self.current_session.metrics['max_voltage_v'] = voltage_v
-        
+
         # Güç hesapla ve güncelle
         if current_a is not None and voltage_v is not None:
             power_kw = calculate_power(current_a, voltage_v)
@@ -378,12 +378,12 @@ def _end_session_internal(self, session, end_time, end_state, status):
     calculator = SessionMetricsCalculator(session)
     for event in session.events:
         calculator.add_event(event)
-    
+
     final_metrics = calculator.calculate_metrics()
-    
+
     # Session'a ekle
     session.metrics.update(final_metrics)
-    
+
     # Database'e kaydet
     self.db.update_session(
         session_id=session.session_id,
