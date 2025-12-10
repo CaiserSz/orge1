@@ -7,12 +7,12 @@ Description: Status and health check endpoints
 """
 
 import threading
-import time
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Request
 from esp32.bridge import ESP32Bridge
 from api.routers.dependencies import get_bridge
 from api.models import APIResponse
 from api.event_detector import get_event_detector
+from api.rate_limiting import status_rate_limit
 
 router = APIRouter(prefix="/api", tags=["Status"])
 
@@ -29,7 +29,6 @@ async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
     - Thread sayısı
     - Memory kullanımı (yaklaşık)
     """
-    import sys
     import os
 
     health_data = {
@@ -38,7 +37,7 @@ async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
         "esp32_status": None,
         "event_detector": None,
         "threads": threading.active_count(),
-        "memory_mb": None
+        "memory_mb": None,
     }
 
     # ESP32 durumu
@@ -50,7 +49,7 @@ async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
         else:
             health_data["esp32_status"] = "disconnected"
             # Reconnection durumu bilgisi
-            if hasattr(bridge, '_reconnect_attempts'):
+            if hasattr(bridge, "_reconnect_attempts"):
                 health_data["reconnect_attempts"] = bridge._reconnect_attempts
 
     # Event detector durumu
@@ -59,7 +58,11 @@ async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
         if event_detector:
             health_data["event_detector"] = {
                 "monitoring": event_detector.is_monitoring,
-                "thread_alive": event_detector._monitor_thread.is_alive() if event_detector._monitor_thread else False
+                "thread_alive": (
+                    event_detector._monitor_thread.is_alive()
+                    if event_detector._monitor_thread
+                    else False
+                ),
             }
     except Exception as e:
         health_data["event_detector"] = {"error": str(e)}
@@ -70,9 +73,9 @@ async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
 
         # Process memory kullanımı
         try:
-            with open(f'/proc/{pid}/status', 'r') as f:
+            with open(f"/proc/{pid}/status", "r") as f:
                 for line in f:
-                    if line.startswith('VmRSS:'):
+                    if line.startswith("VmRSS:"):
                         memory_kb = int(line.split()[1])
                         health_data["memory_mb"] = round(memory_kb / 1024, 2)
                         break
@@ -82,12 +85,12 @@ async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
         # Process CPU kullanımı (basit hesaplama)
         try:
             # /proc/stat ve /proc/[pid]/stat kullanarak CPU% hesapla
-            with open('/proc/stat', 'r') as f:
+            with open("/proc/stat", "r") as f:
                 cpu_line = f.readline()
                 cpu_fields = cpu_line.split()
                 total_jiffies = sum(int(x) for x in cpu_fields[1:])
 
-            with open(f'/proc/{pid}/stat', 'r') as f:
+            with open(f"/proc/{pid}/stat", "r") as f:
                 proc_stat = f.read().split()
                 # utime + stime (14 ve 15. alanlar, 0-indexed: 13 ve 14)
                 proc_utime = int(proc_stat[13])
@@ -106,21 +109,29 @@ async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
         # Sistem genel metrikleri
         try:
             # Sistem memory kullanımı
-            with open('/proc/meminfo', 'r') as f:
+            with open("/proc/meminfo", "r") as f:
                 meminfo = {}
                 for line in f:
                     parts = line.split()
                     if len(parts) >= 2:
-                        meminfo[parts[0].rstrip(':')] = int(parts[1])
+                        meminfo[parts[0].rstrip(":")] = int(parts[1])
 
-                total_mem_kb = meminfo.get('MemTotal', 0)
-                available_mem_kb = meminfo.get('MemAvailable', meminfo.get('MemFree', 0))
+                total_mem_kb = meminfo.get("MemTotal", 0)
+                available_mem_kb = meminfo.get(
+                    "MemAvailable", meminfo.get("MemFree", 0)
+                )
 
                 if total_mem_kb > 0:
                     used_mem_kb = total_mem_kb - available_mem_kb
-                    health_data["system_memory_percent"] = round((used_mem_kb / total_mem_kb) * 100, 2)
-                    health_data["system_memory_total_mb"] = round(total_mem_kb / 1024, 2)
-                    health_data["system_memory_available_mb"] = round(available_mem_kb / 1024, 2)
+                    health_data["system_memory_percent"] = round(
+                        (used_mem_kb / total_mem_kb) * 100, 2
+                    )
+                    health_data["system_memory_total_mb"] = round(
+                        total_mem_kb / 1024, 2
+                    )
+                    health_data["system_memory_available_mb"] = round(
+                        available_mem_kb / 1024, 2
+                    )
         except (OSError, ValueError, FileNotFoundError):
             pass
 
@@ -130,7 +141,7 @@ async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
             health_data["load_average"] = {
                 "1min": round(load_avg[0], 2),
                 "5min": round(load_avg[1], 2),
-                "15min": round(load_avg[2], 2)
+                "15min": round(load_avg[2], 2),
             }
         except (OSError, AttributeError):
             pass
@@ -138,10 +149,15 @@ async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
         # psutil varsa daha detaylı bilgi ekle
         try:
             import psutil
+
             process = psutil.Process(pid)
-            health_data["cpu_percent"] = round(process.cpu_percent(interval=0.1), 2)  # Kısa interval
+            health_data["cpu_percent"] = round(
+                process.cpu_percent(interval=0.1), 2
+            )  # Kısa interval
             health_data["memory_percent"] = round(process.memory_percent(), 2)
-            health_data["system_cpu_percent"] = round(psutil.cpu_percent(interval=0.1), 2)
+            health_data["system_cpu_percent"] = round(
+                psutil.cpu_percent(interval=0.1), 2
+            )
             # psutil varsa cpu_note'u kaldır
             health_data.pop("cpu_note", None)
         except ImportError:
@@ -155,25 +171,28 @@ async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
 
             # Raspberry Pi: /sys/class/thermal/thermal_zone0/temp (millidegree)
             try:
-                with open('/sys/class/thermal/thermal_zone0/temp', 'r') as f:
+                with open("/sys/class/thermal/thermal_zone0/temp", "r") as f:
                     temp_millidegree = int(f.read().strip())
                     cpu_temp_celsius = round(temp_millidegree / 1000.0, 2)
             except (OSError, ValueError, FileNotFoundError):
                 # psutil ile CPU sıcaklığı (Linux, alternatif yöntem)
                 try:
                     import psutil
+
                     if hasattr(psutil, "sensors_temperatures"):
                         temps = psutil.sensors_temperatures()
-                        if 'cpu_thermal' in temps:
-                            cpu_temp_celsius = round(temps['cpu_thermal'][0].current, 2)
-                        elif 'coretemp' in temps:
-                            cpu_temp_celsius = round(temps['coretemp'][0].current, 2)
+                        if "cpu_thermal" in temps:
+                            cpu_temp_celsius = round(temps["cpu_thermal"][0].current, 2)
+                        elif "coretemp" in temps:
+                            cpu_temp_celsius = round(temps["coretemp"][0].current, 2)
                 except (ImportError, AttributeError, KeyError, IndexError):
                     pass
 
             if cpu_temp_celsius is not None:
                 health_data["cpu_temperature_celsius"] = cpu_temp_celsius
-                health_data["cpu_temperature_fahrenheit"] = round(cpu_temp_celsius * 9/5 + 32, 2)
+                health_data["cpu_temperature_fahrenheit"] = round(
+                    cpu_temp_celsius * 9 / 5 + 32, 2
+                )
 
                 # Sıcaklık durumu (Raspberry Pi için eşik değerleri)
                 if cpu_temp_celsius > 80:
@@ -192,20 +211,17 @@ async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
 
     # Genel sağlık durumu
     is_healthy = (
-        health_data["api"] == "healthy" and
-        health_data["esp32_connected"] and
-        health_data["esp32_status"] == "available"
+        health_data["api"] == "healthy"
+        and health_data["esp32_connected"]
+        and health_data["esp32_status"] == "available"
     )
 
-    return APIResponse(
-        success=True,
-        message="System health check",
-        data=health_data
-    )
+    return APIResponse(success=True, message="System health check", data=health_data)
 
 
 @router.get("/status")
-async def get_status(bridge: ESP32Bridge = Depends(get_bridge)):
+@status_rate_limit()  # Status endpoint'leri için rate limit (30/dakika)
+async def get_status(request: Request, bridge: ESP32Bridge = Depends(get_bridge)):
     """
     ESP32 durum bilgisini al
 
@@ -217,7 +233,7 @@ async def get_status(bridge: ESP32Bridge = Depends(get_bridge)):
     if not bridge or not bridge.is_connected:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="ESP32 bağlantısı yok"
+            detail="ESP32 bağlantısı yok",
         )
 
     # Önce cache'den kontrol et (stale data kontrolü ile)
@@ -230,12 +246,9 @@ async def get_status(bridge: ESP32Bridge = Depends(get_bridge)):
     if not status_data:
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-            detail="ESP32'den durum bilgisi alınamadı (timeout veya stale data)"
+            detail="ESP32'den durum bilgisi alınamadı (timeout veya stale data)",
         )
 
     return APIResponse(
-        success=True,
-        message="Status retrieved successfully",
-        data=status_data
+        success=True, message="Status retrieved successfully", data=status_data
     )
-

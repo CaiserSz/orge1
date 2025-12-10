@@ -9,6 +9,38 @@
 
 ### 2025-12-10
 
+#### ✅ Rate Limiting Implementasyonu (13:00:00)
+- **Görev:** Rate limiting ekleme (IP-based ve API key-based)
+- **Detaylar:**
+  - ✅ slowapi kütüphanesi kuruldu ve entegre edildi
+  - ✅ IP-based rate limiting implementasyonu (genel endpoint'ler için: 60/dakika)
+  - ✅ API key-based rate limiting implementasyonu (kritik endpoint'ler için: 200/dakika)
+  - ✅ Endpoint-specific rate limits:
+    - Charge endpoint'leri: 10/dakika (`/api/charge/start`, `/api/charge/stop`)
+    - Status endpoint'leri: 30/dakika (`/api/status`)
+    - Current endpoint'leri: 10/dakika (`/api/maxcurrent`)
+  - ✅ Rate limiting modülü oluşturuldu (`api/rate_limiting.py`)
+    - Client identifier fonksiyonu (API key hash veya IP adresi)
+    - Rate limit konfigürasyonu (environment variable'lardan)
+    - Decorator fonksiyonları (ip_rate_limit, api_key_rate_limit, charge_rate_limit, status_rate_limit)
+  - ✅ Router'lara rate limiting decorator'ları eklendi
+    - `api/routers/charge.py`: Charge endpoint'leri için rate limiting
+    - `api/routers/status.py`: Status endpoint'leri için rate limiting
+    - `api/routers/current.py`: Current endpoint'leri için rate limiting
+  - ✅ Test dosyası oluşturuldu (`tests/test_rate_limiting.py`)
+- **Dosyalar:**
+  - `api/rate_limiting.py` - Rate limiting modülü (196 satır)
+  - `api/main.py` - Rate limiting entegrasyonu
+  - `api/routers/charge.py` - Charge endpoint'leri rate limiting
+  - `api/routers/status.py` - Status endpoint'leri rate limiting
+  - `api/routers/current.py` - Current endpoint'leri rate limiting
+  - `tests/test_rate_limiting.py` - Rate limiting testleri
+  - `requirements.txt` - slowapi>=0.1.9 eklendi
+- **Durum:** ✅ Tamamlandı
+- **Notlar:** Rate limiting başarıyla implement edildi ve test edildi. DDoS saldırılarına ve brute force saldırılarına karşı koruma sağlanıyor.
+
+### 2025-12-10
+
 #### ✅ Mock Yapısı Standardizasyonu (12:30:00)
 - **Görev:** Mock yapısı standardizasyonu
 - **Detaylar:**

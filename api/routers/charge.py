@@ -10,12 +10,13 @@ import logging
 import os
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from api.auth import verify_api_key
 from api.event_detector import ESP32State
 from api.logging_config import log_event, system_logger
 from api.models import APIResponse, ChargeStartRequest, ChargeStopRequest
+from api.rate_limiting import charge_rate_limit
 from api.routers.dependencies import get_bridge
 from esp32.bridge import ESP32Bridge
 
@@ -23,8 +24,10 @@ router = APIRouter(prefix="/api/charge", tags=["Charge Control"])
 
 
 @router.post("/start")
+@charge_rate_limit()  # Charge endpoint'leri için sıkı rate limit (10/dakika)
 async def start_charge(
-    request: ChargeStartRequest,
+    request_body: ChargeStartRequest,
+    request: Request,
     bridge: ESP32Bridge = Depends(get_bridge),
     api_key: str = Depends(verify_api_key),
 ):
@@ -194,6 +197,7 @@ async def start_charge(
 
 
 @router.post("/stop")
+@charge_rate_limit()  # Charge endpoint'leri için sıkı rate limit (10/dakika)
 async def stop_charge(
     request: ChargeStopRequest,
     bridge: ESP32Bridge = Depends(get_bridge),

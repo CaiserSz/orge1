@@ -9,11 +9,12 @@ Description: Current control endpoints
 import os
 import logging
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, Request, status, Depends
 from esp32.bridge import ESP32Bridge
 from api.auth import verify_api_key
 from api.event_detector import ESP32State
 from api.logging_config import log_event, system_logger
+from api.rate_limiting import charge_rate_limit
 from api.routers.dependencies import get_bridge
 from api.models import APIResponse, CurrentSetRequest
 
@@ -21,8 +22,10 @@ router = APIRouter(prefix="/api", tags=["Current Control"])
 
 
 @router.post("/maxcurrent")
+@charge_rate_limit()  # Kritik endpoint için sıkı rate limit (10/dakika)
 async def set_current(
-    request: CurrentSetRequest,
+    request_body: CurrentSetRequest,
+    request: Request,
     bridge: ESP32Bridge = Depends(get_bridge),
     api_key: str = Depends(verify_api_key),
 ):
@@ -45,7 +48,7 @@ async def set_current(
             event_type="current_set",
             event_data={
                 "user_id": user_id,
-                "amperage": request.amperage,
+                "amperage": request_body.amperage,
                 "api_key": api_key[:10] + "..." if api_key else None,
                 "timestamp": datetime.now().isoformat(),
             },
@@ -59,7 +62,7 @@ async def set_current(
             extra={
                 "endpoint": "/api/maxcurrent",
                 "user_id": user_id,
-                "amperage": request.amperage,
+                "amperage": request_body.amperage,
                 "error_type": "ESP32_CONNECTION_ERROR",
             },
         )
@@ -80,7 +83,7 @@ async def set_current(
                 extra={
                     "endpoint": "/api/maxcurrent",
                     "user_id": user_id,
-                    "amperage": request.amperage,
+                    "amperage": request_body.amperage,
                     "error_type": "STATE_NONE_WARNING",
                     "status_data": current_status,
                 },
@@ -99,7 +102,7 @@ async def set_current(
                     extra={
                         "endpoint": "/api/maxcurrent",
                         "user_id": user_id,
-                        "amperage": request.amperage,
+                        "amperage": request_body.amperage,
                         "error_type": "INVALID_STATE_VALUE",
                         "invalid_state": state,
                         "status_data": current_status,
@@ -121,7 +124,7 @@ async def set_current(
                     extra={
                         "endpoint": "/api/maxcurrent",
                         "user_id": user_id,
-                        "amperage": request.amperage,
+                        "amperage": request_body.amperage,
                         "current_state": state,
                         "state_name": state_name,
                         "error_type": "INVALID_STATE",
@@ -132,7 +135,7 @@ async def set_current(
                 )
 
     # Akım set komutu gönder
-    success = bridge.send_current_set(request.amperage)
+    success = bridge.send_current_set(request_body.amperage)
 
     if not success:
         error_msg = f"Akım ayarlama komutu gönderilemedi ({request.amperage}A)"
@@ -141,7 +144,7 @@ async def set_current(
             extra={
                 "endpoint": "/api/maxcurrent",
                 "user_id": user_id,
-                "amperage": request.amperage,
+                "amperage": request_body.amperage,
                 "error_type": "COMMAND_SEND_ERROR",
             },
         )

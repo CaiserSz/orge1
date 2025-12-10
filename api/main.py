@@ -39,6 +39,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from api.event_detector import get_event_detector
 from api.logging_config import log_api_request, system_logger
+from api.rate_limiting import setup_rate_limiting
 from api.session import get_session_manager
 
 # Router'ları import et
@@ -110,6 +111,9 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
 
 # Middleware'i ekle
 app.add_middleware(APILoggingMiddleware)
+
+# Rate limiting'i aktif et
+setup_rate_limiting(app)
 
 # Static files için mount (logo ve diğer statik dosyalar için)
 static_dir = Path(__file__).parent.parent
