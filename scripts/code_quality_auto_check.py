@@ -35,8 +35,12 @@ class CodeQualityChecker:
     def check_black(self) -> Dict:
         """Black formatter kontrolü"""
         try:
+            # Virtual environment'ten black'i kullan
+            venv_python = Path(__file__).parent.parent / "env" / "bin" / "python3"
+            python_cmd = str(venv_python) if venv_python.exists() else "python3"
+
             result = subprocess.run(
-                ["python3", "-m", "black", "--check", "--diff", str(API_DIR), str(ESP32_DIR), str(METER_DIR)],
+                [python_cmd, "-m", "black", "--check", "--diff", str(API_DIR), str(ESP32_DIR), str(METER_DIR)],
                 capture_output=True,
                 text=True
             )
@@ -70,8 +74,12 @@ class CodeQualityChecker:
     def check_ruff(self) -> Dict:
         """Ruff linter kontrolü"""
         try:
+            # Virtual environment'ten ruff'u kullan
+            venv_python = Path(__file__).parent.parent / "env" / "bin" / "python3"
+            python_cmd = str(venv_python) if venv_python.exists() else "python3"
+
             result = subprocess.run(
-                ["python3", "-m", "ruff", "check", str(API_DIR), str(ESP32_DIR), str(METER_DIR)],
+                [python_cmd, "-m", "ruff", "check", str(API_DIR), str(ESP32_DIR), str(METER_DIR)],
                 capture_output=True,
                 text=True
             )
