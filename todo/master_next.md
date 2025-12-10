@@ -197,17 +197,6 @@
     - `api/services/current_service.py` - State validation helper kullanımı (güncellendi)
   - Durum: ✅ Tamamlandı
 
-#### ✨ Type Hints Ekleme
-- [ ] **Görev:** Type hints ekleme (eksik yerler)
-  - Açıklama: Codebase deep dive analizi sonucu Code Quality Expert tarafından tespit edildi. Bazı fonksiyonlarda type hints eksik.
-  - Öncelik: 1 (Yüksek)
-  - Tahmini Süre: 2-3 saat
-  - Durum: ✨ Code Quality Expert - Type hints eksik
-  - Detaylar: `reports/CODEBASE_DEEPDIVE_ANALYSIS_20251210.md` dosyasına bakınız
-  - İmplementasyon:
-    - Tüm fonksiyonlara type hints eklenmeli
-    - mypy ile type checking yapılmalı
-  - Durum: 📋 Bekliyor
 
 #### ✨ Docstring Formatı Standardizasyonu
 - [ ] **Görev:** Docstring formatı standardizasyonu
