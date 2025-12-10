@@ -1145,9 +1145,86 @@
 
             // Replace path parameters
             const actualPath = replacePathParams(pathTemplate, paramValue);
+            
+            // Response section ID (use template path for consistency)
+            const responseSection = document.getElementById(`response-${pathTemplate}`);
+            const button = event.target;
+            const originalText = button.textContent;
 
-            // Use existing testEndpoint function with null body
-            await testEndpoint(method, actualPath, null);
+            // Loading state
+            button.disabled = true;
+            button.innerHTML = originalText + '<span class="loading"></span>';
+
+            // Hide previous response
+            responseSection.classList.remove('show');
+
+            try {
+                // Prepare request options
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': await getApiKey()
+                    }
+                };
+
+                // Make request
+                const startTime = Date.now();
+                const response = await fetch(`${API_BASE_URL}${actualPath}`, options);
+                const endTime = Date.now();
+                const responseTime = endTime - startTime;
+
+                // Get response body
+                const responseText = await response.text();
+                let responseBody;
+                try {
+                    responseBody = JSON.parse(responseText);
+                } catch (e) {
+                    responseBody = responseText;
+                }
+
+                // Get API key for display
+                const apiKey = await getApiKey();
+
+                // Display response
+                displayResponse(responseSection, {
+                    method,
+                    path: actualPath,
+                    requestBody: 'null',
+                    apiKey: apiKey,
+                    status: response.status,
+                    statusText: response.statusText,
+                    responseTime,
+                    responseBody: typeof responseBody === 'string' ? responseBody : JSON.stringify(responseBody, null, 2)
+                });
+
+            } catch (error) {
+                // Get API key for display
+                const apiKey = await getApiKey();
+
+                // User-friendly error messages
+                let errorMessage = error.message || 'Unknown error occurred';
+                let userFriendlyMessage = errorMessage;
+
+                if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
+                    userFriendlyMessage = 'Network error: Could not connect to API server. Please check if the server is running.';
+                }
+
+                // Display error
+                displayResponse(responseSection, {
+                    method,
+                    path: actualPath,
+                    requestBody: 'null',
+                    apiKey: apiKey,
+                    status: 'ERROR',
+                    statusText: userFriendlyMessage,
+                    responseTime: null,
+                    responseBody: error.toString()
+                });
+            } finally {
+                button.disabled = false;
+                button.innerHTML = originalText;
+            }
         }
 
         async function displayResponse(section, data) {
