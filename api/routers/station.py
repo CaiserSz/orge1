@@ -23,7 +23,7 @@ router = APIRouter(prefix="/api/station", tags=["Station"])
 @cache_response(
     ttl=3600, key_prefix="station_info"
 )  # 1 saat cache (station info nadiren değişir)
-async def get_station_info_endpoint():
+async def get_station_info_endpoint() -> APIResponse:
     """
     Şarj istasyonu bilgilerini al
 
@@ -43,7 +43,7 @@ async def get_station_info_endpoint():
 
 
 @router.post("/info")
-async def save_station_info_endpoint(station_data: Dict[str, Any]):
+async def save_station_info_endpoint(station_data: Dict[str, Any]) -> APIResponse:
     """
     Şarj istasyonu bilgilerini kaydet
 
@@ -67,7 +67,7 @@ async def save_station_info_endpoint(station_data: Dict[str, Any]):
 @cache_response(ttl=10, key_prefix="station_status")  # 10 saniye cache
 async def get_station_status(
     bridge: ESP32Bridge = Depends(get_bridge),
-):
+) -> APIResponse:
     """
     Harita ve mobil uygulama için istasyon durum bilgisi
 

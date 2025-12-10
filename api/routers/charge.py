@@ -27,7 +27,7 @@ async def start_charge(
     request: Request,
     bridge: ESP32Bridge = Depends(get_bridge),
     api_key: str = Depends(verify_api_key),
-):
+) -> APIResponse:
     """
     Şarj başlatma
 
@@ -53,7 +53,7 @@ async def stop_charge(
     request: Request,
     bridge: ESP32Bridge = Depends(get_bridge),
     api_key: str = Depends(verify_api_key),
-):
+) -> APIResponse:
     """
     Şarj durdurma
 

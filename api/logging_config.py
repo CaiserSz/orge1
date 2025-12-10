@@ -75,13 +75,20 @@ class JSONFormatter(logging.Formatter):
             return json.dumps(log_data, ensure_ascii=False)
         except Exception as e:
             # Fallback: basit JSON format
-            return json.dumps({
-                "timestamp": datetime.now().isoformat(),
-                "level": getattr(record, "levelname", "ERROR"),
-                "logger": getattr(record, "name", "unknown"),
-                "message": str(record.getMessage()) if hasattr(record, "getMessage") else str(record),
-                "error": f"JSON serialization failed: {e}"
-            }, ensure_ascii=False)
+            return json.dumps(
+                {
+                    "timestamp": datetime.now().isoformat(),
+                    "level": getattr(record, "levelname", "ERROR"),
+                    "logger": getattr(record, "name", "unknown"),
+                    "message": (
+                        str(record.getMessage())
+                        if hasattr(record, "getMessage")
+                        else str(record)
+                    ),
+                    "error": f"JSON serialization failed: {e}",
+                },
+                ensure_ascii=False,
+            )
 
 
 def setup_logger(
@@ -89,7 +96,7 @@ def setup_logger(
     log_file: Path,
     level: int = logging.INFO,
     max_bytes: int = MAX_BYTES,
-    backup_count: int = BACKUP_COUNT
+    backup_count: int = BACKUP_COUNT,
 ) -> logging.Logger:
     """
     Logger oluştur ve yapılandır
@@ -117,10 +124,7 @@ def setup_logger(
     # File handler (rotation ile)
     try:
         file_handler = RotatingFileHandler(
-            log_file,
-            maxBytes=max_bytes,
-            backupCount=backup_count,
-            encoding='utf-8'
+            log_file, maxBytes=max_bytes, backupCount=backup_count, encoding="utf-8"
         )
         file_handler.setLevel(level)
         file_handler.setFormatter(json_formatter)
@@ -134,8 +138,8 @@ def setup_logger(
     console_handler.setLevel(level)
     # Console için daha okunabilir format
     console_formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
     console_handler.setFormatter(console_formatter)
     logger.addHandler(console_handler)
@@ -156,8 +160,8 @@ def log_api_request(
     status_code: Optional[int] = None,
     response_time_ms: Optional[float] = None,
     user_id: Optional[str] = None,
-    **kwargs
-):
+    **kwargs: Any,
+) -> None:
     """
     API isteğini logla (Thread-safe)
 
@@ -176,7 +180,7 @@ def log_api_request(
                 "type": "api_request",
                 "method": method,
                 "path": path,
-                **kwargs
+                **kwargs,
             }
 
             if client_ip:
@@ -190,6 +194,7 @@ def log_api_request(
 
             # Log kaydına ekstra alanları ekle
             import inspect
+
             frame = inspect.currentframe().f_back
             record = logging.LogRecord(
                 name=api_logger.name,
@@ -198,7 +203,7 @@ def log_api_request(
                 lineno=frame.f_lineno if frame else 0,
                 msg=f"{method} {path}",
                 args=(),
-                exc_info=None
+                exc_info=None,
             )
             record.extra_fields = extra_fields
             api_logger.handle(record)
@@ -207,7 +212,7 @@ def log_api_request(
         # Fallback: basit console logging
         try:
             api_logger.error(f"Logging error in log_api_request: {e}", exc_info=True)
-        except:
+        except Exception:
             pass  # Son çare: sessizce geç
 
 
@@ -215,8 +220,8 @@ def log_esp32_message(
     message_type: str,
     direction: str,  # "tx" veya "rx"
     data: Optional[Any] = None,
-    **kwargs
-):
+    **kwargs: Any,
+) -> None:
     """
     ESP32 mesajını logla (Thread-safe)
 
@@ -232,13 +237,14 @@ def log_esp32_message(
                 "type": "esp32_message",
                 "message_type": message_type,
                 "direction": direction,
-                **kwargs
+                **kwargs,
             }
 
             if data is not None:
                 extra_fields["data"] = data
 
             import inspect
+
             frame = inspect.currentframe().f_back
             record = logging.LogRecord(
                 name=esp32_logger.name,
@@ -247,15 +253,17 @@ def log_esp32_message(
                 lineno=frame.f_lineno if frame else 0,
                 msg=f"ESP32 {direction.upper()}: {message_type}",
                 args=(),
-                exc_info=None
+                exc_info=None,
             )
             record.extra_fields = extra_fields
             esp32_logger.handle(record)
     except Exception as e:
         # Logging hatası uygulamayı etkilememeli
         try:
-            esp32_logger.error(f"Logging error in log_esp32_message: {e}", exc_info=True)
-        except:
+            esp32_logger.error(
+                f"Logging error in log_esp32_message: {e}", exc_info=True
+            )
+        except Exception:
             pass  # Son çare: sessizce geç
 
 
@@ -263,8 +271,8 @@ def log_event(
     event_type: str,
     event_data: Optional[Dict[str, Any]] = None,
     level: int = logging.INFO,
-    **kwargs
-):
+    **kwargs: Any,
+) -> None:
     """
     Genel event logla (Thread-safe)
 
@@ -276,16 +284,13 @@ def log_event(
     """
     try:
         with _log_lock:  # Thread-safe logging
-            extra_fields = {
-                "type": "event",
-                "event_type": event_type,
-                **kwargs
-            }
+            extra_fields = {"type": "event", "event_type": event_type, **kwargs}
 
             if event_data:
                 extra_fields["event_data"] = event_data
 
             import inspect
+
             frame = inspect.currentframe().f_back
             record = logging.LogRecord(
                 name=system_logger.name,
@@ -294,7 +299,7 @@ def log_event(
                 lineno=frame.f_lineno if frame else 0,
                 msg=f"Event: {event_type}",
                 args=(),
-                exc_info=None
+                exc_info=None,
             )
             record.extra_fields = extra_fields
             system_logger.handle(record)
@@ -302,7 +307,7 @@ def log_event(
         # Logging hatası uygulamayı etkilememeli
         try:
             system_logger.error(f"Logging error in log_event: {e}", exc_info=True)
-        except:
+        except Exception:
             pass  # Son çare: sessizce geç
 
 
@@ -323,7 +328,9 @@ def get_logger(name: str) -> logging.Logger:
     return logging.getLogger(name)
 
 
-def thread_safe_log(logger: logging.Logger, level: int, message: str, **kwargs):
+def thread_safe_log(
+    logger: logging.Logger, level: int, message: str, **kwargs: Any
+) -> None:
     """
     Thread-safe log yazma
 
@@ -342,10 +349,9 @@ def thread_safe_log(logger: logging.Logger, level: int, message: str, **kwargs):
                 lineno=0,
                 msg=message,
                 args=(),
-                exc_info=None
+                exc_info=None,
             )
             record.extra_fields = kwargs
             logger.handle(record)
         else:
             logger.log(level, message)
-

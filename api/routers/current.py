@@ -28,7 +28,7 @@ async def set_current(
     request: Request,
     bridge: ESP32Bridge = Depends(get_bridge),
     api_key: str = Depends(verify_api_key),
-):
+) -> APIResponse:
     """
     Maksimum akım ayarlama
 
@@ -50,7 +50,7 @@ async def set_current(
 @cache_response(
     ttl=3600, key_prefix="current_available"
 )  # 1 saat cache (sabit değerler)
-async def get_available_currents():
+async def get_available_currents() -> APIResponse:
     """
     Kullanılabilir akım değerlerini listele
 

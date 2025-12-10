@@ -19,7 +19,7 @@ DATA_FILE = Path(__file__).parent.parent / "data" / "station_info.json"
 logger = logging.getLogger(__name__)
 
 
-def ensure_data_dir():
+def ensure_data_dir() -> None:
     """Veri dizinini oluştur"""
     try:
         DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -32,11 +32,11 @@ def save_station_info(station_data: Dict) -> bool:
     """İstasyon bilgilerini kaydet"""
     try:
         ensure_data_dir()
-        station_data['updated_at'] = datetime.now().isoformat()
-        if 'created_at' not in station_data:
-            station_data['created_at'] = datetime.now().isoformat()
+        station_data["updated_at"] = datetime.now().isoformat()
+        if "created_at" not in station_data:
+            station_data["created_at"] = datetime.now().isoformat()
 
-        with open(DATA_FILE, 'w', encoding='utf-8') as f:
+        with open(DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(station_data, f, indent=2, ensure_ascii=False)
         logger.info(f"Station info kaydedildi: {DATA_FILE}")
         return True
@@ -52,7 +52,7 @@ def get_station_info() -> Optional[Dict]:
         return None
 
     try:
-        with open(DATA_FILE, 'r', encoding='utf-8') as f:
+        with open(DATA_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
             logger.debug(f"Station info yüklendi: {DATA_FILE}")
             return data
@@ -65,4 +65,3 @@ def get_station_info() -> Optional[Dict]:
     except Exception as e:
         logger.error(f"Station info yükleme hatası: {e}", exc_info=True)
         return None
-

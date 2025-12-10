@@ -51,7 +51,7 @@ class CacheBackend:
 class MemoryCacheBackend(CacheBackend):
     """In-memory cache backend"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._cache: dict[str, dict[str, Any]] = {}
 
     def get(self, key: str) -> Optional[Any]:
@@ -99,7 +99,7 @@ class MemoryCacheBackend(CacheBackend):
 class RedisCacheBackend(CacheBackend):
     """Redis cache backend"""
 
-    def __init__(self, redis_url: Optional[str] = None):
+    def __init__(self, redis_url: Optional[str] = None) -> None:
         try:
             import redis
 
@@ -209,7 +209,7 @@ def cache_response(
     key_prefix: Optional[str] = None,
     vary_on_headers: Optional[list[str]] = None,
     exclude_query_params: Optional[list[str]] = None,
-):
+) -> Callable[[Callable], Callable]:
     """
     Response caching decorator
 
@@ -360,7 +360,7 @@ class CacheInvalidator:
         invalidate_cache("*")
 
 
-def invalidate_cache(pattern: Optional[str] = None):
+def invalidate_cache(pattern: Optional[str] = None) -> None:
     """
     Cache'i invalidate et
 
