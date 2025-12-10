@@ -1,13 +1,41 @@
 # Tamamlanan Görevler
 
 **Oluşturulma Tarihi:** 2025-12-08 18:20:00
-**Son Güncelleme:** 2025-12-10 15:10:00
+**Son Güncelleme:** 2025-12-10 15:45:00
 
 ---
 
 ## Tamamlanan Görevler Listesi
 
 ### 2025-12-10
+
+#### ✅ Service Layer Ekleme (15:45:00)
+- **Görev:** Service layer ekleme
+- **Detaylar:**
+  - ✅ Service layer package oluşturuldu (`api/services/`)
+  - ✅ ChargeService oluşturuldu (`api/services/charge_service.py`)
+    - `start_charge()` - Şarj başlatma business logic
+    - `stop_charge()` - Şarj durdurma business logic
+  - ✅ CurrentService oluşturuldu (`api/services/current_service.py`)
+    - `set_current()` - Akım ayarlama business logic
+  - ✅ StatusService oluşturuldu (`api/services/status_service.py`)
+    - `get_status()` - Status alma business logic
+  - ✅ Router'lar güncellendi:
+    - `api/routers/charge.py` - Sadece HTTP handling (~100 satır azaldı)
+    - `api/routers/current.py` - Sadece HTTP handling (~100 satır azaldı)
+    - `api/routers/status.py` - Sadece HTTP handling
+  - ✅ Separation of concerns sağlandı
+  - ✅ Business logic test edilebilir hale geldi
+- **Dosyalar:**
+  - `api/services/__init__.py` - Service layer package (yeni)
+  - `api/services/charge_service.py` - Charge business logic (yeni, 269 satır)
+  - `api/services/current_service.py` - Current business logic (yeni, 152 satır)
+  - `api/services/status_service.py` - Status business logic (yeni, 45 satır)
+  - `api/routers/charge.py` - HTTP handling only (güncellendi)
+  - `api/routers/current.py` - HTTP handling only (güncellendi)
+  - `api/routers/status.py` - HTTP handling only (güncellendi)
+- **Durum:** ✅ Tamamlandı
+- **Notlar:** Service layer başarıyla implement edildi. Business logic router'lardan ayrıldı ve service layer'a taşındı. Router'lar artık sadece HTTP handling yapıyor. Separation of concerns sağlandı ve kod daha test edilebilir hale geldi.
 
 #### ✅ Database Query Optimization (15:10:00)
 - **Görev:** Database query optimization
