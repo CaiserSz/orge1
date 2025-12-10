@@ -148,6 +148,9 @@ class EventDetector:
             (ESP32State.CABLE_DETECT.value, ESP32State.EV_CONNECTED.value): EventType.EV_CONNECTED,
             (ESP32State.EV_CONNECTED.value, ESP32State.READY.value): EventType.CHARGE_READY,
             (ESP32State.READY.value, ESP32State.CHARGING.value): EventType.CHARGE_STARTED,
+            # EV_CONNECTED → CHARGING transition (ESP32 firmware gerçek davranışı)
+            # Authorization verildikten sonra READY'ye geçmeden direkt CHARGING state'ine geçebilir
+            (ESP32State.EV_CONNECTED.value, ESP32State.CHARGING.value): EventType.CHARGE_STARTED,
             # IDLE → CHARGING transition (ESP32 firmware gerçek davranışı)
             # Authorization verildikten sonra direkt CHARGING state'ine geçebilir
             (ESP32State.IDLE.value, ESP32State.CHARGING.value): EventType.CHARGE_STARTED,
