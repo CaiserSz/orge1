@@ -160,6 +160,9 @@ class EventDetector:
             (ESP32State.PAUSED.value, ESP32State.CHARGING.value): EventType.CHARGE_STARTED,
             (ESP32State.CHARGING.value, ESP32State.STOPPED.value): EventType.CHARGE_STOPPED,
             (ESP32State.PAUSED.value, ESP32State.STOPPED.value): EventType.CHARGE_STOPPED,
+            # CHARGING → IDLE transition (araç şarjı sonlandırdığında direkt IDLE'a geçebilir)
+            # Bu durumda CHARGE_STOPPED event'i üretilmeli
+            (ESP32State.CHARGING.value, ESP32State.IDLE.value): EventType.CHARGE_STOPPED,
             (ESP32State.CABLE_DETECT.value, ESP32State.IDLE.value): EventType.CABLE_DISCONNECTED,
             (ESP32State.EV_CONNECTED.value, ESP32State.IDLE.value): EventType.CABLE_DISCONNECTED,
             # PAUSED → READY transition (ESP32 firmware gerçek davranışı)
