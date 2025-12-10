@@ -32,6 +32,9 @@ except ImportError:
                     key, value = line.split("=", 1)
                     os.environ[key.strip()] = value.strip()
 
+# Merkezi configuration'ı yükle
+from api.config import config
+
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
@@ -82,8 +85,8 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
         # İstemci IP adresini al
         client_ip = request.client.host if request.client else None
 
-        # User ID'yi environment variable'dan al (audit trail için)
-        user_id = os.getenv("TEST_API_USER_ID", None)
+        # User ID'yi configuration'dan al (audit trail için)
+        user_id = config.get_user_id()
 
         # İsteği işle
         response = await call_next(request)
@@ -111,19 +114,10 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
 
 
 # CORS Middleware'i ekle
-# Environment variable'lardan CORS ayarlarını al
-allowed_origins_env = os.getenv("CORS_ALLOWED_ORIGINS", "*")
-allowed_origins = (
-    allowed_origins_env.split(",") if allowed_origins_env != "*" else ["*"]
-)
-
-allowed_methods_env = os.getenv("CORS_ALLOWED_METHODS", "GET,POST,PUT,DELETE,OPTIONS")
-allowed_methods = [method.strip() for method in allowed_methods_env.split(",")]
-
-allowed_headers_env = os.getenv(
-    "CORS_ALLOWED_HEADERS", "Content-Type,Authorization,X-API-Key"
-)
-allowed_headers = [header.strip() for header in allowed_headers_env.split(",")]
+# Configuration'dan CORS ayarlarını al
+allowed_origins = config.get_cors_origins()
+allowed_methods = config.get_cors_methods()
+allowed_headers = config.get_cors_headers()
 
 app.add_middleware(
     CORSMiddleware,
@@ -278,7 +272,7 @@ async def global_exception_handler(request, exc):
     DEBUG mode aktifse detaylı bilgi gösterilir.
     """
     # DEBUG mode kontrolü
-    is_debug = os.getenv("DEBUG", "false").lower() == "true"
+    is_debug = config.DEBUG
 
     # Detaylı hata bilgisini logla (her zaman)
     system_logger.error(

@@ -169,19 +169,6 @@
     - `api/routers/status.py` - HTTP handling only (güncellendi)
   - Durum: ✅ Tamamlandı
 
-#### 🏗️ Configuration Management Merkezileştirme
-- [ ] **Görev:** Configuration management merkezileştirme
-  - Açıklama: Codebase deep dive analizi sonucu Architecture Expert tarafından tespit edildi. Configuration değerleri birden fazla yerde tanımlı. Merkezi configuration management oluşturulmalı.
-  - Öncelik: 1 (Yüksek)
-  - Tahmini Süre: 2-3 saat
-  - Durum: 🏗️ Architecture Expert - Configuration management merkezi değil
-  - Detaylar: `reports/CODEBASE_DEEPDIVE_ANALYSIS_20251210.md` dosyasına bakınız
-  - İmplementasyon:
-    - Merkezi configuration module oluşturulmalı
-    - Environment variable management merkezileştirilmeli
-    - Configuration validation eklenmeli
-  - Durum: 📋 Bekliyor
-
 ### Öncelik 1: Code Quality İyileştirmeleri (Code Quality Expert - Codebase Deep Dive Bulgusu)
 
 #### ✨ Code Duplication Azaltma

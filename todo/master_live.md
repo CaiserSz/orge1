@@ -1,14 +1,12 @@
 # Aktif Görevler (Şu Anda Yapılanlar)
 
-**Son Güncelleme:** 2025-12-10 15:45:00
+**Son Güncelleme:** 2025-12-10 16:00:00
 
 ---
 
 ## Aktif Görevler
 
-_(Şu anda aktif görev yok)_
-
-**Not:** Service Layer Ekleme görevi tamamlandı (2025-12-10 15:45:00). Yeni görev seçilebilir.
+*Şu anda aktif görev yok. Yeni görevler `master_next.md` dosyasından seçilebilir.*
 
 ---
 
