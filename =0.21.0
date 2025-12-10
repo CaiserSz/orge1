@@ -1,0 +1,5 @@
+Looking in indexes: https://pypi.org/simple, https://www.piwheels.org/simple
+Collecting prometheus-client
+  Downloading https://www.piwheels.org/simple/prometheus-client/prometheus_client-0.23.1-py3-none-any.whl (61 kB)
+Installing collected packages: prometheus-client
+Successfully installed prometheus-client-0.23.1

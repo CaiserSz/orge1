@@ -15,6 +15,7 @@ from api.event_detector import get_event_detector
 from api.rate_limiting import status_rate_limit
 from api.services.status_service import StatusService
 from api.cache import cache_response
+from api.metrics import get_metrics_response, update_all_metrics
 
 router = APIRouter(prefix="/api", tags=["Status"])
 
@@ -251,7 +252,9 @@ async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
                         if result.returncode == 0:
                             import re
 
-                            match = re.search(r"inet (\d+\.\d+\.\d+\.\d+)", result.stdout)
+                            match = re.search(
+                                r"inet (\d+\.\d+\.\d+\.\d+)", result.stdout
+                            )
                             if match:
                                 ip_address = match.group(1)
                                 break
@@ -361,4 +364,57 @@ async def get_status(request: Request, bridge: ESP32Bridge = Depends(get_bridge)
 
     return APIResponse(
         success=True, message="Status retrieved successfully", data=status_data
+    )
+
+
+@router.get("/metrics")
+async def metrics(bridge: ESP32Bridge = Depends(get_bridge)):
+    """
+    Prometheus metrics endpoint
+
+    Prometheus tarafından scrape edilebilir metrics endpoint'i.
+    Tüm sistem metriklerini Prometheus formatında döndürür.
+    """
+    event_detector = get_event_detector(get_bridge)
+    update_all_metrics(bridge=bridge, event_detector=event_detector)
+    return get_metrics_response()
+
+
+@router.get("/alerts")
+@cache_response(ttl=10, key_prefix="alerts")  # 10 saniye cache
+async def get_alerts(bridge: ESP32Bridge = Depends(get_bridge)):
+    """
+    Active alerts endpoint
+
+    Sistemdeki aktif alert'leri döndürür.
+    """
+    from api.alerting import get_alert_manager
+    from api.metrics import update_all_metrics
+
+    event_detector = get_event_detector(get_bridge)
+    update_all_metrics(bridge=bridge, event_detector=event_detector)
+
+    alert_manager = get_alert_manager()
+    alert_manager.evaluate_all(bridge=bridge, event_detector=event_detector)
+
+    active_alerts = alert_manager.get_active_alerts()
+
+    alerts_data = [
+        {
+            "name": alert.name,
+            "severity": alert.severity.value,
+            "message": alert.message,
+            "timestamp": alert.timestamp.isoformat(),
+            "metadata": alert.metadata,
+        }
+        for alert in active_alerts
+    ]
+
+    return APIResponse(
+        success=True,
+        message=f"Active alerts: {len(active_alerts)}",
+        data={
+            "active_alerts": alerts_data,
+            "count": len(active_alerts),
+        },
     )

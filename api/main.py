@@ -96,6 +96,31 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
 
         # Yanıt süresini hesapla
         process_time = (time.time() - start_time) * 1000  # milisaniye
+        process_time_seconds = process_time / 1000.0
+
+        # Metrics'i güncelle
+        try:
+            from api.metrics import (
+                http_requests_total,
+                http_request_duration_seconds,
+            )
+
+            # Request counter
+            endpoint = request.url.path
+            http_requests_total.labels(
+                method=request.method,
+                endpoint=endpoint,
+                status_code=response.status_code,
+            ).inc()
+
+            # Request duration histogram
+            http_request_duration_seconds.labels(
+                method=request.method,
+                endpoint=endpoint,
+            ).observe(process_time_seconds)
+        except Exception:
+            # Metrics hatası API response'u etkilememeli
+            pass
 
         # Logla (şarj başlatma/bitirme hariç)
         if request.url.path not in ["/api/charge/start", "/api/charge/stop"]:
@@ -156,6 +181,16 @@ app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 async def startup_event():
     """Uygulama başlangıcında ESP32 bridge'i başlat ve event detector'ı başlat"""
     try:
+        # Application info metrics
+        from api.metrics import app_info
+
+        app_info.info(
+            {
+                "version": "2.0.0",
+                "name": "AC Charger API",
+            }
+        )
+
         bridge = get_esp32_bridge()
         if not bridge.is_connected:
             system_logger.warning("ESP32 bağlantısı başlatılamadı")
@@ -171,6 +206,38 @@ async def startup_event():
         session_manager = get_session_manager()
         session_manager.register_with_event_detector(event_detector)
         system_logger.info("Session manager başlatıldı ve event detector'a kaydedildi")
+
+        # Alert manager'ı başlat ve periyodik değerlendirme başlat
+        from api.alerting import get_alert_manager
+        import asyncio
+
+        alert_manager = get_alert_manager()
+        system_logger.info(
+            f"Alert manager başlatıldı ({len(alert_manager.rules)} alert rule)"
+        )
+
+        # Periyodik alert değerlendirme (her 30 saniyede bir)
+        async def periodic_alert_evaluation():
+            while True:
+                try:
+                    from api.metrics import update_all_metrics
+
+                    update_all_metrics(bridge=bridge, event_detector=event_detector)
+                    alerts = alert_manager.evaluate_all(
+                        bridge=bridge, event_detector=event_detector
+                    )
+                    if alerts:
+                        system_logger.warning(f"{len(alerts)} yeni alert tetiklendi")
+                except Exception as e:
+                    system_logger.error(f"Alert evaluation error: {e}", exc_info=True)
+                await asyncio.sleep(30)  # 30 saniye
+
+        # Background task olarak başlat
+        asyncio.create_task(periodic_alert_evaluation())
+        system_logger.info(
+            "Periyodik alert değerlendirme başlatıldı (30 saniye interval)"
+        )
+
     except Exception as e:
         system_logger.error(f"Startup hatası: {e}", exc_info=True)
 
