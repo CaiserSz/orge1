@@ -19,7 +19,7 @@ import serial
 import serial.tools.list_ports
 
 # Logging modülünü import et
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from api.logging_config import esp32_logger, log_esp32_message
 
 # Protocol constants
@@ -64,8 +64,9 @@ class ESP32Bridge:
         """Protokol tanımlarını yükle"""
         try:
             import os
-            protocol_path = os.path.join(os.path.dirname(__file__), 'protocol.json')
-            with open(protocol_path, 'r', encoding='utf-8') as f:
+
+            protocol_path = os.path.join(os.path.dirname(__file__), "protocol.json")
+            with open(protocol_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
             esp32_logger.error(f"Protocol yükleme hatası: {e}", exc_info=True)
@@ -82,7 +83,10 @@ class ESP32Bridge:
         # ESP32 genellikle USB Serial veya CP210x, CH340 gibi chipsetler kullanır
         for port in ports:
             # ESP32 için yaygın tanımlayıcılar
-            if any(keyword in port.description.lower() for keyword in ['usb', 'serial', 'cp210', 'ch340', 'ftdi']):
+            if any(
+                keyword in port.description.lower()
+                for keyword in ["usb", "serial", "cp210", "ch340", "ftdi"]
+            ):
                 return port.device
         return None
 
@@ -108,7 +112,7 @@ class ESP32Bridge:
                 timeout=1.0,
                 bytesize=serial.EIGHTBITS,
                 parity=serial.PARITY_NONE,
-                stopbits=serial.STOPBITS_ONE
+                stopbits=serial.STOPBITS_ONE,
             )
 
             # Bağlantıyı test et
@@ -119,7 +123,9 @@ class ESP32Bridge:
             self._start_monitoring()
 
             esp32_logger.info(f"ESP32'ye bağlandı: {port}")
-            log_esp32_message("connection", "tx", {"port": port, "baudrate": self.baudrate})
+            log_esp32_message(
+                "connection", "tx", {"port": port, "baudrate": self.baudrate}
+            )
             return True
 
         except Exception as e:
@@ -141,7 +147,9 @@ class ESP32Bridge:
         esp32_logger.info("ESP32 bağlantısı kapatıldı")
         log_esp32_message("disconnection", "tx")
 
-    def reconnect(self, max_retries: Optional[int] = None, retry_delay: Optional[float] = None) -> bool:
+    def reconnect(
+        self, max_retries: Optional[int] = None, retry_delay: Optional[float] = None
+    ) -> bool:
         """
         ESP32 bağlantısını yeniden kur (reconnection mekanizması)
 
@@ -179,7 +187,9 @@ class ESP32Bridge:
                 time.sleep(retry_delay)
 
         self._reconnect_attempts += 1
-        esp32_logger.error(f"ESP32 reconnection başarısız ({max_retries} deneme sonrası)")
+        esp32_logger.error(
+            f"ESP32 reconnection başarısız ({max_retries} deneme sonrası)"
+        )
         return False
 
     def _send_command_bytes(self, command_bytes: list) -> bool:
@@ -192,13 +202,19 @@ class ESP32Bridge:
         Returns:
             Başarı durumu
         """
-        if not self.is_connected or not self.serial_connection or not self.serial_connection.is_open:
+        if (
+            not self.is_connected
+            or not self.serial_connection
+            or not self.serial_connection.is_open
+        ):
             esp32_logger.warning("ESP32 bağlantısı yok")
             return False
 
         try:
             if len(command_bytes) != 5:
-                esp32_logger.error(f"Geçersiz komut uzunluğu: {len(command_bytes)} (beklenen: 5)")
+                esp32_logger.error(
+                    f"Geçersiz komut uzunluğu: {len(command_bytes)} (beklenen: 5)"
+                )
                 return False
 
             self.serial_connection.write(bytes(command_bytes))
@@ -211,20 +227,28 @@ class ESP32Bridge:
 
     def send_status_request(self) -> bool:
         """Status komutu gönder"""
-        cmd = self.protocol_data.get('commands', {}).get('status', {})
-        byte_array = cmd.get('byte_array', [65, 0, 44, 0, 16])
+        cmd = self.protocol_data.get("commands", {}).get("status", {})
+        byte_array = cmd.get("byte_array", [65, 0, 44, 0, 16])
         result = self._send_command_bytes(byte_array)
         if result:
-            log_esp32_message("status_request", "tx", data={"command": "status_request", "bytes": byte_array})
+            log_esp32_message(
+                "status_request",
+                "tx",
+                data={"command": "status_request", "bytes": byte_array},
+            )
         return result
 
     def send_authorization(self) -> bool:
         """Authorization komutu gönder (şarj başlatma)"""
-        cmd = self.protocol_data.get('commands', {}).get('authorization', {})
-        byte_array = cmd.get('byte_array', [65, 1, 44, 1, 16])
+        cmd = self.protocol_data.get("commands", {}).get("authorization", {})
+        byte_array = cmd.get("byte_array", [65, 1, 44, 1, 16])
         result = self._send_command_bytes(byte_array)
         if result:
-            log_esp32_message("authorization", "tx", data={"command": "authorization", "bytes": byte_array})
+            log_esp32_message(
+                "authorization",
+                "tx",
+                data={"command": "authorization", "bytes": byte_array},
+            )
         return result
 
     def send_current_set(self, amperage: int) -> bool:
@@ -239,7 +263,9 @@ class ESP32Bridge:
         """
         # 6-32 amper aralığında herhangi bir değer geçerlidir
         if not (6 <= amperage <= 32):
-            esp32_logger.warning(f"Geçersiz akım değeri: {amperage} (geçerli aralık: 6-32A)")
+            esp32_logger.warning(
+                f"Geçersiz akım değeri: {amperage} (geçerli aralık: 6-32A)"
+            )
             return False
 
         # Komut formatı: 41 [KOMUT=0x02] 2C [DEĞER=amperage] 10
@@ -247,16 +273,28 @@ class ESP32Bridge:
         command_bytes = [0x41, 0x02, 0x2C, amperage, 0x10]
         result = self._send_command_bytes(command_bytes)
         if result:
-            log_esp32_message("current_set", "tx", data={"command": "current_set", "amperage": amperage, "bytes": command_bytes})
+            log_esp32_message(
+                "current_set",
+                "tx",
+                data={
+                    "command": "current_set",
+                    "amperage": amperage,
+                    "bytes": command_bytes,
+                },
+            )
         return result
 
     def send_charge_stop(self) -> bool:
         """Şarj durdurma komutu gönder"""
-        cmd = self.protocol_data.get('commands', {}).get('charge_stop', {})
-        byte_array = cmd.get('byte_array', [65, 4, 44, 7, 16])
+        cmd = self.protocol_data.get("commands", {}).get("charge_stop", {})
+        byte_array = cmd.get("byte_array", [65, 4, 44, 7, 16])
         result = self._send_command_bytes(byte_array)
         if result:
-            log_esp32_message("charge_stop", "tx", data={"command": "charge_stop", "bytes": byte_array})
+            log_esp32_message(
+                "charge_stop",
+                "tx",
+                data={"command": "charge_stop", "bytes": byte_array},
+            )
         return result
 
     def _parse_status_message(self, message: str) -> Optional[Dict[str, Any]]:
@@ -270,27 +308,33 @@ class ESP32Bridge:
             Parse edilmiş durum dict'i veya None
         """
         # Format: <STAT;ID=X;CP=X;CPV=X;PP=X;PPV=X;RL=X;LOCK=X;MOTOR=X;PWM=X;MAX=X;CABLE=X;AUTH=X;STATE=X;PB=X;STOP=X;>
-        pattern = r'<STAT;(.*?)>'
+        pattern = r"<STAT;(.*?)>"
         match = re.search(pattern, message)
         if not match:
             return None
 
         status_data = {}
-        fields = match.group(1).split(';')
+        fields = match.group(1).split(";")
 
         for field in fields:
-            if '=' in field:
-                key, value = field.split('=', 1)
+            # Whitespace temizle
+            field = field.strip()
+            if not field:
+                continue
+            if "=" in field:
+                key, value = field.split("=", 1)
+                key = key.strip()
+                value = value.strip()
                 # Sayısal değerleri dönüştür
                 try:
-                    if '.' in value:
+                    if "." in value:
                         status_data[key] = float(value)
                     else:
                         status_data[key] = int(value)
                 except ValueError:
                     status_data[key] = value
 
-        status_data['timestamp'] = datetime.now().isoformat()
+        status_data["timestamp"] = datetime.now().isoformat()
         return status_data
 
     def _read_status_messages(self):
@@ -303,7 +347,9 @@ class ESP32Bridge:
         if not self.serial_connection or not self.serial_connection.is_open:
             # Bağlantı yoksa reconnection dene
             if self._reconnect_enabled and self.is_connected:
-                esp32_logger.warning("Serial port bağlantısı kopmuş, reconnection deneniyor")
+                esp32_logger.warning(
+                    "Serial port bağlantısı kopmuş, reconnection deneniyor"
+                )
                 self.is_connected = False
                 self.reconnect()
             return
@@ -315,21 +361,29 @@ class ESP32Bridge:
             max_lines = 5  # Maksimum okuma sayısı (buffer overflow koruması)
 
             while self.serial_connection.in_waiting > 0 and lines_read < max_lines:
-                line = self.serial_connection.readline().decode('utf-8', errors='ignore').strip()
+                line = (
+                    self.serial_connection.readline()
+                    .decode("utf-8", errors="ignore")
+                    .strip()
+                )
                 lines_read += 1
 
-                if line and '<STAT;' in line:
+                if line and "<STAT;" in line:
                     status = self._parse_status_message(line)
                     if status:
                         with self.status_lock:
                             self.last_status = status
-                        esp32_logger.debug(f"Status güncellendi: {status.get('STATE', 'N/A')}")
+                        esp32_logger.debug(
+                            f"Status güncellendi: {status.get('STATE', 'N/A')}"
+                        )
                         log_esp32_message("status", "rx", data=status)
                         # En son mesajı bulduk, diğerlerini okumaya devam et (en güncel olanı almak için)
 
             # Eğer çok fazla satır okunduysa, buffer'ı temizle (overflow koruması)
             if lines_read >= max_lines:
-                esp32_logger.warning(f"Buffer overflow riski: {lines_read} satır okundu, buffer temizleniyor")
+                esp32_logger.warning(
+                    f"Buffer overflow riski: {lines_read} satır okundu, buffer temizleniyor"
+                )
                 self.serial_connection.reset_input_buffer()
 
         except serial.SerialException as e:
@@ -337,9 +391,14 @@ class ESP32Bridge:
             error_msg = str(e)
             esp32_logger.error(f"Serial port hatası: {error_msg}")
 
-            if "device disconnected" in error_msg.lower() or "multiple access" in error_msg.lower():
+            if (
+                "device disconnected" in error_msg.lower()
+                or "multiple access" in error_msg.lower()
+            ):
                 if self._reconnect_enabled and self.is_connected:
-                    esp32_logger.warning("Serial port bağlantısı kopmuş, reconnection deneniyor")
+                    esp32_logger.warning(
+                        "Serial port bağlantısı kopmuş, reconnection deneniyor"
+                    )
                     self.is_connected = False
                     self.reconnect()
             else:
@@ -380,11 +439,15 @@ class ESP32Bridge:
                 elif self._reconnect_enabled:
                     # Bağlantı yoksa reconnection dene
                     if consecutive_errors == 0:  # İlk hatada reconnection dene
-                        esp32_logger.info("Monitor loop: Bağlantı yok, reconnection deneniyor")
+                        esp32_logger.info(
+                            "Monitor loop: Bağlantı yok, reconnection deneniyor"
+                        )
                         self.reconnect()
                     consecutive_errors += 1
                     if consecutive_errors >= max_consecutive_errors:
-                        esp32_logger.warning(f"Monitor loop: {max_consecutive_errors} ardışık hata, reconnection duraklatılıyor")
+                        esp32_logger.warning(
+                            f"Monitor loop: {max_consecutive_errors} ardışık hata, reconnection duraklatılıyor"
+                        )
                         time.sleep(30)  # 30 saniye bekle
                         consecutive_errors = 0  # Sayaç sıfırla ve tekrar dene
             except Exception as e:
@@ -413,12 +476,14 @@ class ESP32Bridge:
 
             # Timestamp kontrolü - çok eski veri None döndürülür
             try:
-                timestamp_str = self.last_status.get('timestamp')
+                timestamp_str = self.last_status.get("timestamp")
                 if timestamp_str:
                     timestamp = datetime.fromisoformat(timestamp_str)
                     age_seconds = (datetime.now() - timestamp).total_seconds()
                     if age_seconds > max_age_seconds:
-                        esp32_logger.warning(f"Status verisi çok eski: {age_seconds:.1f} saniye (max: {max_age_seconds}s)")
+                        esp32_logger.warning(
+                            f"Status verisi çok eski: {age_seconds:.1f} saniye (max: {max_age_seconds}s)"
+                        )
                         return None
             except (ValueError, TypeError) as e:
                 esp32_logger.warning(f"Timestamp parse hatası: {e}")
@@ -484,4 +549,3 @@ def get_esp32_bridge() -> ESP32Bridge:
             esp32_logger.info("ESP32 bridge singleton instance oluşturuldu")
 
     return _esp32_bridge_instance
-

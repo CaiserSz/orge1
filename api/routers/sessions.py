@@ -10,9 +10,9 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, status
 
+from api.cache import cache_response
 from api.logging_config import system_logger
 from api.session import SessionStatus, get_session_manager
-from api.cache import cache_response
 
 router = APIRouter(prefix="/api/sessions", tags=["Sessions"])
 

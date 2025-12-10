@@ -1,7 +1,7 @@
 # Test Coverage Raporu
 
-**Oluşturulma Tarihi:** 2025-12-10 13:15:00  
-**Son Güncelleme:** 2025-12-10 13:15:00  
+**Oluşturulma Tarihi:** 2025-12-10 13:15:00
+**Son Güncelleme:** 2025-12-10 13:15:00
 **Versiyon:** 1.0.0
 
 ---

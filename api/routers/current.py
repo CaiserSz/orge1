@@ -7,17 +7,16 @@ Description: Current control endpoints
 """
 
 import os
-import logging
-from datetime import datetime
+
 from fastapi import APIRouter, HTTPException, Request, status, Depends
-from esp32.bridge import ESP32Bridge
+
 from api.auth import verify_api_key
-from api.event_detector import ESP32State
-from api.logging_config import log_event, system_logger
+from api.models import APIResponse, CurrentSetRequest
 from api.rate_limiting import charge_rate_limit
 from api.routers.dependencies import get_bridge
-from api.models import APIResponse, CurrentSetRequest
-from api.cache import cache_response, invalidate_cache
+from api.services.current_service import CurrentService
+from api.cache import cache_response
+from esp32.bridge import ESP32Bridge
 
 router = APIRouter(prefix="/api", tags=["Current Control"])
 
@@ -40,127 +39,34 @@ async def set_current(
 
     Geçerli akım aralığı: 6-32 amper (herhangi bir tam sayı)
     """
-    # User ID'yi al (audit trail için)
+    # Service layer kullan
+    current_service = CurrentService(bridge)
     user_id = os.getenv("TEST_API_USER_ID", None)
 
-    # Kritik işlemleri logla (akım ayarlama)
-    if user_id:
-        log_event(
-            event_type="current_set",
-            event_data={
-                "user_id": user_id,
-                "amperage": request_body.amperage,
-                "api_key": api_key[:10] + "..." if api_key else None,
-                "timestamp": datetime.now().isoformat(),
-            },
-            level=logging.INFO,
-        )
-
-    if not bridge or not bridge.is_connected:
-        error_msg = "ESP32 bağlantısı yok"
-        system_logger.error(
-            f"Current set failed: {error_msg}",
-            extra={
-                "endpoint": "/api/maxcurrent",
-                "user_id": user_id,
-                "amperage": request_body.amperage,
-                "error_type": "ESP32_CONNECTION_ERROR",
-            },
-        )
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=error_msg
-        )
-
-    # Mevcut durumu kontrol et
-    current_status = bridge.get_status()
-    if current_status:
-        # STATE değerini al ve None kontrolü yap
-        state = current_status.get("STATE")
-        if state is None:
-            # STATE None ise, akım ayarlama işlemini devam ettirebiliriz
-            # Ancak loglama yapalım
-            system_logger.warning(
-                "Current set: STATE değeri None, akım ayarlama devam ediyor",
-                extra={
-                    "endpoint": "/api/maxcurrent",
-                    "user_id": user_id,
-                    "amperage": request_body.amperage,
-                    "error_type": "STATE_NONE_WARNING",
-                    "status_data": current_status,
-                },
+    try:
+        result = current_service.set_current(request_body, user_id, api_key)
+        return APIResponse(**result)
+    except ValueError as e:
+        # Business logic hataları için uygun HTTP exception'a dönüştür
+        error_msg = str(e)
+        if "ESP32 bağlantısı yok" in error_msg or "Geçersiz STATE değeri" in error_msg:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=error_msg
+            )
+        elif "akım değiştirilemez" in error_msg or "State:" in error_msg:
+            # State validation hataları için 400 Bad Request
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg
             )
         else:
-            # STATE değerini ESP32State enum ile validate et
-            try:
-                esp32_state = ESP32State(state)
-                state_name = esp32_state.name
-            except ValueError:
-                # Geçersiz state değeri
-                state_name = f"UNKNOWN_{state}"
-                error_msg = f"Geçersiz STATE değeri: {state} (beklenen: 0-8 arası)"
-                system_logger.error(
-                    f"Current set failed: {error_msg}",
-                    extra={
-                        "endpoint": "/api/maxcurrent",
-                        "user_id": user_id,
-                        "amperage": request_body.amperage,
-                        "error_type": "INVALID_STATE_VALUE",
-                        "invalid_state": state,
-                        "status_data": current_status,
-                    },
-                )
-                raise HTTPException(
-                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=error_msg
-                )
-
-            # STATE < CHARGING: Akım ayarlanabilir (IDLE, CABLE_DETECT, EV_CONNECTED, READY)
-            # STATE >= CHARGING: Aktif şarj veya hata durumları (akım değiştirilemez)
-            # Eğer şarj aktifse veya hata durumundaysa (STATE >= CHARGING) hata döndür
-            if (
-                state >= ESP32State.CHARGING.value
-            ):  # STATE >= CHARGING aktif şarj veya hata durumu
-                error_msg = f"Şarj aktifken akım değiştirilemez (State: {state_name})"
-                system_logger.warning(
-                    f"Current set rejected: {error_msg}",
-                    extra={
-                        "endpoint": "/api/maxcurrent",
-                        "user_id": user_id,
-                        "amperage": request_body.amperage,
-                        "current_state": state,
-                        "state_name": state_name,
-                        "error_type": "INVALID_STATE",
-                    },
-                )
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg
-                )
-
-    # Akım set komutu gönder
-    success = bridge.send_current_set(request_body.amperage)
-
-    if not success:
-        error_msg = f"Akım ayarlama komutu gönderilemedi ({request_body.amperage}A)"
-        system_logger.error(
-            f"Current set failed: {error_msg}",
-            extra={
-                "endpoint": "/api/maxcurrent",
-                "user_id": user_id,
-                "amperage": request_body.amperage,
-                "error_type": "COMMAND_SEND_ERROR",
-            },
-        )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_msg
+            )
+    except Exception as e:
+        # Diğer hatalar için 500 Internal Server Error
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_msg
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
-
-    # Status cache'ini invalidate et (MAX değeri değişti)
-    invalidate_cache("status:*")
-
-    return APIResponse(
-        success=True,
-        message=f"Akım ayarlandı: {request_body.amperage}A",
-        data={"amperage": request_body.amperage, "command": "current_set"},
-    )
 
 
 @router.get("/current/available")

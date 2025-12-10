@@ -13,6 +13,7 @@ from api.routers.dependencies import get_bridge
 from api.models import APIResponse
 from api.event_detector import get_event_detector
 from api.rate_limiting import status_rate_limit
+from api.services.status_service import StatusService
 from api.cache import cache_response
 
 router = APIRouter(prefix="/api", tags=["Status"])
@@ -235,6 +236,9 @@ async def get_status(request: Request, bridge: ESP32Bridge = Depends(get_bridge)
 
     Stale data kontrolü: 10 saniyeden eski veri None döndürülür ve yeni veri istenir.
     """
+    # Service layer kullan
+    status_service = StatusService(bridge)
+
     if not bridge or not bridge.is_connected:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
