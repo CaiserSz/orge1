@@ -1,8 +1,8 @@
 # Test Dokümantasyonu
 
 **Oluşturulma Tarihi:** 2025-12-10 10:55:00
-**Son Güncelleme:** 2025-12-10 10:55:00
-**Versiyon:** 1.0.0
+**Son Güncelleme:** 2025-12-10 13:15:00
+**Versiyon:** 2.0.0
 
 ## İçindekiler
 
@@ -321,16 +321,27 @@ cd /home/basar/charger
 
 ### Mevcut Coverage
 
-- **API Endpoints:** %85+
-- **ESP32 Bridge:** %80+
-- **Event Detector:** %75+
-- **Session Management:** %70+
+- **Genel Coverage:** ~84% (Hedef: %90+)
+- **API Endpoints:** ~85% (Hedef: %95+)
+- **ESP32 Bridge:** ~80% (Hedef: %90+)
+- **Event Detector:** ~75% (Hedef: %85+)
+- **Session Management:** ~70% (Hedef: %85+)
+- **Authentication:** ~90% (Hedef: %95+)
+- **CORS Policy:** ~100% (Hedef: %100)
+- **Rate Limiting:** ~85% (Hedef: %90+)
 
 ### Coverage Hedefleri
 
-- **Genel Coverage:** %80+
-- **Kritik Modüller:** %90+
+- **Genel Coverage:** %90+
+- **Kritik Modüller:** %95+
 - **API Endpoints:** %95+
+- **ESP32 Bridge:** %90+
+- **Event Detector:** %85+
+- **Session Management:** %85+
+
+### Detaylı Coverage Raporu
+
+Detaylı test coverage raporu için `docs/testing/TEST_COVERAGE_REPORT.md` dosyasına bakınız.
 
 ## Best Practices
 
@@ -378,9 +389,114 @@ cd /home/basar/charger
 
 **Çözüm:** Mock bridge'in `get_status_sync` fonksiyonunun doğru mock'landığından emin olun.
 
+## Test Stratejisi
+
+### Test Piramidi
+
+```
+        /\
+       /  \
+      /E2E \        10% - End-to-End Tests
+     /------\
+    /        \
+   /Integration\    30% - Integration Tests
+  /------------\
+ /              \
+/   Unit Tests   \  60% - Unit Tests
+/----------------\
+```
+
+### Test Öncelikleri
+
+1. **Kritik Modüller:** %95+ coverage
+   - API endpoints
+   - ESP32 bridge
+   - Authentication
+
+2. **Önemli Modüller:** %85+ coverage
+   - Event detector
+   - Session management
+   - Rate limiting
+
+3. **Destekleyici Modüller:** %75+ coverage
+   - Logging
+   - Error handling
+   - Utilities
+
+### Test Senaryoları
+
+#### Tam Şarj Akışı Senaryosu
+
+**Amaç:** Tam bir şarj akışını test etmek
+
+**Adımlar:**
+1. IDLE state'den başla
+2. CABLE_DETECT state'ine geç
+3. EV_CONNECTED state'ine geç
+4. Authorization gönder (READY state)
+5. CHARGING state'ine geç
+6. STOPPED state'ine geç
+
+**Test Dosyası:** `test_integration.py`
+
+#### Hata Kurtarma Senaryosu
+
+**Amaç:** ESP32 bağlantı kopması durumunda hata kurtarmayı test etmek
+
+**Adımlar:**
+1. ESP32 bridge bağlantısını kes
+2. API endpoint'ine istek gönder
+3. 503 hatası döndüğünü doğrula
+4. ESP32 bridge'i yeniden bağla
+5. API endpoint'ine tekrar istek gönder
+6. Başarılı yanıt döndüğünü doğrula
+
+**Test Dosyası:** `test_error_handling.py`
+
+#### Rate Limiting Senaryosu
+
+**Amaç:** Rate limiting'in doğru çalıştığını test etmek
+
+**Adımlar:**
+1. Rate limit'i aşacak kadar istek gönder
+2. 429 hatası döndüğünü doğrula
+3. Rate limit reset süresini bekle
+4. Tekrar istek gönder
+5. Başarılı yanıt döndüğünü doğrula
+
+**Test Dosyası:** `test_rate_limiting.py`
+
+### Eksik Test Senaryoları
+
+Aşağıdaki test senaryoları henüz implement edilmemiştir:
+
+1. **Endpoint Kombinasyon Testleri**
+   - Charge start → Charge stop → Charge start
+   - Multiple concurrent requests
+   - Sequential endpoint calls
+
+2. **Error Recovery Testleri**
+   - ESP32 bağlantı kopması → Yeniden bağlanma
+   - Network timeout → Retry logic
+   - Invalid state → State recovery
+
+3. **Session Management Testleri**
+   - Session summary generation
+   - Session API endpoint'leri
+   - Session analytics
+
+4. **Load Testleri**
+   - Concurrent request testleri
+   - Stress testleri
+   - Memory leak testleri
+
+Detaylı eksik test senaryoları için `reports/API_TESTS_DEEPDIVE_ANALYSIS_20251210.md` dosyasına bakınız.
+
 ## Referanslar
 
 - [Pytest Dokümantasyonu](https://docs.pytest.org/)
 - [FastAPI Testing](https://fastapi.tiangolo.com/tutorial/testing/)
 - [Mock Dokümantasyonu](https://docs.python.org/3/library/unittest.mock.html)
+- [Test Coverage Raporu](docs/testing/TEST_COVERAGE_REPORT.md)
+- [API Testleri Deep Dive Analizi](reports/API_TESTS_DEEPDIVE_ANALYSIS_20251210.md)
 
