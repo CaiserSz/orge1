@@ -1000,7 +1000,7 @@
                 if (result.success) {
                     alert('✅ Şarj başlatıldı!');
                     // Status'u güncelle
-                    updateStatus();
+                    await updateStatus();
                 } else {
                     alert('❌ Şarj başlatılamadı: ' + (result.message || 'Bilinmeyen hata'));
                 }
@@ -1028,7 +1028,7 @@
                 if (result.success) {
                     alert('✅ Şarj durduruldu!');
                     // Status'u güncelle
-                    updateStatus();
+                    await updateStatus();
                 } else {
                     alert('❌ Şarj durdurulamadı: ' + (result.message || 'Bilinmeyen hata'));
                 }
@@ -1165,6 +1165,23 @@
             stateContainer.className = 'status-item status-state-1';
             // Son durum verilerini temizle
             lastStatusData = {};
+        }
+
+        async function updateStatus() {
+            // Status'u fetch edip updateStatusBar'a gönder
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/status`, {
+                    headers: {
+                        'X-API-Key': await getApiKey()
+                    }
+                });
+                const result = await response.json();
+                if (result.success && result.data) {
+                    updateStatusBar(result.data);
+                }
+            } catch (error) {
+                console.error('Status update error:', error);
+            }
         }
 
         function updateStatusBar(data) {
