@@ -1,7 +1,7 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-10 11:30:00
+**Son Güncelleme:** 2025-12-10 12:00:00
 **Version:** 1.4.0
 
 ---
@@ -14,8 +14,11 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251210-005
-**Tarih:** 2025-12-10 11:30:00
+**Checkpoint ID:** CP-20251210-006
+**Tarih:** 2025-12-10 12:00:00
+**Durum:** ✅ STATE Verileri Yönetimi ve Validation İyileştirmesi Tamamlandı
+
+### Önceki Checkpoint: CP-20251210-005 (2025-12-10 11:30:00)
 **Durum:** ✅ State Değerleri Standardizasyonu Tamamlandı
 
 ### Önceki Checkpoint: CP-20251210-004 (2025-12-10 10:30:00)
@@ -43,25 +46,28 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 **Durum:** ✅ Logging Sistemi ve Kritik Düzeltmeler Tamamlandı
 
 ### Son Tamamlanan İş
-- **Görev:** State Değerleri Standardizasyonu
+- **Görev:** STATE Verileri Yönetimi ve Validation İyileştirmesi
 - **Durum:** ✅ Tamamlandı
-- **Tarih:** 2025-12-10 11:30:00
+- **Tarih:** 2025-12-10 12:00:00
 - **Detaylar:**
-  - ✅ Test dosyalarında hardcoded state değerleri ESP32State enum ile değiştirildi
-    - `tests/test_event_detector.py`: Tüm hardcoded state değerleri ESP32State enum ile değiştirildi
-    - `tests/test_error_handling.py`: Hardcoded state değerleri ESP32State enum ile değiştirildi
-    - `tests/test_integration_extended.py`: Hardcoded state değerleri ESP32State enum ile değiştirildi
-    - `tests/test_property_based.py`: Hardcoded state değerleri ESP32State enum ile değiştirildi
-    - `tests/api/test_state_edge_cases.py`: Hardcoded state değerleri ESP32State enum ile değiştirildi
-  - ✅ Router dosyaları kontrol edildi: Zaten ESP32State enum kullanıyorlar (doğru kullanım)
-    - `api/routers/charge.py`: ESP32State enum kullanılıyor ✅
-    - `api/routers/current.py`: ESP32State enum kullanılıyor ✅
-  - ✅ Testler doğrulandı: Test dosyalarındaki değişiklikler başarıyla test edildi
-  - ✅ Single Source of Truth prensibi uygulandı: Tüm state değerleri artık ESP32State enum'dan geliyor
-  - Checkpoint güncellendi (CP-20251210-005)
+  - ✅ STATE None kontrolü eklendi
+    - `api/routers/charge.py`: STATE None kontrolü eklendi, None durumunda HTTP 503 hatası döndürülüyor
+    - `api/routers/current.py`: STATE None kontrolü eklendi, None durumunda warning loglanıyor (akım ayarlama devam edebilir)
+  - ✅ Invalid state handling güçlendirildi
+    - ESP32State enum validation eklendi
+    - Geçersiz state değerleri için detaylı hata mesajları ve logging
+    - Invalid state durumunda HTTP 503 hatası döndürülüyor
+  - ✅ Komut gönderilmeden önce STATE kontrolü eklendi
+    - `api/routers/charge.py`: Authorization komutu gönderilmeden önce son bir kez STATE kontrolü yapılıyor (race condition önlemi)
+    - State değişmişse komut gönderilmiyor ve HTTP 400 hatası döndürülüyor
+  - ✅ Error handling iyileştirildi
+    - Detaylı logging eklendi (endpoint, user_id, error_type, state bilgileri)
+    - Hata mesajlarına context bilgileri eklendi
+    - Invalid state durumları için özel hata kodları (STATE_NONE_ERROR, INVALID_STATE_VALUE, STATE_CHANGED)
+  - Checkpoint güncellendi (CP-20251210-006)
 
 ### Son Aktif Görev
-- **Görev:** Yok (State değerleri standardizasyonu tamamlandı)
+- **Görev:** Yok (STATE verileri yönetimi ve validation iyileştirmesi tamamlandı)
 
 ### Sonraki Yapılacak
 - **Görev:** API Authentication İyileştirmesi (Öncelik 1 - Gelecek Faz)

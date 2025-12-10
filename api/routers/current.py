@@ -70,29 +70,66 @@ async def set_current(
     # Mevcut durumu kontrol et
     current_status = bridge.get_status()
     if current_status:
-        state = current_status.get("STATE", 0)
-        # STATE < CHARGING: Akım ayarlanabilir (IDLE, CABLE_DETECT, EV_CONNECTED, READY)
-        # STATE >= CHARGING: Aktif şarj veya hata durumları (akım değiştirilemez)
-        # Eğer şarj aktifse veya hata durumundaysa (STATE >= CHARGING) hata döndür
-        if state >= ESP32State.CHARGING.value:  # STATE >= CHARGING aktif şarj veya hata durumu
-            try:
-                state_name = ESP32State(state).name
-            except ValueError:
-                state_name = f"UNKNOWN_{state}"
-            error_msg = f"Şarj aktifken akım değiştirilemez (State: {state_name})"
+        # STATE değerini al ve None kontrolü yap
+        state = current_status.get("STATE")
+        if state is None:
+            # STATE None ise, akım ayarlama işlemini devam ettirebiliriz
+            # Ancak loglama yapalım
             system_logger.warning(
-                f"Current set rejected: {error_msg}",
+                "Current set: STATE değeri None, akım ayarlama devam ediyor",
                 extra={
                     "endpoint": "/api/maxcurrent",
                     "user_id": user_id,
                     "amperage": request.amperage,
-                    "current_state": state,
-                    "error_type": "INVALID_STATE",
+                    "error_type": "STATE_NONE_WARNING",
+                    "status_data": current_status,
                 },
             )
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg
-            )
+        else:
+            # STATE değerini ESP32State enum ile validate et
+            try:
+                esp32_state = ESP32State(state)
+                state_name = esp32_state.name
+            except ValueError:
+                # Geçersiz state değeri
+                state_name = f"UNKNOWN_{state}"
+                error_msg = f"Geçersiz STATE değeri: {state} (beklenen: 0-8 arası)"
+                system_logger.error(
+                    f"Current set failed: {error_msg}",
+                    extra={
+                        "endpoint": "/api/maxcurrent",
+                        "user_id": user_id,
+                        "amperage": request.amperage,
+                        "error_type": "INVALID_STATE_VALUE",
+                        "invalid_state": state,
+                        "status_data": current_status,
+                    },
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=error_msg
+                )
+
+            # STATE < CHARGING: Akım ayarlanabilir (IDLE, CABLE_DETECT, EV_CONNECTED, READY)
+            # STATE >= CHARGING: Aktif şarj veya hata durumları (akım değiştirilemez)
+            # Eğer şarj aktifse veya hata durumundaysa (STATE >= CHARGING) hata döndür
+            if (
+                state >= ESP32State.CHARGING.value
+            ):  # STATE >= CHARGING aktif şarj veya hata durumu
+                error_msg = f"Şarj aktifken akım değiştirilemez (State: {state_name})"
+                system_logger.warning(
+                    f"Current set rejected: {error_msg}",
+                    extra={
+                        "endpoint": "/api/maxcurrent",
+                        "user_id": user_id,
+                        "amperage": request.amperage,
+                        "current_state": state,
+                        "state_name": state_name,
+                        "error_type": "INVALID_STATE",
+                    },
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg
+                )
 
     # Akım set komutu gönder
     success = bridge.send_current_set(request.amperage)

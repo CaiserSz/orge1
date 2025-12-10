@@ -73,18 +73,48 @@ async def start_charge(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=error_msg
         )
 
-    state = current_status.get("STATE", 0)
+    # STATE değerini al ve None kontrolü yap
+    state = current_status.get("STATE")
+    if state is None:
+        error_msg = "ESP32 STATE değeri alınamadı (None)"
+        system_logger.error(
+            f"Charge start failed: {error_msg}",
+            extra={
+                "endpoint": "/api/charge/start",
+                "user_id": user_id,
+                "error_type": "STATE_NONE_ERROR",
+                "status_data": current_status,
+            },
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=error_msg
+        )
 
-    # State değerini ESP32State enum ile kontrol et
+    # State değerini ESP32State enum ile kontrol et ve validate et
     try:
         esp32_state = ESP32State(state)
         state_name = esp32_state.name
     except ValueError:
-        # Bilinmeyen state değeri
+        # Geçersiz state değeri (ESP32State enum'unda yok)
         state_name = f"UNKNOWN_{state}"
         esp32_state = None
+        error_msg = f"Geçersiz STATE değeri: {state} (beklenen: 0-8 arası)"
+        system_logger.error(
+            f"Charge start failed: {error_msg}",
+            extra={
+                "endpoint": "/api/charge/start",
+                "user_id": user_id,
+                "error_type": "INVALID_STATE_VALUE",
+                "invalid_state": state,
+                "status_data": current_status,
+            },
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=error_msg
+        )
 
     # Sadece EV_CONNECTED (state=3) durumunda authorization gönderilebilir
+    # Not: Buraya geldiysek state geçerli bir ESP32State değeridir (yukarıda validate edildi)
     if state != ESP32State.EV_CONNECTED.value:
         # State'e göre hata mesajı oluştur
         if state == ESP32State.IDLE.value:
@@ -96,6 +126,8 @@ async def start_charge(
         elif state >= ESP32State.CHARGING.value:
             detail = f"Şarj başlatılamaz (State: {state_name}). Şarj zaten aktif veya hata durumunda."
         else:
+            # Bu durum teorik olarak olmamalı (yukarıda validate edildi)
+            # Ancak güvenlik için ek kontrol
             detail = f"Şarj başlatılamaz (State: {state_name}). Sadece EV_CONNECTED durumunda authorization gönderilebilir."
 
         system_logger.warning(
@@ -111,6 +143,32 @@ async def start_charge(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
 
     # Authorization komutu gönder (sadece EV_CONNECTED durumunda)
+    # Not: Buraya geldiysek state == EV_CONNECTED.value (yukarıda kontrol edildi)
+    # Komut gönderilmeden önce son bir kez STATE kontrolü yapalım (race condition önlemi)
+    final_status_check = bridge.get_status()
+    if final_status_check:
+        final_state = final_status_check.get("STATE")
+        if final_state is not None and final_state != ESP32State.EV_CONNECTED.value:
+            # State değişmiş, komut gönderme
+            try:
+                final_state_name = ESP32State(final_state).name
+            except ValueError:
+                final_state_name = f"UNKNOWN_{final_state}"
+            error_msg = f"State değişti, şarj başlatılamaz (State: {final_state_name})"
+            system_logger.warning(
+                f"Charge start rejected: {error_msg}",
+                extra={
+                    "endpoint": "/api/charge/start",
+                    "user_id": user_id,
+                    "initial_state": state,
+                    "final_state": final_state,
+                    "error_type": "STATE_CHANGED",
+                },
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg
+            )
+
     success = bridge.send_authorization()
 
     if not success:
