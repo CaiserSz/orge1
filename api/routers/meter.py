@@ -42,7 +42,9 @@ async def get_meter_status():
                 )
 
             # Meter bağlantı durumu
-            is_connected = meter.is_connected() if hasattr(meter, "is_connected") else False
+            is_connected = (
+                meter.is_connected() if hasattr(meter, "is_connected") else False
+            )
 
             if not is_connected:
                 return APIResponse(
@@ -122,7 +124,9 @@ async def get_meter_status():
 
 
 @router.get("/reading")
-@cache_response(ttl=2, key_prefix="meter_reading")  # 2 saniye cache (daha sık güncelleme)
+@cache_response(
+    ttl=2, key_prefix="meter_reading"
+)  # 2 saniye cache (daha sık güncelleme)
 async def get_meter_reading():
     """
     Son meter okuması
@@ -145,7 +149,9 @@ async def get_meter_reading():
                 )
 
             # Meter bağlantı durumu
-            is_connected = meter.is_connected() if hasattr(meter, "is_connected") else False
+            is_connected = (
+                meter.is_connected() if hasattr(meter, "is_connected") else False
+            )
 
             if not is_connected:
                 return APIResponse(
@@ -194,4 +200,3 @@ async def get_meter_reading():
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Meter okuması alınamadı: {str(e)}",
         )
-

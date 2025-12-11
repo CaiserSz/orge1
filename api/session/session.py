@@ -88,6 +88,7 @@ class ChargingSession:
 
             # Aktif session için süre hesapla (end_time yoksa şu anki zamanı kullan)
             from datetime import datetime
+
             if self.end_time:
                 duration_seconds = (self.end_time - self.start_time).total_seconds()
             else:

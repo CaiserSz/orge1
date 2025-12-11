@@ -12,12 +12,10 @@ Kullanım:
     python3 scripts/todo_auto_check.py [--dry-run] [--update]
 """
 
-import os
-import re
 import sys
 from pathlib import Path
 from datetime import datetime
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict
 
 # Proje kök dizini
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -49,23 +47,27 @@ class TodoChecker:
         if main_py.exists():
             lines = self._count_lines(main_py)
             if lines > MAX_LINES_API_ENDPOINT:
-                issues.append({
-                    "file": str(main_py.relative_to(PROJECT_ROOT)),
-                    "lines": lines,
-                    "max": MAX_LINES_API_ENDPOINT,
-                    "priority": "Acil (Öncelik 0)",
-                    "status": "🔴 Maksimum sınır aşıldı",
-                    "action": "Router'lara bölünmeli"
-                })
+                issues.append(
+                    {
+                        "file": str(main_py.relative_to(PROJECT_ROOT)),
+                        "lines": lines,
+                        "max": MAX_LINES_API_ENDPOINT,
+                        "priority": "Acil (Öncelik 0)",
+                        "status": "🔴 Maksimum sınır aşıldı",
+                        "action": "Router'lara bölünmeli",
+                    }
+                )
             elif lines > WARNING_LINES_API_ENDPOINT:
-                issues.append({
-                    "file": str(main_py.relative_to(PROJECT_ROOT)),
-                    "lines": lines,
-                    "max": MAX_LINES_API_ENDPOINT,
-                    "priority": "Orta",
-                    "status": "🟡 Uyarı eşiği yakın",
-                    "action": "Router'lara bölünmeli"
-                })
+                issues.append(
+                    {
+                        "file": str(main_py.relative_to(PROJECT_ROOT)),
+                        "lines": lines,
+                        "max": MAX_LINES_API_ENDPOINT,
+                        "priority": "Orta",
+                        "status": "🟡 Uyarı eşiği yakın",
+                        "action": "Router'lara bölünmeli",
+                    }
+                )
 
         return issues
 
@@ -79,14 +81,20 @@ class TodoChecker:
             # master_next.md'de hala "Bekliyor" olarak görünüyor mu?
             master_next = TODO_DIR / "master_next.md"
             if master_next.exists():
-                content = master_next.read_text(encoding='utf-8')
-                if 'Event Detection' in content and 'Bekliyor' in content:
-                    completed.append({
-                        "task": "Event Detection Modülü",
-                        "file": "api/event_detector.py",
-                        "status": "Tamamlandı",
-                        "action": "master_next.md'de durum güncellenmeli"
-                    })
+                content = master_next.read_text(encoding="utf-8")
+                if "Event Detection" in content:
+                    # Sadece Event Detection bloğu içinde Bekliyor varsa uyar
+                    idx = content.index("Event Detection")
+                    block = content[idx : idx + 500]
+                    if "Bekliyor" in block:
+                        completed.append(
+                            {
+                                "task": "Event Detection Modülü",
+                                "file": "api/event_detector.py",
+                                "status": "Tamamlandı",
+                                "action": "master_next.md'de durum güncellenmeli",
+                            }
+                        )
 
         return completed
 
@@ -98,28 +106,30 @@ class TodoChecker:
         if not master_next.exists():
             return issues
 
-        content = master_next.read_text(encoding='utf-8')
+        content = master_next.read_text(encoding="utf-8")
 
         # api/main.py görevi kontrolü
-        if 'api/main.py' in content:
+        if "api/main.py" in content:
             main_py = API_DIR / "main.py"
             if main_py.exists():
                 lines = self._count_lines(main_py)
                 # Öncelik kontrolü
                 if lines > MAX_LINES_API_ENDPOINT:
-                    if 'Öncelik: Orta' in content or 'Öncelik 0' not in content:
-                        issues.append({
-                            "task": "api/main.py router'lara bölme",
-                            "issue": f"Öncelik 'Acil (Öncelik 0)' olmalı (şu anda {lines} satır, limit {MAX_LINES_API_ENDPOINT})",
-                            "action": "Öncelik güncellenmeli"
-                        })
+                    if "Öncelik: Orta" in content or "Öncelik 0" not in content:
+                        issues.append(
+                            {
+                                "task": "api/main.py router'lara bölme",
+                                "issue": f"Öncelik 'Acil (Öncelik 0)' olmalı (şu anda {lines} satır, limit {MAX_LINES_API_ENDPOINT})",
+                                "action": "Öncelik güncellenmeli",
+                            }
+                        )
 
         return issues
 
     def _count_lines(self, file_path: Path) -> int:
         """Dosyadaki satır sayısını say"""
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 return len(f.readlines())
         except Exception:
             return 0
@@ -130,7 +140,7 @@ class TodoChecker:
             "file_size_issues": self.check_file_size_standards(),
             "completed_tasks": self.check_completed_tasks(),
             "consistency_issues": self.check_master_next_consistency(),
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
         return results
@@ -144,10 +154,12 @@ class TodoChecker:
         print()
 
         # Dosya boyutu sorunları
-        if results['file_size_issues']:
+        if results["file_size_issues"]:
             print("🔴 DOSYA BOYUTU SORUNLARI:")
-            for issue in results['file_size_issues']:
-                print(f"  - {issue['file']}: {issue['lines']} satır (Limit: {issue['max']})")
+            for issue in results["file_size_issues"]:
+                print(
+                    f"  - {issue['file']}: {issue['lines']} satır (Limit: {issue['max']})"
+                )
                 print(f"    Öncelik: {issue['priority']}")
                 print(f"    Durum: {issue['status']}")
                 print(f"    Aksiyon: {issue['action']}")
@@ -157,9 +169,9 @@ class TodoChecker:
             print()
 
         # Tamamlanan görevler
-        if results['completed_tasks']:
+        if results["completed_tasks"]:
             print("⚠️  TAMAMLANAN GÖREVLER (master_next.md'de güncellenmeli):")
-            for task in results['completed_tasks']:
+            for task in results["completed_tasks"]:
                 print(f"  - {task['task']}: {task['status']}")
                 print(f"    Dosya: {task['file']}")
                 print(f"    Aksiyon: {task['action']}")
@@ -169,9 +181,9 @@ class TodoChecker:
             print()
 
         # Tutarlılık sorunları
-        if results['consistency_issues']:
+        if results["consistency_issues"]:
             print("⚠️  TUTARLILIK SORUNLARI:")
-            for issue in results['consistency_issues']:
+            for issue in results["consistency_issues"]:
                 print(f"  - {issue['task']}")
                 print(f"    Sorun: {issue['issue']}")
                 print(f"    Aksiyon: {issue['action']}")
@@ -184,9 +196,9 @@ class TodoChecker:
 
         # Özet
         total_issues = (
-            len(results['file_size_issues']) +
-            len(results['completed_tasks']) +
-            len(results['consistency_issues'])
+            len(results["file_size_issues"])
+            + len(results["completed_tasks"])
+            + len(results["consistency_issues"])
         )
 
         if total_issues == 0:
@@ -206,14 +218,12 @@ def main():
         description="Todo dosyalarını otomatik kontrol ve güncelleme"
     )
     parser.add_argument(
-        '--dry-run',
-        action='store_true',
-        help='Sadece kontrol yap, değişiklik yapma'
+        "--dry-run", action="store_true", help="Sadece kontrol yap, değişiklik yapma"
     )
     parser.add_argument(
-        '--update',
-        action='store_true',
-        help='Otomatik güncelleme yap (şimdilik sadece rapor)'
+        "--update",
+        action="store_true",
+        help="Otomatik güncelleme yap (şimdilik sadece rapor)",
     )
 
     args = parser.parse_args()
@@ -222,7 +232,11 @@ def main():
     results = checker.run_checks()
     checker.print_report(results)
 
-    if results['file_size_issues'] or results['completed_tasks'] or results['consistency_issues']:
+    if (
+        results["file_size_issues"]
+        or results["completed_tasks"]
+        or results["consistency_issues"]
+    ):
         sys.exit(1)
     else:
         sys.exit(0)
@@ -230,4 +244,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

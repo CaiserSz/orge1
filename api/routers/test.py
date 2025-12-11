@@ -28,13 +28,13 @@ async def get_test_api_key():
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="API key not configured"
+            detail="API key not configured",
         )
 
     return {
         "api_key": api_key,
         "user_id": config.get_user_id() or "",
-        "note": "This endpoint is for testing purposes only."
+        "note": "This endpoint is for testing purposes only.",
     }
 
 
@@ -50,7 +50,5 @@ async def api_test_page():
         return FileResponse(test_page_path)
     else:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Test page not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Test page not found"
         )
-

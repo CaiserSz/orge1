@@ -6,41 +6,31 @@ Version: 1.0.0
 Description: API error handling testleri
 """
 
-import sys
-from unittest.mock import patch
-from pathlib import Path
-from fastapi.testclient import TestClient
-
-# Proje root'unu path'e ekle
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
 from api.main import app
+from api.routers import dependencies
 
 
 class TestAPIErrorHandling:
     """API error handling testleri"""
 
-    def setup_method(self):
-        """Her test öncesi test client oluştur"""
-        self.client = TestClient(app)
-
-    def test_global_exception_handler(self):
+    def test_global_exception_handler(self, client):
         """Global exception handler testi"""
-        # Exception'ı endpoint içinde oluştur
-        with patch("api.main.get_bridge", side_effect=Exception("Test exception")):
-            response = self.client.get("/api/status")
+        app.dependency_overrides[dependencies.get_bridge] = lambda: (
+            _ for _ in ()
+        ).throw(Exception("Test exception"))
+        response = client.get("/api/status")
+        app.dependency_overrides.pop(dependencies.get_bridge, None)
 
-            # Exception handler çalışmalı - 500 veya başka bir hata kodu
-            assert response.status_code >= 500
+        assert response.status_code >= 500
 
-    def test_invalid_endpoint(self):
+    def test_invalid_endpoint(self, client):
         """Geçersiz endpoint"""
-        response = self.client.get("/api/invalid")
+        response = client.get("/api/invalid")
 
         assert response.status_code == 404
 
-    def test_invalid_method(self):
+    def test_invalid_method(self, client):
         """Geçersiz HTTP method"""
-        response = self.client.delete("/api/status")
+        response = client.delete("/api/status")
 
         assert response.status_code == 405  # Method not allowed

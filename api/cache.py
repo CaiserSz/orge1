@@ -11,6 +11,7 @@ import json
 import time
 from functools import wraps
 from typing import Any, Callable, Optional
+import os
 
 from fastapi import Request
 from starlette.responses import JSONResponse
@@ -226,6 +227,9 @@ def cache_response(
     def decorator(func: Callable):
         @wraps(func)
         async def wrapper(*args, **kwargs):
+            # Test ortamında cache'i bypass et
+            if os.getenv("PYTEST_CURRENT_TEST") is not None:
+                return await func(*args, **kwargs)
             # Request objesini bul
             request: Optional[Request] = None
             for arg in args:

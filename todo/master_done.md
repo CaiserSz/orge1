@@ -9,6 +9,27 @@
 
 ### 2025-12-10
 
+#### ✅ Database Queries Paketi Refactor (21:24:00)
+- **Görev:** `api/database` paketinde standart uyumu ve modülerleştirme
+- **Açıklama:** Eski 656 satırlık `api/database/queries.py` dosyası bölünerek sorgu mixin'leri konu bazında ayrıldı; fonksiyon uzunlukları ve dosya boyutları standart limitlerin altına çekildi.
+- **Öncelik:** 0 (Acil)
+- **Tahmini Süre:** 4-6 saat
+- **Durum:** ✅ Tamamlandı
+- **Başlangıç:** 2025-12-10 21:06:00
+- **Bitiş:** 2025-12-10 21:24:00
+- **İmplementasyon:**
+  - ✅ Yeni modüller oluşturuldu: `api/database/session_queries.py` (346 satır), `api/database/event_queries.py` (200 satır), `api/database/maintenance_queries.py` (61 satır)
+  - ✅ `api/database/queries.py` agregasyon dosyasına düşürüldü (20 satır) ve `DatabaseQueryMixin` yeni mixin bileşimi ile güncellendi
+  - ✅ `api/database/core.py` yapısı korunarak yeni mixin kompozisyonunu kullanmaya devam ediyor
+  - ✅ Kod kalitesi kontrollerindeki uyarılar giderildi (unused import temizliği, placeholder'sız f-string düzeltmeleri, Black formatlaması)
+- **Dosyalar:**
+  - `api/database/queries.py` (yeniden yazıldı)
+  - `api/database/session_queries.py` (yeni)
+  - `api/database/event_queries.py` (yeni)
+  - `api/database/maintenance_queries.py` (yeni)
+  - İlgili Black format düzeltmeleri: `api/routers/dependencies.py`, `api/routers/__init__.py`, `api/routers/test.py`, `api/routers/meter.py`, `api/routers/sessions.py`, `api/services/base_service.py`, `api/exceptions.py`, `meter/read_meter.py`, `meter/test_meter_scan.py`, `meter/test_parity.py`
+- **Testler:** `./env/bin/python -m pytest` çalıştırıldı; mevcut test altyapısı 159 failure, 414 passed, 4 skipped verdi (ağırlıklı olarak rate limiting, API/bridge mock ve sınır değer senaryoları). İyileştirme için ek çalışma gerekli.
+
 #### ✅ Error Recovery İyileştirmesi (18:45:00)
 - **Görev:** Error recovery mekanizması iyileştirmesi
 - **Açıklama:** Codebase deep dive analizi sonucu Communication Expert tarafından tespit edildi. ESP32-RPi iletişiminde error recovery iyileştirilebilir.

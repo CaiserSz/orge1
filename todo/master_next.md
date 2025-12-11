@@ -477,7 +477,24 @@
   - Notlar: ESP32 mesajlarını ve API isteklerini logla
   - Commit: 0284a21, 0c3838a
 
+### ✅ Event Detection Modülü (Tamamlandı - 2025-12-09)
+- [x] **Görev:** Event Detection Modülü
+  - Açıklama: State transition algılama, event sınıflandırma ve event logging tamamlandı.
+  - Öncelik: 1 (Yüksek)
+  - Durum: ✅ Tamamlandı (2025-12-09 23:00:00)
+  - Detaylar: `todo/master_done.md` ve `reports/CODEBASE_DEEPDIVE_ANALYSIS_20251210.md` referans alınabilir
+  - Dosyalar:
+    - `api/event_detector.py`
+  - Otomatik kontrol notu: Todo auto check uyarısı kapatıldı (tamamlandı)
 
+### Öncelik 2: Gerçek Araç SOC Limiti İçin Kullanıcı Uyarısı (2025-12-11)
+- [ ] **Görev:** READY durumunda uzun süre akım yoksa SOC limiti uyarısı üret
+  - Açıklama: Gerçek araç testinde, araç BMS SOC limiti %60 iken READY durumunda olmasına rağmen şarjı başlatmadı; istasyon tarafı doğru davrandı ancak kullanıcı tecrübesi karışık oldu. READY/EV_CONNECTED state uzun süre devam edip akım çekilmiyorsa, araçta SOC limiti veya benzeri bir kısıt olabileceğine dair API/web arayüzü üzerinden açıklayıcı uyarı gösterilmeli.
+  - Öncelik: 2 (Yüksek - UX İyileştirme)
+  - Tahmini Süre: 2-3 saat
+  - Durum: 💡 İyileştirme fırsatı
+  - Detaylar: `docs/REAL_VEHICLE_TEST_CHECKLIST.md` ve `project_info_20251208_145614.md` içindeki 2025-12-11 gerçek araç senaryosu özetine bakınız.
+  - Durum: 📋 Bekliyor
 
 ### Öncelik 3: Session Summary Generation
 - [ ] **Görev:** Session summary generator oluştur
@@ -515,16 +532,17 @@
 #### 🔴 KRİTİK: Standart İhlalleri (Standart Kontrol Raporu - 2025-12-10)
 
 ##### 🔴 Maksimum Sınır Aşıldı (Acil Refactor Gerekli)
-- [ ] **Görev:** `api/database.py` modüllere bölme
-  - Açıklama: Maksimum sınır (500 satır) aşıldı (1335 satır). Modüllere bölünmeli
+- [ ] **Görev:** `api/database` paketinde standart uyumu → ✅ Tamamlandı (2025-12-10 21:24)
+  - Açıklama: Eski 656 satırlık `api/database/queries.py` dosyası konu bazlı mixin'lere bölündü; fonksiyon uzunlukları ve dosya boyutları limitlerin altına çekildi.
   - Öncelik: 0 (Acil)
   - Tahmini Süre: 4-6 saat
-  - Durum: 🔴 Maksimum sınır aşıldı
+  - Durum: ✅ Tamamlandı
   - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
-  - Önerilen Yapı:
-    - `api/database/core.py` - Core database operations
+  - Son Yapı:
+    - `api/database/core.py` - Core database operations (427 satır, uyarı eşiğinde)
     - `api/database/migrations.py` - Migration operations
-    - `api/database/queries.py` - Query operations
+    - `api/database/session_queries.py`, `event_queries.py`, `maintenance_queries.py` - Query mixin'leri
+    - `api/database/queries.py` - Mixin agregasyonu (20 satır)
     - `api/database/models.py` - Database models
 
 - [x] **Görev:** `api/session/manager.py` modüllere bölme ✅ Tamamlandı
@@ -599,6 +617,16 @@
     - Gereksiz dosyaları temizleme
     - Backup dosyalarını kontrol etme
     - env/ klasörü boyutunu kontrol etme
+
+- [ ] **Görev:** Pytest tam suite kırmızı (162 failure)
+  - Açıklama: 2025-12-10 21:44 `./env/bin/python -m pytest` çalıştırmasında 162 failure, 411 passed, 4 skipped. Rate limiting test ortamında devre dışı bırakıldı; kalan hatalar API/bridge mock konfigürasyonu, edge case validation ve state/command akışlarına ilişkin.
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 4-6 saat
+  - Durum: 🔴 Test suite kırık
+  - Detaylar: Son log: `/home/basar/.cursor/projects/home-basar-charger/agent-tools/f5be6089-c27d-4f8a-814e-45931eea1d47.txt`
+  - Aksiyonlar:
+    - API/bridge mock fixture'larını gözden geçir, boundary senaryolarında geçerli veri üret
+    - Tek tek hata tiplerini gruplayarak hızlı onarım planı çıkar
 
 #### ✅ State Değerleri Standardizasyonu (API Testleri Deep Dive Bulgusu) - Tamamlandı
 - [x] **Görev:** State değerleri standardizasyonu (Single Source of Truth)

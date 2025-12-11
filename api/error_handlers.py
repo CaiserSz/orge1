@@ -128,6 +128,13 @@ def handle_api_errors(func: Callable) -> Callable:
                         detail=error_msg,
                     )
 
+            # Komut gönderme hataları (ör. ESP32'ye authorization gönderilemedi)
+            if "komutu gönderilemedi" in error_msg.lower():
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=error_msg,
+                )
+
             # Diğer ValueError'lar → 400 Bad Request
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

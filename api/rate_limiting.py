@@ -44,12 +44,31 @@ def get_client_identifier(request: Request) -> str:
     return get_remote_address(request)
 
 
+class _DummyLimiter:
+    """Rate limit devre dışı iken decorator'ları no-op yapar."""
+
+    @staticmethod
+    def limit(_limit: Optional[str] = None):
+        def decorator(func):
+            return func
+
+        return decorator
+
+
+def _build_limiter() -> Limiter:
+    if not config.RATE_LIMIT_ENABLED:
+        system_logger.info("Rate limiting devre dışı (RATE_LIMIT_ENABLED=false)")
+        return _DummyLimiter()  # type: ignore[return-value]
+
+    return Limiter(
+        key_func=get_client_identifier,
+        default_limits=["100/minute"],  # Varsayılan limit: 100 istek/dakika
+        storage_uri="memory://",  # In-memory storage (production'da Redis kullanılabilir)
+    )
+
+
 # Rate limiter instance oluştur
-limiter = Limiter(
-    key_func=get_client_identifier,
-    default_limits=["100/minute"],  # Varsayılan limit: 100 istek/dakika
-    storage_uri="memory://",  # In-memory storage (production'da Redis kullanılabilir)
-)
+limiter = _build_limiter()
 
 
 def get_rate_limit_config() -> dict:

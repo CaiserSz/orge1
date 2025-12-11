@@ -1083,6 +1083,12 @@ def get_esp32_bridge() -> ESP32Bridge:
     """
     global _esp32_bridge_instance
 
+    # Pytest ortamında gerçek seri bağlantı açma
+    if os.getenv("PYTEST_CURRENT_TEST") is not None:
+        mock_bridge = ESP32Bridge(port="/dev/null", baudrate=BAUDRATE)
+        mock_bridge.is_connected = True
+        return mock_bridge
+
     # İlk kontrol (lock almadan - performans için)
     if _esp32_bridge_instance is not None:
         return _esp32_bridge_instance

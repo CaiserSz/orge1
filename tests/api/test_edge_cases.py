@@ -16,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from api.main import app
 from api.event_detector import ESP32State
+from api.routers import dependencies
 from esp32.bridge import ESP32Bridge
 
 
@@ -27,16 +28,24 @@ class TestAPIEdgeCases:
         self.client = TestClient(app)
         self.mock_bridge = Mock(spec=ESP32Bridge)
         self.mock_bridge.is_connected = True
-        self.mock_bridge.get_status = Mock(return_value={"STATE": ESP32State.IDLE.value})
-        self.mock_bridge.get_status_sync = Mock(return_value={"STATE": ESP32State.IDLE.value})
+        self.mock_bridge.get_status = Mock(
+            return_value={"STATE": ESP32State.IDLE.value}
+        )
+        self.mock_bridge.get_status_sync = Mock(
+            return_value={"STATE": ESP32State.IDLE.value}
+        )
         self.mock_bridge.send_authorization = Mock(return_value=True)
         self.mock_bridge.send_charge_stop = Mock(return_value=True)
         self.mock_bridge.send_current_set = Mock(return_value=True)
+        # Varsayılan override: mock bridge
+        app.dependency_overrides[dependencies.get_bridge] = lambda: self.mock_bridge
 
-    @patch("api.routers.dependencies.get_bridge")
-    def test_health_check_bridge_none(self, mock_get_bridge):
+    def teardown_method(self):
+        app.dependency_overrides.pop(dependencies.get_bridge, None)
+
+    def test_health_check_bridge_none(self):
         """Health check - bridge None durumu"""
-        mock_get_bridge.return_value = None
+        app.dependency_overrides[dependencies.get_bridge] = lambda: None
 
         response = self.client.get("/api/health")
 
@@ -45,11 +54,10 @@ class TestAPIEdgeCases:
         assert data["success"] is True
         assert data["data"]["esp32_connected"] is False
 
-    @patch("api.routers.dependencies.get_bridge")
-    def test_health_check_bridge_not_connected(self, mock_get_bridge):
+    def test_health_check_bridge_not_connected(self):
         """Health check - bridge bağlı değil"""
         self.mock_bridge.is_connected = False
-        mock_get_bridge.return_value = self.mock_bridge
+        app.dependency_overrides[dependencies.get_bridge] = lambda: self.mock_bridge
 
         response = self.client.get("/api/health")
 
@@ -122,7 +130,9 @@ class TestAPIEdgeCases:
     @patch.dict("os.environ", {"SECRET_API_KEY": "test-key-123"})
     def test_start_charge_state_8_fault(self, mock_get_bridge):
         """Start charge - STATE=8 (FAULT_HARD) durumu"""
-        self.mock_bridge.get_status.return_value = {"STATE": ESP32State.FAULT_HARD.value}
+        self.mock_bridge.get_status.return_value = {
+            "STATE": ESP32State.FAULT_HARD.value
+        }
         mock_get_bridge.return_value = self.mock_bridge
 
         response = self.client.post(

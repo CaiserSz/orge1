@@ -321,7 +321,11 @@ async def get_user_current_session(user_id: str):
         if current_session and current_session.get("user_id") == user_id:
             return {"success": True, "session": current_session}
         else:
-            return {"success": True, "session": None, "message": f"User {user_id} için aktif session yok"}
+            return {
+                "success": True,
+                "session": None,
+                "message": f"User {user_id} için aktif session yok",
+            }
     except Exception as e:
         system_logger.error(f"User current session get error: {e}", exc_info=True)
         raise HTTPException(

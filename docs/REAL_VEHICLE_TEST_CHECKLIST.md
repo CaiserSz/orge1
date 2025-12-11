@@ -1,8 +1,8 @@
 # Gerçek Araç Testi Kontrol Listesi
 
 **Oluşturulma Tarihi:** 2025-12-10 12:05:00
-**Son Güncelleme:** 2025-12-10 12:05:00
-**Versiyon:** 1.0.0
+**Son Güncelleme:** 2025-12-11 13:45:00
+**Versiyon:** 1.1.0
 
 ## Özet
 
@@ -205,6 +205,24 @@ Test sayfası (`api_test.html`) şu özellikleri içerir:
 }
 ```
 
+### Gerçek Araç Testi Senaryosu - 2025-12-11 (Meter Hariç Her Şey Çalışıyor)
+
+- **Test Özeti**
+  - Gerçek araçla birden fazla şarj döngüsü gerçekleştirildi.
+  - ESP32 bridge, API, session management, logging ve event detection modülleri sahada başarılı şekilde çalıştı.
+  - Tüm state geçişleri (`IDLE → CABLE_DETECT → EV_CONNECTED → READY → CHARGING → PAUSED/STOPPED → IDLE`) loglarda tutarlı şekilde kaydedildi.
+
+- **Araç BMS Davranışı (SOC Limiti)**
+  - Araç, kendi BMS ayarlarında SOC limiti **%60** olarak tanımlı iken, READY durumunda olmasına rağmen şarjı başlatmadı (iç kontaktörleri kapatmadı).
+  - Bu durumda istasyon tarafında charge start komutu ve authorization başarılı, ancak araç akım çekmediği için uzun süre READY/EV_CONNECTED durumunda kalındı ve birkaç kez manuel start/stop denemesi yapıldı.
+  - SOC limiti **%80**'e çekildikten sonra araç, ilk denemede hemen şarjı başlattı ve istasyonda `CHARGING` state'ine geçiş düzgün şekilde gerçekleşti.
+  - Bu davranış **istasyon hatası değil**, tamamen aracın BMS/SOC limit mantığından kaynaklanan beklenen bir senaryo olarak değerlendirildi.
+
+- **Meter Durumu**
+  - Fiziksel enerji ölçer (meter) entegrasyonu henüz tamamlanmamış durumda; bu testte kWh/enerji verileri harici cihaz ile doğrulanmamıştır.
+  - Mevcut senaryoda istasyon, ESP32 status verilerinden aldığı bilgilerle çalışmakta; `meter/read_meter.py` tabanlı okuma ve entegrasyon, `todo/master_next.md` altında ayrı bir görev olarak planlanmıştır.
+  - Bu doküman, **“meter hariç her şeyin çalıştığı”** referans senaryo olarak kullanılabilir.
+
 ---
 
 ## ✅ Hazırlık Kontrol Listesi
@@ -250,5 +268,5 @@ curl http://localhost:8000/api/status
 
 ---
 
-**Son Güncelleme:** 2025-12-10 12:05:00
+**Son Güncelleme:** 2025-12-11 13:45:00
 

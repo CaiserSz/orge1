@@ -73,4 +73,3 @@ class BaseService:
             level: Logging level (default: INFO)
         """
         log_event(event_type, event_data, level)
-

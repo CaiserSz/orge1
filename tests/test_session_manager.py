@@ -8,13 +8,14 @@ Description: Session Manager modülü için unit testler
 
 from datetime import datetime
 from unittest.mock import Mock
+
+from api.event_detector import ESP32State, EventType
 from api.session import (
-    SessionManager,
     ChargingSession,
+    SessionManager,
     SessionStatus,
     get_session_manager,
 )
-from api.event_detector import EventType, ESP32State
 
 
 class TestChargingSession:
@@ -195,9 +196,6 @@ class TestSessionManager:
         manager._on_event(
             EventType.CHARGE_STARTED, {"to_state": ESP32State.CHARGING.value}
         )
-        session_id = (
-            manager.current_session.session_id if manager.current_session else None
-        )
 
         # Fault event'i
         manager._on_event(
@@ -285,7 +283,7 @@ class TestSessionManager:
             )
 
         # Session yokken kontrol et (mevcut session restore edilmiş olabilir)
-        initial_current = manager.get_current_session()
+        manager.get_current_session()
 
         # Yeni session başlat
         manager._on_event(
@@ -339,8 +337,17 @@ class TestSessionManager:
         manager = SessionManager()
 
         # Başlangıç sayılarını al (test isolation sorunu - database'de mevcut session'lar olabilir)
-        initial_completed = len(manager.get_sessions(status=SessionStatus.COMPLETED))
-        initial_cancelled = len(manager.get_sessions(status=SessionStatus.CANCELLED))
+        # Limit'i max_sessions olarak ayarlayarak limit=100 nedeniyle truncation'ı engelle
+        initial_completed = len(
+            manager.get_sessions(
+                status=SessionStatus.COMPLETED, limit=manager.max_sessions
+            )
+        )
+        initial_cancelled = len(
+            manager.get_sessions(
+                status=SessionStatus.CANCELLED, limit=manager.max_sessions
+            )
+        )
 
         # Mevcut aktif session'ı temizle (restore edilen session varsa)
         if manager.current_session:
@@ -366,8 +373,16 @@ class TestSessionManager:
         )
 
         # Completed session'ları al
-        completed = manager.get_sessions(status=SessionStatus.COMPLETED)
-        assert len(completed) >= initial_completed + 1
+        completed = manager.get_sessions(
+            status=SessionStatus.COMPLETED, limit=manager.max_sessions
+        )
+        # Eğer maksimum session sayısına ulaşıldıysa, cleanup eski session'ları
+        # silebileceğinden toplam sayı artmayabilir; bu durumda en azından
+        # başlangıç sayısından küçük olmamalı.
+        if initial_completed < manager.max_sessions:
+            assert len(completed) >= initial_completed + 1
+        else:
+            assert len(completed) >= initial_completed
         # Yeni oluşturulan session'ı bul
         new_completed = [
             s for s in completed if s["status"] == SessionStatus.COMPLETED.value
@@ -375,8 +390,13 @@ class TestSessionManager:
         assert len(new_completed) >= 1
 
         # Cancelled session'ları al
-        cancelled = manager.get_sessions(status=SessionStatus.CANCELLED)
-        assert len(cancelled) >= initial_cancelled + 1
+        cancelled = manager.get_sessions(
+            status=SessionStatus.CANCELLED, limit=manager.max_sessions
+        )
+        if initial_cancelled < manager.max_sessions:
+            assert len(cancelled) >= initial_cancelled + 1
+        else:
+            assert len(cancelled) >= initial_cancelled
         # Yeni oluşturulan session'ı bul
         new_cancelled = [
             s for s in cancelled if s["status"] == SessionStatus.CANCELLED.value
@@ -388,10 +408,12 @@ class TestSessionManager:
         manager = SessionManager()
 
         # Database'de mevcut session'lar olabilir (test isolation sorunu)
-        # Bu yüzden sadece count'un bir integer olduğunu kontrol edelim
-        count = manager.get_session_count()
-        assert isinstance(count, int)
-        assert count >= 0
+        # Bu yüzden önce mevcut sayıları kaydedip, farkı kontrol edelim
+        total_before = manager.get_session_count()
+        completed_before = manager.get_session_count(SessionStatus.COMPLETED)
+        cancelled_before = manager.get_session_count(SessionStatus.CANCELLED)
+        assert isinstance(total_before, int)
+        assert total_before >= 0
 
         # Birkaç session oluştur
         manager._on_event(
@@ -408,9 +430,13 @@ class TestSessionManager:
             EventType.CABLE_DISCONNECTED, {"to_state": ESP32State.IDLE.value}
         )
 
-        assert manager.get_session_count() == 2
-        assert manager.get_session_count(SessionStatus.COMPLETED) == 1
-        assert manager.get_session_count(SessionStatus.CANCELLED) == 1
+        assert manager.get_session_count() == total_before + 2
+        assert (
+            manager.get_session_count(SessionStatus.COMPLETED) == completed_before + 1
+        )
+        assert (
+            manager.get_session_count(SessionStatus.CANCELLED) == cancelled_before + 1
+        )
 
 
 class TestSessionManagerSingleton:

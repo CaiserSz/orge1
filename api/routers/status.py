@@ -1,8 +1,8 @@
 """
 Status Router
 Created: 2025-12-10
-Last Modified: 2025-12-10 02:20:00
-Version: 1.0.0
+Last Modified: 2025-12-10 23:10:00
+Version: 1.0.1
 Description: Status and health check endpoints
 """
 
@@ -357,6 +357,14 @@ async def get_status(request: Request, bridge: ESP32Bridge = Depends(get_bridge)
         status_data = bridge.get_status_sync(timeout=2.0)
 
     if not status_data:
+        # Bağlantı bu aşamada kopmuşsa 503 döndür (bağlantı hatası)
+        if not bridge.is_connected:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="ESP32 bağlantısı yok",
+            )
+
+        # Bağlantı var ama status alınamıyorsa timeout olarak değerlendir
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
             detail="ESP32'den durum bilgisi alınamadı (timeout veya stale data)",

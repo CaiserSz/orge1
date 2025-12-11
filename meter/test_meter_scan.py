@@ -8,13 +8,16 @@ Description: Farklı baudrate ve slave ID kombinasyonlarını test eder
 
 import sys
 import os
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from meter.read_meter import ABBMeterReader
 import time
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 
 print("ABB Meter RS485 Tarama Testi")
 print("=" * 60)
@@ -29,28 +32,25 @@ found = False
 for device in DEVICES:
     print(f"\n🔍 Cihaz: {device}")
     print("-" * 60)
-    
+
     for baudrate in BAUDRATES:
         print(f"\n  📡 Baudrate: {baudrate}")
-        
+
         for slave_id in SLAVE_IDS:
             print(f"    🔢 Slave ID: {slave_id}", end=" ... ")
-            
+
             try:
                 reader = ABBMeterReader(
-                    device=device,
-                    baudrate=baudrate,
-                    slave_id=slave_id,
-                    timeout=0.5
+                    device=device, baudrate=baudrate, slave_id=slave_id, timeout=0.5
                 )
-                
+
                 if reader.connect():
                     # Basit bir register okuma denemesi
                     result = reader.read_input_registers(0x0000, 1)
-                    
+
                     if result is not None:
                         print(f"✅ BAŞARILI! Response: {result}")
-                        print(f"\n🎯 BULUNAN AYARLAR:")
+                        print("\n🎯 BULUNAN AYARLAR:")
                         print(f"   Device: {device}")
                         print(f"   Baudrate: {baudrate}")
                         print(f"   Slave ID: {slave_id}")
@@ -62,15 +62,15 @@ for device in DEVICES:
                     reader.disconnect()
                 else:
                     print("❌ (Bağlantı hatası)")
-                    
+
             except Exception as e:
                 print(f"❌ (Hata: {e})")
-            
+
             time.sleep(0.1)  # Kısa bekleme
-        
+
         if found:
             break
-    
+
     if found:
         break
 
@@ -83,4 +83,3 @@ if not found:
     print("  4. GPIO12/13 pinleri doğru bağlı mı?")
     print("  5. Meter'in Modbus ayarları nedir? (baudrate, slave ID, parity)")
     print("  6. Register adresleri doğru mu? (0x0000 yerine başka adres deneyin)")
-
