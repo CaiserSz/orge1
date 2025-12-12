@@ -98,6 +98,7 @@ class TestESP32BridgeAdditionalEdgeCases:
 
         # Status varsa hemen döner (get_status çağrılır ve status döner)
         bridge.last_status = {"STATE": 1}
+
         # get_status'u mock'la ki last_status'u döndürsün (parametreleri yok say)
         def mock_get_status(max_age_seconds=10.0):
             return bridge.last_status

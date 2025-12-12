@@ -14,19 +14,22 @@ from fastapi.testclient import TestClient
 
 # Test modunda rate limiting'i konfigürasyon seviyesinde devre dışı bırak
 os.environ.setdefault("PYTEST_DISABLE_RATE_LIMIT", "1")
-from api import config as config_module
 
-config_module.config.load()
 
-from api.event_detector import ESP32State
-from api.main import app
-from api.routers import dependencies
-from esp32 import bridge as esp32_bridge_module
-from esp32.bridge import ESP32Bridge
+@pytest.fixture(scope="session", autouse=True)
+def _bootstrap_test_environment():
+    """
+    Test ortamı bootstrap:
+    - config yükle (rate limit disable env ile)
+    - FastAPI startup/shutdown hook'larını temizle (donanım bağlantısını engellemek için)
+    """
+    from api import config as config_module
+    from api.main import app
 
-# Test ortamında gerçek startup/shutdown hook'larını iptal et (donanım bağlantısını engellemek için)
-app.router.on_startup.clear()
-app.router.on_shutdown.clear()
+    config_module.config.load()
+    app.router.on_startup.clear()
+    app.router.on_shutdown.clear()
+    yield
 
 
 @pytest.fixture
@@ -36,6 +39,9 @@ def mock_esp32_bridge():
 
     Tüm test dosyalarında kullanılacak standart mock bridge.
     """
+    from api.event_detector import ESP32State
+    from esp32.bridge import ESP32Bridge
+
     mock_bridge = Mock(spec=ESP32Bridge)
     mock_bridge.is_connected = True
 
@@ -89,6 +95,11 @@ def override_bridge_dependencies(mock_esp32_bridge, request):
       `app.dependency_overrides[dependencies.get_bridge]` üzerinden kendi
       override'ını verebilir (ve test sonunda geri almalıdır).
     """
+    from api.main import app
+    from api.routers import dependencies
+    from esp32 import bridge as esp32_bridge_module
+    from esp32.bridge import ESP32Bridge
+
     # ESP32Bridge'in kendi unit testlerinde gerçek `connect()` davranışını
     # (serial mock'ları ile) doğrulamak istiyoruz; burada `connect()` no-op
     # patch'i bu testleri bozuyor. Bu yüzden ilgili test dosyalarında
@@ -112,7 +123,9 @@ def override_bridge_dependencies(mock_esp32_bridge, request):
             "esp32.bridge.get_esp32_bridge", return_value=mock_esp32_bridge
         ), patch(
             "api.routers.dependencies.get_esp32_bridge", return_value=mock_esp32_bridge
-        ), patch("api.main.get_esp32_bridge", return_value=mock_esp32_bridge):
+        ), patch(
+            "api.main.get_esp32_bridge", return_value=mock_esp32_bridge
+        ):
             # FastAPI dependency override: tüm router'larda mock bridge kullan
             app.dependency_overrides[dependencies.get_bridge] = (
                 lambda: mock_esp32_bridge
@@ -147,6 +160,8 @@ def client(mock_esp32_bridge):
             with patch(
                 "api.event_detector.get_event_detector"
             ) as mock_get_event_detector:
+                from api.main import app
+
                 # Mock event detector oluştur
                 mock_event_detector = Mock()
                 mock_event_detector.is_monitoring = True
@@ -189,6 +204,8 @@ def mock_status_idle():
     """
     IDLE state mock status fixture
     """
+    from api.event_detector import ESP32State
+
     return {"STATE": ESP32State.IDLE.value, "AUTH": 0, "CABLE": 0, "MAX": 16}
 
 
@@ -197,6 +214,8 @@ def mock_status_cable_detect():
     """
     CABLE_DETECT state mock status fixture
     """
+    from api.event_detector import ESP32State
+
     return {"STATE": ESP32State.CABLE_DETECT.value, "PP": 1, "CABLE": 32}
 
 
@@ -205,6 +224,8 @@ def mock_status_ev_connected():
     """
     EV_CONNECTED state mock status fixture
     """
+    from api.event_detector import ESP32State
+
     return {"STATE": ESP32State.EV_CONNECTED.value, "CP": 1}
 
 
@@ -213,6 +234,8 @@ def mock_status_ready():
     """
     READY state mock status fixture
     """
+    from api.event_detector import ESP32State
+
     return {"STATE": ESP32State.READY.value, "AUTH": 1}
 
 
@@ -221,6 +244,8 @@ def mock_status_charging():
     """
     CHARGING state mock status fixture
     """
+    from api.event_detector import ESP32State
+
     return {
         "STATE": ESP32State.CHARGING.value,
         "AUTH": 1,
@@ -234,4 +259,6 @@ def mock_status_fault():
     """
     FAULT_HARD state mock status fixture
     """
+    from api.event_detector import ESP32State
+
     return {"STATE": ESP32State.FAULT_HARD.value}

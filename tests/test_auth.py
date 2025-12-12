@@ -115,6 +115,7 @@ class TestAPIAuthentication:
     def client(self):
         """Test client fixture"""
         from api import config as config_module
+
         os.environ["SECRET_API_KEY"] = "test-api-key"
         config_module.config.load()  # Config'i yeniden yükle
         return TestClient(app, raise_server_exceptions=False)

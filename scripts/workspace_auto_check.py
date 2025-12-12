@@ -13,12 +13,10 @@ Kullanım:
     python3 scripts/workspace_auto_check.py [--dry-run] [--fix]
 """
 
-import os
-import re
 import sys
 from pathlib import Path
 from datetime import datetime
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict
 
 # Proje kök dizini
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -56,26 +54,30 @@ class WorkspaceChecker:
                 "type": "error",
                 "message": f"Kök dizinde çok fazla .md dosyası: {count} (Limit: {MAX_MD_FILES_ROOT})",
                 "files": [f.name for f in root_md_files],
-                "action": "Analiz/audit raporları reports/ klasörüne, standartlar docs/standards/ klasörüne taşınmalı"
+                "action": "Analiz/audit raporları reports/ klasörüne, standartlar docs/standards/ klasörüne taşınmalı",
             }
         elif count > WARNING_MD_FILES_ROOT:
             issue = {
                 "type": "warning",
                 "message": f"Kök dizinde .md dosyası sayısı uyarı eşiğinde: {count} (İdeal: < {WARNING_MD_FILES_ROOT})",
                 "files": [f.name for f in root_md_files],
-                "action": "Yakında reorganizasyon gerekebilir"
+                "action": "Yakında reorganizasyon gerekebilir",
             }
 
         return {
             "count": count,
             "max": MAX_MD_FILES_ROOT,
             "warning": WARNING_MD_FILES_ROOT,
-            "issue": issue
+            "issue": issue,
         }
 
     def check_directory_count(self) -> Dict:
         """Klasör sayısını kontrol et"""
-        directories = [d for d in PROJECT_ROOT.iterdir() if d.is_dir() and not d.name.startswith('.')]
+        directories = [
+            d
+            for d in PROJECT_ROOT.iterdir()
+            if d.is_dir() and not d.name.startswith(".")
+        ]
         count = len(directories)
 
         issue = None
@@ -84,21 +86,21 @@ class WorkspaceChecker:
                 "type": "error",
                 "message": f"Çok fazla klasör: {count} (Limit: {MAX_DIRECTORIES})",
                 "directories": [d.name for d in directories],
-                "action": "Klasör birleştirme veya arşivleme gerekebilir"
+                "action": "Klasör birleştirme veya arşivleme gerekebilir",
             }
         elif count > WARNING_DIRECTORIES:
             issue = {
                 "type": "warning",
                 "message": f"Klasör sayısı uyarı eşiğinde: {count} (İdeal: < {WARNING_DIRECTORIES})",
                 "directories": [d.name for d in directories],
-                "action": "Yakında reorganizasyon gerekebilir"
+                "action": "Yakında reorganizasyon gerekebilir",
             }
 
         return {
             "count": count,
             "max": MAX_DIRECTORIES,
             "warning": WARNING_DIRECTORIES,
-            "issue": issue
+            "issue": issue,
         }
 
     def check_unnecessary_files(self) -> List[Dict]:
@@ -106,26 +108,32 @@ class WorkspaceChecker:
         unnecessary = []
 
         # Geçici dosyalar
-        temp_patterns = ['*.tmp', '*.temp', '*.bak', '*.old', '*.backup']
+        temp_patterns = ["*.tmp", "*.temp", "*.bak", "*.old", "*.backup"]
         for pattern in temp_patterns:
             for file in PROJECT_ROOT.rglob(pattern):
                 if file.is_file():
-                    unnecessary.append({
-                        "file": str(file.relative_to(PROJECT_ROOT)),
-                        "type": "temp",
-                        "action": "Silinmeli"
-                    })
+                    unnecessary.append(
+                        {
+                            "file": str(file.relative_to(PROJECT_ROOT)),
+                            "type": "temp",
+                            "action": "Silinmeli",
+                        }
+                    )
 
         # Yedek dosyalar
-        backup_patterns = ['*_backup.*', '*_old.*', '*.backup']
+        backup_patterns = ["*_backup.*", "*_old.*", "*.backup"]
         for pattern in backup_patterns:
             for file in PROJECT_ROOT.rglob(pattern):
-                if file.is_file() and file not in [f for f in PROJECT_ROOT.rglob('*.backup')]:
-                    unnecessary.append({
-                        "file": str(file.relative_to(PROJECT_ROOT)),
-                        "type": "backup",
-                        "action": "Git'te varsa silinmeli"
-                    })
+                if file.is_file() and file not in [
+                    f for f in PROJECT_ROOT.rglob("*.backup")
+                ]:
+                    unnecessary.append(
+                        {
+                            "file": str(file.relative_to(PROJECT_ROOT)),
+                            "type": "backup",
+                            "action": "Git'te varsa silinmeli",
+                        }
+                    )
 
         return unnecessary
 
@@ -135,36 +143,46 @@ class WorkspaceChecker:
 
         # Kök dizindeki analiz/audit raporları
         root_files = list(PROJECT_ROOT.glob("*.md"))
-        analysis_patterns = ['*ANALYSIS*.md', '*AUDIT*.md', '*REPORT*.md', '*REVIEW*.md']
+        analysis_patterns = [
+            "*ANALYSIS*.md",
+            "*AUDIT*.md",
+            "*REPORT*.md",
+            "*REVIEW*.md",
+        ]
 
         for file in root_files:
             for pattern in analysis_patterns:
                 if file.match(pattern):
-                    issues.append({
-                        "file": file.name,
-                        "type": "organization",
-                        "message": f"Analiz/audit raporu kök dizinde: {file.name}",
-                        "action": f"reports/ klasörüne taşınmalı"
-                    })
+                    issues.append(
+                        {
+                            "file": file.name,
+                            "type": "organization",
+                            "message": f"Analiz/audit raporu kök dizinde: {file.name}",
+                            "action": "reports/ klasörüne taşınmalı",
+                        }
+                    )
                     break
 
         # Standart dokümantasyon kontrolü
-        standards_patterns = ['*STANDARDS*.md', '*STANDARD*.md']
+        standards_patterns = ["*STANDARDS*.md", "*STANDARD*.md"]
         for file in root_files:
             for pattern in standards_patterns:
                 if file.match(pattern):
-                    issues.append({
-                        "file": file.name,
-                        "type": "organization",
-                        "message": f"Standart dokümantasyon kök dizinde: {file.name}",
-                        "action": f"docs/standards/ klasörüne taşınmalı"
-                    })
+                    issues.append(
+                        {
+                            "file": file.name,
+                            "type": "organization",
+                            "message": f"Standart dokümantasyon kök dizinde: {file.name}",
+                            "action": "docs/standards/ klasörüne taşınmalı",
+                        }
+                    )
                     break
 
         return issues
 
     def check_workspace_size(self) -> Dict:
         """Workspace boyutunu kontrol et"""
+
         def _dir_size_mb(dir_path: Path) -> float:
             if not dir_path.exists():
                 return 0.0
@@ -203,13 +221,13 @@ class WorkspaceChecker:
             issue = {
                 "type": "error",
                 "message": f"Workspace boyutu çok büyük: {total_size_mb:.2f} MB (Limit: {MAX_TOTAL_SIZE_MB} MB)",
-                "action": "Temizlik ve arşivleme gerekebilir"
+                "action": "Temizlik ve arşivleme gerekebilir",
             }
         elif total_size_mb > WARNING_TOTAL_SIZE_MB:
             issue = {
                 "type": "warning",
                 "message": f"Workspace boyutu uyarı eşiğinde: {total_size_mb:.2f} MB (İdeal: < {WARNING_TOTAL_SIZE_MB} MB)",
-                "action": "Yakında temizlik gerekebilir"
+                "action": "Yakında temizlik gerekebilir",
             }
 
         return {
@@ -218,7 +236,7 @@ class WorkspaceChecker:
             "logs_size_mb": logs_size_mb,
             "max": MAX_TOTAL_SIZE_MB,
             "warning": WARNING_TOTAL_SIZE_MB,
-            "issue": issue
+            "issue": issue,
         }
 
     def run_checks(self) -> Dict:
@@ -229,7 +247,7 @@ class WorkspaceChecker:
             "unnecessary_files": self.check_unnecessary_files(),
             "file_organization": self.check_file_organization(),
             "workspace_size": self.check_workspace_size(),
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
         return results
@@ -243,25 +261,29 @@ class WorkspaceChecker:
         print()
 
         # Kök dizin .md dosyaları
-        md_result = results['root_md_files']
-        print(f"📄 Kök Dizin .md Dosyaları: {md_result['count']} (İdeal: < {md_result['warning']}, Limit: {md_result['max']})")
-        if md_result['issue']:
-            if md_result['issue']['type'] == 'error':
+        md_result = results["root_md_files"]
+        print(
+            f"📄 Kök Dizin .md Dosyaları: {md_result['count']} (İdeal: < {md_result['warning']}, Limit: {md_result['max']})"
+        )
+        if md_result["issue"]:
+            if md_result["issue"]["type"] == "error":
                 print(f"  🔴 {md_result['issue']['message']}")
             else:
                 print(f"  🟡 {md_result['issue']['message']}")
             print(f"  Aksiyon: {md_result['issue']['action']}")
-            if 'files' in md_result['issue']:
+            if "files" in md_result["issue"]:
                 print(f"  Dosyalar: {', '.join(md_result['issue']['files'][:5])}...")
         else:
             print("  ✅ Standartlara uygun")
         print()
 
         # Klasör sayısı
-        dir_result = results['directory_count']
-        print(f"📁 Klasör Sayısı: {dir_result['count']} (İdeal: < {dir_result['warning']}, Limit: {dir_result['max']})")
-        if dir_result['issue']:
-            if dir_result['issue']['type'] == 'error':
+        dir_result = results["directory_count"]
+        print(
+            f"📁 Klasör Sayısı: {dir_result['count']} (İdeal: < {dir_result['warning']}, Limit: {dir_result['max']})"
+        )
+        if dir_result["issue"]:
+            if dir_result["issue"]["type"] == "error":
                 print(f"  🔴 {dir_result['issue']['message']}")
             else:
                 print(f"  🟡 {dir_result['issue']['message']}")
@@ -271,15 +293,15 @@ class WorkspaceChecker:
         print()
 
         # Workspace boyutu
-        size_result = results['workspace_size']
+        size_result = results["workspace_size"]
         print(
             f"💾 Workspace Boyutu (env/logs hariç): {size_result['size_mb']:.2f} MB (İdeal: < {size_result['warning']} MB, Limit: {size_result['max']} MB)"
         )
         print(
             f"   env/: {size_result.get('env_size_mb', 0.0):.2f} MB | logs/: {size_result.get('logs_size_mb', 0.0):.2f} MB"
         )
-        if size_result['issue']:
-            if size_result['issue']['type'] == 'error':
+        if size_result["issue"]:
+            if size_result["issue"]["type"] == "error":
                 print(f"  🔴 {size_result['issue']['message']}")
             else:
                 print(f"  🟡 {size_result['issue']['message']}")
@@ -289,7 +311,7 @@ class WorkspaceChecker:
         print()
 
         # Gereksiz dosyalar
-        unnecessary = results['unnecessary_files']
+        unnecessary = results["unnecessary_files"]
         if unnecessary:
             print(f"🗑️  Gereksiz Dosyalar: {len(unnecessary)} adet")
             for item in unnecessary[:10]:  # İlk 10'unu göster
@@ -301,7 +323,7 @@ class WorkspaceChecker:
         print()
 
         # Dosya organizasyonu
-        org_issues = results['file_organization']
+        org_issues = results["file_organization"]
         if org_issues:
             print(f"📋 Dosya Organizasyonu Sorunları: {len(org_issues)} adet")
             for issue in org_issues[:10]:  # İlk 10'unu göster
@@ -317,17 +339,33 @@ class WorkspaceChecker:
 
         # Özet
         total_issues = (
-            (1 if md_result['issue'] and md_result['issue']['type'] == 'error' else 0) +
-            (1 if dir_result['issue'] and dir_result['issue']['type'] == 'error' else 0) +
-            (1 if size_result['issue'] and size_result['issue']['type'] == 'error' else 0) +
-            len(unnecessary) +
-            len(org_issues)
+            (1 if md_result["issue"] and md_result["issue"]["type"] == "error" else 0)
+            + (
+                1
+                if dir_result["issue"] and dir_result["issue"]["type"] == "error"
+                else 0
+            )
+            + (
+                1
+                if size_result["issue"] and size_result["issue"]["type"] == "error"
+                else 0
+            )
+            + len(unnecessary)
+            + len(org_issues)
         )
 
         total_warnings = (
-            (1 if md_result['issue'] and md_result['issue']['type'] == 'warning' else 0) +
-            (1 if dir_result['issue'] and dir_result['issue']['type'] == 'warning' else 0) +
-            (1 if size_result['issue'] and size_result['issue']['type'] == 'warning' else 0)
+            (1 if md_result["issue"] and md_result["issue"]["type"] == "warning" else 0)
+            + (
+                1
+                if dir_result["issue"] and dir_result["issue"]["type"] == "warning"
+                else 0
+            )
+            + (
+                1
+                if size_result["issue"] and size_result["issue"]["type"] == "warning"
+                else 0
+            )
         )
 
         if total_issues == 0 and total_warnings == 0:
@@ -350,14 +388,12 @@ def main():
         description="Workspace standartlarını otomatik kontrol"
     )
     parser.add_argument(
-        '--dry-run',
-        action='store_true',
-        help='Sadece kontrol yap, değişiklik yapma'
+        "--dry-run", action="store_true", help="Sadece kontrol yap, değişiklik yapma"
     )
     parser.add_argument(
-        '--fix',
-        action='store_true',
-        help='Otomatik düzeltme yap (şimdilik sadece rapor)'
+        "--fix",
+        action="store_true",
+        help="Otomatik düzeltme yap (şimdilik sadece rapor)",
     )
 
     args = parser.parse_args()
@@ -368,11 +404,26 @@ def main():
 
     # Exit code belirleme
     total_errors = (
-        (1 if results['root_md_files']['issue'] and results['root_md_files']['issue']['type'] == 'error' else 0) +
-        (1 if results['directory_count']['issue'] and results['directory_count']['issue']['type'] == 'error' else 0) +
-        (1 if results['workspace_size']['issue'] and results['workspace_size']['issue']['type'] == 'error' else 0) +
-        len(results['unnecessary_files']) +
-        len(results['file_organization'])
+        (
+            1
+            if results["root_md_files"]["issue"]
+            and results["root_md_files"]["issue"]["type"] == "error"
+            else 0
+        )
+        + (
+            1
+            if results["directory_count"]["issue"]
+            and results["directory_count"]["issue"]["type"] == "error"
+            else 0
+        )
+        + (
+            1
+            if results["workspace_size"]["issue"]
+            and results["workspace_size"]["issue"]["type"] == "error"
+            else 0
+        )
+        + len(results["unnecessary_files"])
+        + len(results["file_organization"])
     )
 
     if total_errors > 0:
@@ -383,4 +434,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

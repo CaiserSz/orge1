@@ -34,12 +34,12 @@ class TestRootEndpoints:
         response = client.get("/")
         assert response.status_code == 200
         data = response.json()
-        assert data['name'] == "AC Charger API"
+        assert data["name"] == "AC Charger API"
         # API ana versiyonu 2.0.0 olarak güncellendi
-        assert data['version'] == "2.0.0"
-        assert data['status'] == "running"
-        assert '/docs' in data['docs']
-        assert '/form' in data['form']
+        assert data["version"] == "2.0.0"
+        assert data["status"] == "running"
+        assert "/docs" in data["docs"]
+        assert "/form" in data["form"]
 
     def test_form_endpoint_exists(self, client):
         """Form endpoint - dosya varsa"""
@@ -48,7 +48,7 @@ class TestRootEndpoints:
         if form_path.exists():
             response = client.get("/form")
             assert response.status_code == 200
-            assert response.headers['content-type'] == 'text/html; charset=utf-8'
+            assert response.headers["content-type"] == "text/html; charset=utf-8"
         else:
             # Dosya yoksa 404 döndürmeli
             response = client.get("/form")
@@ -61,7 +61,7 @@ class TestRootEndpoints:
         if not form_path.exists():
             response = client.get("/form")
             assert response.status_code == 404
-            assert "bulunamadı" in response.json()['detail']
+            assert "bulunamadı" in response.json()["detail"]
         else:
             # Dosya varsa test geçer
             pytest.skip("Form file exists, cannot test not found scenario")
@@ -75,12 +75,12 @@ class TestCurrentControlEndpoints:
         response = client.get("/api/current/available")
         assert response.status_code == 200
         data = response.json()
-        assert data['success'] is True
-        assert data['data']['min'] == 6
-        assert data['data']['max'] == 32
-        assert data['data']['unit'] == "amper"
-        assert 'common_values' in data['data']
-        assert 16 in data['data']['common_values']
+        assert data["success"] is True
+        assert data["data"]["min"] == 6
+        assert data["data"]["max"] == 32
+        assert data["data"]["unit"] == "amper"
+        assert "common_values" in data["data"]
+        assert 16 in data["data"]["common_values"]
 
 
 class TestStationInfoEndpoints:
@@ -88,51 +88,45 @@ class TestStationInfoEndpoints:
 
     def test_get_station_info_not_found(self, client):
         """Get station info - bilgi yoksa"""
-        with patch('api.routers.station.get_station_info', return_value=None):
+        with patch("api.routers.station.get_station_info", return_value=None):
             response = client.get("/api/station/info")
             assert response.status_code == 404
-            assert "bulunamadı" in response.json()['detail']
+            assert "bulunamadı" in response.json()["detail"]
 
     def test_get_station_info_success(self, client):
         """Get station info - başarılı"""
         test_data = {
             "station_id": "TEST-001",
             "name": "Test Station",
-            "location": "Test Location"
+            "location": "Test Location",
         }
 
-        with patch('api.routers.station.get_station_info', return_value=test_data):
+        with patch("api.routers.station.get_station_info", return_value=test_data):
             response = client.get("/api/station/info")
             assert response.status_code == 200
             data = response.json()
-            assert data['success'] is True
-            assert data['data']['station_id'] == "TEST-001"
+            assert data["success"] is True
+            assert data["data"]["station_id"] == "TEST-001"
 
     def test_save_station_info_success(self, client):
         """Save station info - başarılı"""
-        test_data = {
-            "station_id": "TEST-001",
-            "name": "Test Station"
-        }
+        test_data = {"station_id": "TEST-001", "name": "Test Station"}
 
-        with patch('api.routers.station.save_station_info', return_value=True):
+        with patch("api.routers.station.save_station_info", return_value=True):
             response = client.post("/api/station/info", json=test_data)
             assert response.status_code == 200
             data = response.json()
-            assert data['success'] is True
-            assert data['message'] == "İstasyon bilgileri kaydedildi"
+            assert data["success"] is True
+            assert data["message"] == "İstasyon bilgileri kaydedildi"
 
     def test_save_station_info_failure(self, client):
         """Save station info - başarısız"""
-        test_data = {
-            "station_id": "TEST-001",
-            "name": "Test Station"
-        }
+        test_data = {"station_id": "TEST-001", "name": "Test Station"}
 
-        with patch('api.routers.station.save_station_info', return_value=False):
+        with patch("api.routers.station.save_station_info", return_value=False):
             response = client.post("/api/station/info", json=test_data)
             assert response.status_code == 500
-            assert "kaydedilemedi" in response.json()['detail']
+            assert "kaydedilemedi" in response.json()["detail"]
 
 
 class TestTestEndpoints:
@@ -140,22 +134,26 @@ class TestTestEndpoints:
 
     def test_get_test_api_key_development(self, client):
         """Get test API key - development ortamı"""
-        with patch.dict(os.environ, {'ENVIRONMENT': 'development', 'SECRET_API_KEY': 'test-key'}):
+        with patch.dict(
+            os.environ, {"ENVIRONMENT": "development", "SECRET_API_KEY": "test-key"}
+        ):
             response = client.get("/api/test/key")
             assert response.status_code == 200
             data = response.json()
-            assert data['api_key'] == 'test-key'
-            assert 'note' in data
+            assert data["api_key"] == "test-key"
+            assert "note" in data
 
     def test_get_test_api_key_production(self, client):
         """Get test API key - production ortamı"""
-        with patch.dict(os.environ, {'ENVIRONMENT': 'production'}):
+        with patch.dict(os.environ, {"ENVIRONMENT": "production"}):
             response = client.get("/api/test/key")
             assert response.status_code == 404
 
     def test_get_test_api_key_no_key(self, client):
         """Get test API key - API key yoksa"""
-        with patch.dict(os.environ, {'ENVIRONMENT': 'development', 'SECRET_API_KEY': ''}):
+        with patch.dict(
+            os.environ, {"ENVIRONMENT": "development", "SECRET_API_KEY": ""}
+        ):
             response = client.get("/api/test/key")
             assert response.status_code == 503
 
@@ -166,7 +164,7 @@ class TestTestEndpoints:
         if test_page_path.exists():
             response = client.get("/test")
             assert response.status_code == 200
-            assert response.headers['content-type'] == 'text/html; charset=utf-8'
+            assert response.headers["content-type"] == "text/html; charset=utf-8"
         else:
             # Dosya yoksa 404 döndürmeli
             response = client.get("/test")
@@ -206,9 +204,7 @@ class TestMiddleware:
             "MAX": 16,
         }
         response = client.post(
-            "/api/charge/start",
-            json={},
-            headers={"X-API-Key": "test-api-key"}
+            "/api/charge/start", json={}, headers={"X-API-Key": "test-api-key"}
         )
         assert response.status_code == 200
 
@@ -241,7 +237,7 @@ class TestHealthCheckEdgeCases:
             response = client.get("/api/health")
             assert response.status_code == 200
             data = response.json()
-            assert data['data']['esp32_connected'] is False
+            assert data["data"]["esp32_connected"] is False
         finally:
             app.dependency_overrides.pop(dependencies.get_bridge, None)
 
@@ -255,18 +251,18 @@ class TestHealthCheckEdgeCases:
             response = client.get("/api/health")
             assert response.status_code == 200
             data = response.json()
-            assert data['data']['esp32_connected'] is False
+            assert data["data"]["esp32_connected"] is False
         finally:
             app.dependency_overrides.pop(dependencies.get_bridge, None)
 
     def test_health_check_status_available(self, client, mock_esp32_bridge):
         """Health check - status mevcut"""
-        mock_esp32_bridge.get_status.return_value = {'STATE': ESP32State.IDLE.value}
+        mock_esp32_bridge.get_status.return_value = {"STATE": ESP32State.IDLE.value}
 
         response = client.get("/api/health")
         assert response.status_code == 200
         data = response.json()
-        assert data['data']['esp32_status'] == "available"
+        assert data["data"]["esp32_status"] == "available"
 
     def test_health_check_status_not_available(self, client, mock_esp32_bridge):
         """Health check - status mevcut değil"""
@@ -275,7 +271,7 @@ class TestHealthCheckEdgeCases:
         response = client.get("/api/health")
         assert response.status_code == 200
         data = response.json()
-        assert data['data']['esp32_status'] == "no_status"
+        assert data["data"]["esp32_status"] == "no_status"
 
 
 class TestStatusEndpointEdgeCases:
@@ -289,18 +285,17 @@ class TestStatusEndpointEdgeCases:
 
         response = client.get("/api/status")
         assert response.status_code == 504
-        assert "durum bilgisi alınamadı" in response.json()['detail']
+        assert "durum bilgisi alınamadı" in response.json()["detail"]
 
     def test_status_get_status_sync_success(self, client, mock_esp32_bridge):
         """Status - get_status_sync başarılı"""
         mock_esp32_bridge.get_status.return_value = None
-        mock_esp32_bridge.get_status_sync.side_effect = (
-            lambda timeout=None: {"STATE": ESP32State.IDLE.value}
-        )
+        mock_esp32_bridge.get_status_sync.side_effect = lambda timeout=None: {
+            "STATE": ESP32State.IDLE.value
+        }
 
         response = client.get("/api/status")
         assert response.status_code == 200
         data = response.json()
-        assert data['success'] is True
-        assert data['data']['STATE'] == ESP32State.IDLE.value
-
+        assert data["success"] is True
+        assert data["data"]["STATE"] == ESP32State.IDLE.value

@@ -32,7 +32,9 @@ def _status(state: ESP32State | int, **extra):
 
 
 class TestChargeStart:
-    def test_charge_start_success_ev_connected(self, client, mock_esp32_bridge, test_headers):
+    def test_charge_start_success_ev_connected(
+        self, client, mock_esp32_bridge, test_headers
+    ):
         mock_esp32_bridge.get_status.return_value = _status(ESP32State.EV_CONNECTED)
         response = client.post(
             "/api/charge/start",
@@ -59,7 +61,9 @@ class TestChargeStart:
         )
         assert response.status_code == 422
 
-    def test_charge_start_esp32_disconnected(self, client, mock_esp32_bridge, test_headers):
+    def test_charge_start_esp32_disconnected(
+        self, client, mock_esp32_bridge, test_headers
+    ):
         mock_esp32_bridge.is_connected = False
         response = client.post(
             "/api/charge/start",
@@ -118,7 +122,9 @@ class TestChargeStop:
         assert response.json()["success"] is True
         mock_esp32_bridge.send_charge_stop.assert_called_once()
 
-    def test_charge_stop_esp32_disconnected(self, client, mock_esp32_bridge, test_headers):
+    def test_charge_stop_esp32_disconnected(
+        self, client, mock_esp32_bridge, test_headers
+    ):
         mock_esp32_bridge.is_connected = False
         response = client.post(
             "/api/charge/stop",
@@ -198,7 +204,9 @@ class TestMaxCurrent:
         assert response.status_code == 200
         mock_esp32_bridge.send_current_set.assert_called_once_with(20)
 
-    def test_set_current_success_ev_connected(self, client, mock_esp32_bridge, test_headers):
+    def test_set_current_success_ev_connected(
+        self, client, mock_esp32_bridge, test_headers
+    ):
         mock_esp32_bridge.get_status.return_value = _status(ESP32State.EV_CONNECTED)
         response = client.post(
             "/api/maxcurrent",
@@ -240,7 +248,9 @@ class TestMaxCurrent:
         )
         assert response.status_code == 422
 
-    def test_set_current_esp32_disconnected(self, client, mock_esp32_bridge, test_headers):
+    def test_set_current_esp32_disconnected(
+        self, client, mock_esp32_bridge, test_headers
+    ):
         mock_esp32_bridge.is_connected = False
         response = client.post(
             "/api/maxcurrent",
@@ -249,7 +259,9 @@ class TestMaxCurrent:
         )
         assert response.status_code == 503
 
-    def test_set_current_all_valid_states(self, client, mock_esp32_bridge, test_headers):
+    def test_set_current_all_valid_states(
+        self, client, mock_esp32_bridge, test_headers
+    ):
         for state in [ESP32State.IDLE, ESP32State.EV_CONNECTED, ESP32State.READY]:
             mock_esp32_bridge.get_status.return_value = _status(state)
             response = client.post(

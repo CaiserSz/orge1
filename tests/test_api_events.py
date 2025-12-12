@@ -16,8 +16,12 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from api.main import APILoggingMiddleware, app, shutdown_event, startup_event
-from api.models import (APIResponse, ChargeStartRequest, ChargeStopRequest,
-                        CurrentSetRequest)
+from api.models import (
+    APIResponse,
+    ChargeStartRequest,
+    ChargeStopRequest,
+    CurrentSetRequest,
+)
 
 
 class TestStartupShutdownEvents:
@@ -121,9 +125,7 @@ class TestStartupShutdownEvents:
         """Shutdown event - exception handling"""
         with patch(
             "esp32.bridge.get_esp32_bridge", side_effect=Exception("Shutdown error")
-        ), patch(
-            "api.main.get_esp32_bridge", side_effect=Exception("Shutdown error")
-        ):
+        ), patch("api.main.get_esp32_bridge", side_effect=Exception("Shutdown error")):
             # Exception yakalanmalı ve uygulama çalışmaya devam etmeli
             import asyncio
 
@@ -198,7 +200,7 @@ class TestAPILoggingMiddleware:
         import asyncio
 
         try:
-            response = asyncio.run(middleware.dispatch(mock_request, mock_call_next))
+            asyncio.run(middleware.dispatch(mock_request, mock_call_next))
             # Exception oluşursa response None olabilir veya exception handler çalışır
         except Exception:
             # Exception middleware tarafından yakalanmalı

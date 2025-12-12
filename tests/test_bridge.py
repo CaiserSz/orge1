@@ -98,7 +98,9 @@ class TestConnectDisconnectReconnect:
     @patch("esp32.bridge.ESP32Bridge._start_monitoring")
     @patch("esp32.bridge.serial.Serial")
     @patch("esp32.bridge.time.sleep")
-    def test_connect_success(self, mock_sleep, mock_serial, mock_monitor, mock_find_port):
+    def test_connect_success(
+        self, mock_sleep, mock_serial, mock_monitor, mock_find_port
+    ):
         mock_find_port.return_value = "/dev/ttyUSB0"
         serial_instance = Mock()
         serial_instance.is_open = True
@@ -194,7 +196,9 @@ class TestSendCommandBytes:
 class TestHighLevelCommands:
     def test_send_status_request(self):
         bridge = _connected_bridge()
-        bridge.protocol_data = {"commands": {"status": {"byte_array": [65, 0, 44, 0, 16]}}}
+        bridge.protocol_data = {
+            "commands": {"status": {"byte_array": [65, 0, 44, 0, 16]}}
+        }
         bridge._send_command_bytes = Mock(return_value=True)
         assert bridge.send_status_request() is True
 
@@ -305,7 +309,11 @@ class TestGetStatus:
         bridge.last_status = None
         assert bridge.get_status() is None
 
-        bridge.last_status = {"STATE": 5, "CP": 2, "timestamp": datetime.now().isoformat()}
+        bridge.last_status = {
+            "STATE": 5,
+            "CP": 2,
+            "timestamp": datetime.now().isoformat(),
+        }
         assert bridge.get_status()["STATE"] == 5
 
         old_ts = (datetime.now() - timedelta(seconds=20)).isoformat()
@@ -320,7 +328,9 @@ class TestGetStatusSync:
     @patch("esp32.bridge.ESP32Bridge.send_status_request")
     @patch("esp32.bridge.ESP32Bridge.get_status")
     @patch("esp32.bridge.time.sleep")
-    def test_get_status_sync_success(self, mock_sleep, mock_get_status, mock_send_request):
+    def test_get_status_sync_success(
+        self, mock_sleep, mock_get_status, mock_send_request
+    ):
         mock_send_request.return_value = True
         mock_get_status.return_value = {"STATE": 5}
         bridge = ESP32Bridge()
@@ -334,7 +344,9 @@ class TestGetStatusSync:
     @patch("esp32.bridge.ESP32Bridge.send_status_request")
     @patch("esp32.bridge.ESP32Bridge.get_status")
     @patch("esp32.bridge.time.sleep")
-    def test_get_status_sync_timeout(self, mock_sleep, mock_get_status, mock_send_request):
+    def test_get_status_sync_timeout(
+        self, mock_sleep, mock_get_status, mock_send_request
+    ):
         mock_send_request.return_value = True
         mock_get_status.return_value = None
         bridge = ESP32Bridge()

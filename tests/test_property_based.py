@@ -15,8 +15,6 @@ from fastapi.testclient import TestClient
 from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
-from tests.conftest import test_headers
-
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from api.event_detector import ESP32State
