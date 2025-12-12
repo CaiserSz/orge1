@@ -275,7 +275,7 @@ pytest --cov=api --cov=esp32
 - Update `project_info_20251208_145614.md` for major changes
 - Update `README.md` for user-facing changes
 - Update `CHANGELOG.md` for version releases
-- Update `WORKSPACE_INDEX.md` for new files
+- Update `docs/workspace_index.md` for new files
 
 ---
 

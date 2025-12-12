@@ -1,8 +1,8 @@
 # Workspace Index - Proje Yapısı ve Dosya Açıklamaları
 
 **Oluşturulma Tarihi:** 2025-12-09 02:45:00
-**Son Güncelleme:** 2025-12-10 01:55:00
-**Version:** 2.0.0
+**Son Güncelleme:** 2025-12-12 23:30:00
+**Version:** 2.1.0
 **Amaç:** Workspace'teki tüm dosya ve klasörlerin hızlı referansı ve açıklamaları
 
 ---
@@ -44,7 +44,7 @@
   - Versiyon geçmişi
 - **Ne Zaman:** 2025-12-08'de oluşturuldu, sürekli güncelleniyor
 - **Versiyon:** 1.5.0
-- **İlgili Dosyalar:** `.cursorrules`, `todo/master.md`
+- **İlgili Dosyalar:** `.cursorrules`, `todo/START_HERE.md`, `todo/checkpoint.md`, `todo/master_live.md`, `todo/master_next.md`
 
 #### `README.md`
 - **Ne:** Proje genel tanıtımı ve hızlı başlangıç kılavuzu
@@ -603,15 +603,15 @@ todo/START_HERE.md → todo/checkpoint.md
 ## 📊 Dosya İstatistikleri
 
 ### Toplam Dosya Sayıları (yaklaşık)
-- **Python Dosyaları:** ~15
-- **Markdown Dosyaları:** ~20
-- **JSON Dosyaları:** ~3
-- **Test Dosyaları:** ~10
-- **Konfigürasyon Dosyaları:** ~5
+- **Python Dosyaları:** ~125 (api/ + esp32/ + meter/ + ocpp/ + scripts/ + tests/)
+- **Markdown Dosyaları:** ~222 (root + docs/ + reports/ + todo/)
+- **JSON Dosyaları:** ~4
+- **Test Dosyaları:** ~46 (`tests/test_*.py`)
+- **Konfigürasyon Dosyaları:** ~8-12 (örn: `.cursorrules`, `ngrok.yml`, `pytest.ini`, `requirements.txt`)
 
 ### Klasör Yapısı
-- **Toplam Klasör:** 10
-- **Derinlik:** 2-3 seviye
+- **Toplam Klasör:** ~20 (top-level)
+- **Derinlik:** 2-4 seviye
 
 ---
 
@@ -637,7 +637,7 @@ todo/START_HERE.md → todo/checkpoint.md
 ### Yeni Bir AI Asistanı İçin
 1. `todo/START_HERE.md` dosyasını oku
 2. `project_info_20251208_145614.md` dosyasını oku
-3. Bu dosyayı (`WORKSPACE_INDEX.md`) referans olarak kullan
+3. Bu dosyayı (`docs/workspace_index.md`) referans olarak kullan
 4. İlgili klasör/dosyayı bul ve çalışmaya başla
 
 ### Dosya Bulma
@@ -645,7 +645,7 @@ todo/START_HERE.md → todo/checkpoint.md
 - **ESP32 ile ilgili:** `esp32/` klasörü
 - **Test ile ilgili:** `tests/` klasörü
 - **Proje yönetimi:** `todo/` klasörü
-- **Dokümantasyon:** Kök dizindeki `.md` dosyaları
+- **Dokümantasyon:** `docs/` (kalıcı rehberler) ve `reports/` (analiz/audit) klasörleri
 
 ### Hızlı Referans
 - **Ne olduğunu öğrenmek için:** Bu dosyayı oku
@@ -655,7 +655,7 @@ todo/START_HERE.md → todo/checkpoint.md
 
 ---
 
-**Son Güncelleme:** 2025-12-09 02:45:00
-**Versiyon:** 1.0.0
+**Son Güncelleme:** 2025-12-12 23:30:00
+**Versiyon:** 2.1.0
 **Sonraki Güncelleme:** Yeni dosya/klasör eklendiğinde
 
