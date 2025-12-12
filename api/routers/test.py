@@ -9,7 +9,7 @@ Description: Test endpoints
 import os
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, status
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, Response
 
 from api.config import config
 
@@ -57,8 +57,20 @@ async def api_test_page():
     """
     test_page_path = Path(__file__).parent.parent.parent / "api_test.html"
     if test_page_path.exists():
-        return FileResponse(test_page_path)
+        # Tarayıcı/Ngrok cache kaynaklı "eski JS" problemlerini engelle
+        headers = {
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        }
+        return FileResponse(test_page_path, headers=headers)
     else:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Test page not found"
         )
+
+
+@router.get("/favicon.ico")
+async def favicon():
+    """Avoid noisy 404 in browser console for favicon requests."""
+    return Response(status_code=204)

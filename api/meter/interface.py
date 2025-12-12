@@ -7,8 +7,11 @@ Description: Energy meter interface tanımları
 """
 
 from abc import ABC, abstractmethod
+import threading
 from typing import Optional
 from dataclasses import dataclass
+
+from api.config import config
 
 
 @dataclass
@@ -136,6 +139,7 @@ class MeterInterface(ABC):
 
 # Singleton instance
 _meter_instance: Optional[MeterInterface] = None
+_meter_lock = threading.Lock()
 
 
 def get_meter() -> MeterInterface:
@@ -147,10 +151,40 @@ def get_meter() -> MeterInterface:
     """
     global _meter_instance
 
-    if _meter_instance is None:
-        # Şimdilik MockMeter kullan (meter entegrasyonu yok)
-        from api.meter.mock import MockMeter
+    if _meter_instance is not None:
+        return _meter_instance
 
-        _meter_instance = MockMeter()
+    with _meter_lock:
+        if _meter_instance is not None:
+            return _meter_instance
+
+        meter_type = getattr(config, "METER_TYPE", "mock") or "mock"
+        meter_type = str(meter_type).lower()
+
+        if meter_type == "abb":
+            from api.meter.modbus import ModbusMeter
+
+            _meter_instance = ModbusMeter(
+                port=getattr(config, "METER_PORT", "/dev/ttyAMA5"),
+                baudrate=getattr(config, "METER_BAUDRATE", 9600),
+                slave_id=getattr(config, "METER_SLAVE_ID", 1),
+                timeout=getattr(config, "METER_TIMEOUT", 1.0),
+            )
+        elif meter_type == "acrel":
+            from api.meter.acrel import AcrelModbusMeter
+
+            _meter_instance = AcrelModbusMeter(
+                port=getattr(config, "METER_PORT", "/dev/ttyAMA5"),
+                baudrate=getattr(config, "METER_BAUDRATE", 9600),
+                slave_id=getattr(config, "METER_SLAVE_ID", 1),
+                timeout=getattr(config, "METER_TIMEOUT", 1.0),
+            )
+        else:
+            from api.meter.mock import MockMeter
+
+            _meter_instance = MockMeter()
+
+        # Not: connect() denemesi burada yapılmaz. (Side-effect istemiyoruz)
+        # Bağlanma denemesi startup aşamasında (SessionManager) veya endpoint içinde yapılabilir.
 
     return _meter_instance

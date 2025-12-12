@@ -1,18 +1,19 @@
 """
 ABB Meter RS485 Okuma Modülü
 Created: 2025-12-09 02:50:00
-Last Modified: 2025-12-09 02:50:00
-Version: 1.0.0
+Last Modified: 2025-12-12 08:00:00
+Version: 1.1.0
 Description: ABB meter'dan RS485 üzerinden Modbus RTU protokolü ile veri okuma
 """
 
-import serial
-import time
+import logging
 import struct
 import threading
-from typing import Optional, Dict, Any, List
+import time
 from datetime import datetime
-import logging
+from typing import Any, Dict, List, Optional
+
+import serial
 
 # RS485/UART5 Konfigürasyonu
 # GPIO 12 (TX) -> MAX13487 Pin 4 (DI)
@@ -20,7 +21,7 @@ import logging
 # UART5 -> /dev/ttyAMA5 (dtoverlay=uart5 sonrası)
 
 UART5_DEVICE = "/dev/ttyAMA5"  # UART5 cihaz dosyası (dtoverlay=uart5 sonrası)
-DEFAULT_BAUDRATE = 9600  # ABB meter için tipik baudrate (model'e göre değişebilir)
+DEFAULT_BAUDRATE = 2400  # Sahadaki ayar (meter üzerinden set edildi)
 DEFAULT_SLAVE_ID = 1  # Modbus slave ID (meter'a göre ayarlanmalı)
 DEFAULT_TIMEOUT = 1.0  # Timeout (saniye)
 
@@ -32,8 +33,7 @@ MODBUS_READ_DISCRETE_INPUTS = 0x02
 
 # ABB Meter Register Adresleri
 # Model: ABB B23 112-100
-# NOT: Gerçek register adresleri meter dokümantasyonundan alınmalı
-# Şu anki değerler örnek/placeholder - AC istasyonu açıldığında güncellenecek
+# Kaynak: ABB B23/B24 User Manual (Modbus register map)
 
 ABB_METER_MODEL = "ABB B23 112-100"
 ABB_METER_SPECS = {
@@ -44,23 +44,44 @@ ABB_METER_SPECS = {
     "impulse_rate": "1000 imp/kW",
 }
 
-# ABB Meter Register Adresleri (örnek - gerçek adresler meter modeline göre değişir)
-# Bu adresler ABB meter dokümantasyonundan alınmalı
-# AC istasyonu açıldığında meter dokümantasyonu kontrol edilecek
 ABB_REGISTERS = {
-    "voltage_l1": 0x0000,  # L1 voltajı (V) - ÖRNEK
-    "voltage_l2": 0x0001,  # L2 voltajı (V) - ÖRNEK
-    "voltage_l3": 0x0002,  # L3 voltajı (V) - ÖRNEK
-    "current_l1": 0x0003,  # L1 akımı (A) - ÖRNEK
-    "current_l2": 0x0004,  # L2 akımı (A) - ÖRNEK
-    "current_l3": 0x0005,  # L3 akımı (A) - ÖRNEK
-    "power_active": 0x0006,  # Aktif güç (W) - ÖRNEK
-    "power_reactive": 0x0007,  # Reaktif güç (VAR) - ÖRNEK
-    "power_apparent": 0x0008,  # Görünür güç (VA) - ÖRNEK
-    "energy_active": 0x0009,  # Aktif enerji (kWh) - ÖRNEK
-    "energy_reactive": 0x000A,  # Reaktif enerji (kVARh) - ÖRNEK
-    "frequency": 0x000B,  # Frekans (Hz) - ÖRNEK
+    # Voltage (V) - 2 register (32-bit)
+    "voltage_l1": 0x1002,
+    "voltage_l2": 0x1004,
+    "voltage_l3": 0x1006,
+    # Current (mA) - 2 register (32-bit)
+    "current_l1": 0x1010,
+    "current_l2": 0x1012,
+    "current_l3": 0x1014,
+    # Active power (W) - 2 register (32-bit signed)
+    "power_active_total": 0x102E,
+    "power_active_l1": 0x1030,
+    "power_active_l2": 0x1032,
+    "power_active_l3": 0x1034,
+    # Active energy import - 4 register (resolution: 0.01 kWh)
+    "energy_active_import": 0x5000,
 }
+
+
+def _u32_from_2regs(reg0: int, reg1: int) -> int:
+    """2x16-bit register -> unsigned 32-bit."""
+    return (int(reg0) << 16) | int(reg1)
+
+
+def _s32_from_2regs(reg0: int, reg1: int) -> int:
+    """2x16-bit register -> signed 32-bit."""
+    value = _u32_from_2regs(reg0, reg1)
+    if value & 0x80000000:
+        return value - 0x100000000
+    return value
+
+
+def _u64_from_4regs(regs: List[int]) -> int:
+    """4x16-bit register -> unsigned 64-bit (big-endian register order)."""
+    if len(regs) != 4:
+        raise ValueError(f"Expected 4 registers, got {len(regs)}")
+    r0, r1, r2, r3 = (int(x) for x in regs)
+    return (r0 << 48) | (r1 << 32) | (r2 << 16) | r3
 
 
 class ABBMeterReader:
@@ -242,6 +263,59 @@ class ABBMeterReader:
 
         return registers
 
+    def _send_modbus_request(self, request: bytes) -> Optional[bytes]:
+        """
+        Modbus RTU request gönder ve response oku.
+
+        Not: Exception response'larda (function_code | 0x80) byte_count alanı yoktur.
+        Bu nedenle response'u 3-byte header ile okuyup devamını dinamik tamamlarız.
+        """
+        if (
+            not self.is_connected
+            or not self.serial_connection
+            or not self.serial_connection.is_open
+        ):
+            self.logger.error("ABB Meter bağlantısı yok")
+            return None
+
+        try:
+            # Buffer'ı temizle
+            self.serial_connection.reset_input_buffer()
+            self.serial_connection.reset_output_buffer()
+
+            # RS485 TX moduna geç (RTS HIGH) - MAX13487 DE/RE aktif
+            self.serial_connection.rts = True
+            time.sleep(0.005)  # RTS stabilizasyonu
+
+            # Request gönder
+            self.serial_connection.write(request)
+            self.serial_connection.flush()
+
+            # RS485 RX moduna geç (RTS LOW)
+            time.sleep(0.002)
+            self.serial_connection.rts = False
+            time.sleep(0.005)
+
+            # Response header oku: [slave_id][function_code][byte_count|exception_code]
+            header = self.serial_connection.read(3)
+            if len(header) < 3:
+                self.logger.error(f"Yetersiz response: {len(header)} byte")
+                return None
+
+            function_code = header[1]
+            if function_code & 0x80:
+                # Exception response: toplam 5 byte (3 header + 2 CRC)
+                tail = self.serial_connection.read(2)
+                return header + tail
+
+            byte_count = header[2]
+            tail = self.serial_connection.read(byte_count + 2)  # data + CRC
+            return header + tail
+
+        except Exception as e:
+            self.logger.error(f"Request/response hatası: {e}")
+            return None
+
     def read_holding_registers(
         self, start_address: int, quantity: int
     ) -> Optional[List[int]]:
@@ -255,38 +329,13 @@ class ABBMeterReader:
         Returns:
             Register değerleri listesi veya None (hata durumunda)
         """
-        if (
-            not self.is_connected
-            or not self.serial_connection
-            or not self.serial_connection.is_open
-        ):
-            self.logger.error("ABB Meter bağlantısı yok")
-            return None
-
         try:
             # Request paketi oluştur
             request = self._build_modbus_request(
                 MODBUS_READ_HOLDING_REGISTERS, start_address, quantity
             )
-
-            # Buffer'ı temizle
-            self.serial_connection.reset_input_buffer()
-            self.serial_connection.reset_output_buffer()
-
-            # Request gönder
-            self.serial_connection.write(request)
-            self.serial_connection.flush()
-
-            # Response bekle
-            time.sleep(0.05)  # Modbus RTU için tipik bekleme süresi
-
-            # Response oku
-            response = self.serial_connection.read(
-                5 + quantity * 2 + 2
-            )  # Min response + data + CRC
-
-            if len(response) < 5:
-                self.logger.error(f"Yetersiz response: {len(response)} byte")
+            response = self._send_modbus_request(request)
+            if not response or len(response) < 5:
                 return None
 
             # Response parse et
@@ -310,46 +359,13 @@ class ABBMeterReader:
         Returns:
             Register değerleri listesi veya None (hata durumunda)
         """
-        if (
-            not self.is_connected
-            or not self.serial_connection
-            or not self.serial_connection.is_open
-        ):
-            self.logger.error("ABB Meter bağlantısı yok")
-            return None
-
         try:
             # Request paketi oluştur
             request = self._build_modbus_request(
                 MODBUS_READ_INPUT_REGISTERS, start_address, quantity
             )
-
-            # Buffer'ı temizle
-            self.serial_connection.reset_input_buffer()
-            self.serial_connection.reset_output_buffer()
-
-            # RS485 TX moduna geç (RTS HIGH) - MAX13487 DE/RE aktif
-            self.serial_connection.rts = True
-            time.sleep(0.005)  # RTS stabilizasyonu için bekleme (5ms önerilir)
-
-            # Request gönder
-            self.serial_connection.write(request)
-            self.serial_connection.flush()
-
-            # RS485 RX moduna geç (RTS LOW) - MAX13487 RX modu
-            # Tüm veri gönderildikten sonra RTS'i düşür
-            time.sleep(0.002)  # Son byte'ın gönderilmesi için bekleme
-            self.serial_connection.rts = False
-            time.sleep(0.005)  # RTS stabilizasyonu için bekleme (5ms önerilir)
-
-            # Response bekle
-            time.sleep(0.05)
-
-            # Response oku
-            response = self.serial_connection.read(5 + quantity * 2 + 2)
-
-            if len(response) < 5:
-                self.logger.error(f"Yetersiz response: {len(response)} byte")
+            response = self._send_modbus_request(request)
+            if not response or len(response) < 5:
                 return None
 
             # Response parse et
@@ -378,61 +394,44 @@ class ABBMeterReader:
         }
 
         try:
-            # Örnek: Voltaj değerlerini oku (L1, L2, L3)
-            # NOT: Gerçek register adresleri ABB meter dokümantasyonundan alınmalı
-            voltage_registers = self.read_input_registers(
-                ABB_REGISTERS["voltage_l1"], 3
-            )
-            if voltage_registers:
-                meter_data["voltage_l1"] = (
-                    voltage_registers[0] / 10.0 if len(voltage_registers) > 0 else None
-                )
-                meter_data["voltage_l2"] = (
-                    voltage_registers[1] / 10.0 if len(voltage_registers) > 1 else None
-                )
-                meter_data["voltage_l3"] = (
-                    voltage_registers[2] / 10.0 if len(voltage_registers) > 2 else None
-                )
+            # ABB B23 112-100: Bu cihaz 0x04 yerine 0x03 (holding registers) ile cevap veriyor.
 
-            # Akım değerlerini oku
-            current_registers = self.read_input_registers(
-                ABB_REGISTERS["current_l1"], 3
-            )
-            if current_registers:
+            # Voltaj (V): 0x1002..0x1007 (2 register x 3 faz = 6 register)
+            v_regs = self.read_holding_registers(ABB_REGISTERS["voltage_l1"], 6)
+            if v_regs and len(v_regs) == 6:
+                meter_data["voltage_l1"] = float(_u32_from_2regs(v_regs[0], v_regs[1]))
+                meter_data["voltage_l2"] = float(_u32_from_2regs(v_regs[2], v_regs[3]))
+                meter_data["voltage_l3"] = float(_u32_from_2regs(v_regs[4], v_regs[5]))
+
+            # Akım (mA): 0x1010..0x1015 (2 register x 3 faz = 6 register)
+            i_regs = self.read_holding_registers(ABB_REGISTERS["current_l1"], 6)
+            if i_regs and len(i_regs) == 6:
                 meter_data["current_l1"] = (
-                    current_registers[0] / 100.0 if len(current_registers) > 0 else None
+                    _u32_from_2regs(i_regs[0], i_regs[1]) / 1000.0
                 )
                 meter_data["current_l2"] = (
-                    current_registers[1] / 100.0 if len(current_registers) > 1 else None
+                    _u32_from_2regs(i_regs[2], i_regs[3]) / 1000.0
                 )
                 meter_data["current_l3"] = (
-                    current_registers[2] / 100.0 if len(current_registers) > 2 else None
+                    _u32_from_2regs(i_regs[4], i_regs[5]) / 1000.0
                 )
 
-            # Aktif güç oku
-            power_registers = self.read_input_registers(
-                ABB_REGISTERS["power_active"], 1
+            # Aktif güç (W): 0x102E..0x1035 (total + L1 + L2 + L3)
+            p_regs = self.read_holding_registers(ABB_REGISTERS["power_active_total"], 8)
+            if p_regs and len(p_regs) == 8:
+                meter_data["power_active_w"] = float(
+                    _s32_from_2regs(p_regs[0], p_regs[1])
+                )
+                meter_data["power_l1_w"] = float(_s32_from_2regs(p_regs[2], p_regs[3]))
+                meter_data["power_l2_w"] = float(_s32_from_2regs(p_regs[4], p_regs[5]))
+                meter_data["power_l3_w"] = float(_s32_from_2regs(p_regs[6], p_regs[7]))
+
+            # Aktif enerji import (0.01 kWh resolution): 0x5000 (4 register)
+            e_regs = self.read_holding_registers(
+                ABB_REGISTERS["energy_active_import"], 4
             )
-            if power_registers:
-                meter_data["power_active_w"] = (
-                    power_registers[0] if len(power_registers) > 0 else None
-                )
-
-            # Aktif enerji oku
-            energy_registers = self.read_input_registers(
-                ABB_REGISTERS["energy_active"], 1
-            )
-            if energy_registers:
-                meter_data["energy_active_kwh"] = (
-                    energy_registers[0] / 100.0 if len(energy_registers) > 0 else None
-                )
-
-            # Frekans oku
-            freq_registers = self.read_input_registers(ABB_REGISTERS["frequency"], 1)
-            if freq_registers:
-                meter_data["frequency_hz"] = (
-                    freq_registers[0] / 100.0 if len(freq_registers) > 0 else None
-                )
+            if e_regs and len(e_regs) == 4:
+                meter_data["energy_active_kwh"] = _u64_from_4regs(e_regs) / 100.0
 
             return meter_data
 
@@ -452,9 +451,9 @@ class ABBMeterReader:
                 return False
 
         try:
-            # Basit bir register okuma denemesi (genellikle 0x0000 adresi mevcuttur)
-            result = self.read_input_registers(0x0000, 1)
-            if result is not None:
+            # Basit bir register okuma denemesi (voltage L1 register'ı)
+            result = self.read_holding_registers(ABB_REGISTERS["voltage_l1"], 2)
+            if result:
                 self.logger.info(f"Meter bağlantı testi başarılı: {result}")
                 return True
             else:
@@ -467,73 +466,32 @@ class ABBMeterReader:
             return False
 
 
-# Singleton instance (thread-safe)
 _meter_reader_instance: Optional[ABBMeterReader] = None
 _meter_lock = threading.Lock()
 
 
 def get_meter_reader() -> ABBMeterReader:
-    """
-    ABB Meter Reader singleton instance'ı al (thread-safe)
-
-    Double-check locking pattern kullanarak thread-safe singleton sağlar.
-
-    Returns:
-        ABBMeterReader instance
-    """
+    """Thread-safe ABBMeterReader singleton."""
     global _meter_reader_instance
-
-    # İlk kontrol (lock almadan - performans için)
-    if _meter_reader_instance is not None:
-        return _meter_reader_instance
-
-    # İkinci kontrol (lock ile - thread-safety için)
-    with _meter_lock:
-        if _meter_reader_instance is None:
-            _meter_reader_instance = ABBMeterReader()
-            logger = logging.getLogger(__name__)
-            logger.info("ABB Meter Reader singleton instance oluşturuldu")
-
+    if _meter_reader_instance is None:
+        with _meter_lock:
+            if _meter_reader_instance is None:
+                _meter_reader_instance = ABBMeterReader()
     return _meter_reader_instance
 
 
 if __name__ == "__main__":
-    # Test script
-    import sys
+    # Basit manuel test
+    import json
 
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
-    print("ABB Meter RS485 Test")
-    print("=" * 50)
-
     reader = ABBMeterReader()
-
-    # Bağlantı testi
-    print(f"\n1. Bağlantı testi: {reader.device}")
-    if reader.test_connection():
-        print("✅ Meter bağlantısı başarılı!")
-
-        # Meter verilerini oku
-        print("\n2. Meter verilerini okuma...")
-        data = reader.read_meter_data()
-        if data:
-            print("✅ Meter verileri okundu:")
-            import json
-
-            print(json.dumps(data, indent=2))
-        else:
-            print("❌ Meter verileri okunamadı")
-    else:
-        print("❌ Meter bağlantısı başarısız!")
-        print("\nKontrol edilmesi gerekenler:")
-        print("  - UART5 aktif mi? (dtoverlay=uart5)")
-        print(f"  - Cihaz dosyası mevcut mu? ({reader.device})")
-        print("  - RS485 bağlantıları doğru mu?")
-        print(f"  - Baudrate doğru mu? ({reader.baudrate})")
-        print(f"  - Slave ID doğru mu? ({reader.slave_id})")
-        sys.exit(1)
-
+    ok = reader.test_connection()
+    print(f"meter_ok={ok}")
+    if ok:
+        print(json.dumps(reader.read_meter_data(), indent=2))
     reader.disconnect()

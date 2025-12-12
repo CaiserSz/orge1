@@ -1,8 +1,8 @@
 # ABB Meter RS485 Kurulumu ve Yapılandırması
 
 **Oluşturulma Tarihi:** 2025-12-09 02:50:00
-**Son Güncelleme:** 2025-12-09 02:50:00
-**Version:** 1.0.0
+**Son Güncelleme:** 2025-12-12 08:50:00
+**Version:** 1.1.0
 
 ---
 
@@ -26,7 +26,7 @@
 - **MAX13487 Pin 7 (B)** → ABB Meter B
 - **GND** → ABB Meter GND
 
-**NOT:** TX-RX bağlantıları doğrulanmalı. Eğer veri okunamazsa ters çevrilmeli.
+**NOT:** RS485 A/B bağlantıları doğrulanmalı. Eğer veri okunamazsa A/B yer değişimi denenmeli.
 
 ---
 
@@ -60,7 +60,7 @@ sudo reboot
 
 ### 3. UART5 Cihaz Dosyasını Kontrol Etme
 
-Reboot sonrası UART5 `/dev/ttyAMA4` olarak görünmelidir:
+Reboot sonrası UART5 bu sistemde `/dev/ttyAMA5` olarak görünmektedir:
 
 ```bash
 ls -la /dev/ttyAMA*
@@ -68,7 +68,7 @@ ls -la /dev/ttyAMA*
 
 Beklenen çıktı:
 ```
-crw-rw---- 1 root dialout 204, 68 Dec  9 02:50 /dev/ttyAMA4
+crw-rw---- 1 root dialout ... /dev/ttyAMA5
 ```
 
 ### 4. Kullanıcı İzinleri
@@ -103,26 +103,22 @@ newgrp dialout
 ### ABB Meter Ayarları
 
 **Genel Modbus RTU Ayarları:**
-- **Baudrate:** 9600 veya 19200 (meter modeline göre - AC istasyonu açıldığında kontrol edilecek)
-- **Parity:** EVEN (çoğu ABB meter)
+- **Baudrate:** **2400** (sahada doğrulandı)
+- **Parity:** EVEN (sahada doğrulandı)
 - **Data Bits:** 8
 - **Stop Bits:** 1
-- **Slave ID:** 1 (meter yapılandırmasına göre değişebilir - AC istasyonu açıldığında kontrol edilecek)
+- **Slave ID:** 1 (sahada doğrulandı)
+- **Function Code:** **0x03 (Read Holding Registers)** (sahada doğrulandı)
 
 ### Register Adresleri
 
-**ÖNEMLİ:** Gerçek register adresleri ABB meter modeline ve dokümantasyonuna göre değişir.
-`meter/read_meter.py` dosyasındaki `ABB_REGISTERS` dictionary'si örnek değerler içerir.
+`meter/read_meter.py` içindeki `ABB_REGISTERS` artık ABB B23 112-100 için sahada çalışan adresleri içerir.
 
-**Örnek Register Adresleri (ABB meter'a göre güncellenmeli):**
-- Voltaj (L1, L2, L3): 0x0000-0x0002
-- Akım (L1, L2, L3): 0x0003-0x0005
-- Aktif Güç: 0x0006
-- Reaktif Güç: 0x0007
-- Görünür Güç: 0x0008
-- Aktif Enerji: 0x0009
-- Reaktif Enerji: 0x000A
-- Frekans: 0x000B
+**Kritik Register'lar (holding registers):**
+- Voltaj L1/L2/L3: `0x1002`, `0x1004`, `0x1006` (2 register)
+- Akım L1/L2/L3: `0x1010`, `0x1012`, `0x1014` (2 register)
+- Aktif güç total: `0x102E` (2 register, signed)
+- Aktif enerji import: `0x5000` (4 register, 0.01 kWh çözünürlük)
 
 ---
 
@@ -132,10 +128,10 @@ newgrp dialout
 
 ```bash
 # UART5'in mevcut olduğunu kontrol et
-ls -la /dev/ttyAMA4
+ls -la /dev/ttyAMA5
 
 # Serial port bilgilerini kontrol et
-dmesg | grep ttyAMA4
+dmesg | grep ttyAMA5
 ```
 
 ### 2. Meter Okuma Testi
@@ -148,32 +144,18 @@ python3 meter/read_meter.py
 
 **Beklenen Çıktı:**
 ```
-ABB Meter RS485 Test
-==================================================
-
-1. Bağlantı testi: /dev/ttyAMA4
-✅ Meter bağlantısı başarılı!
-
-2. Meter verilerini okuma...
-✅ Meter verileri okundu:
-{
-  "timestamp": "2025-12-09T02:50:00",
-  "slave_id": 1,
-  "device": "/dev/ttyAMA4",
-  "voltage_l1": 230.5,
-  "voltage_l2": 231.2,
-  ...
-}
+meter_ok=True
+{ ... "device": "/dev/ttyAMA5", "voltage_l1": 225.0, "energy_active_kwh": 737.26, ... }
 ```
 
 ### 3. Manuel Serial Port Testi
 
 ```bash
 # Serial port'u dinle (hex dump)
-sudo cat /dev/ttyAMA4 | hexdump -C
+sudo cat /dev/ttyAMA5 | hexdump -C
 
 # Veya minicom ile
-sudo minicom -D /dev/ttyAMA4 -b 9600
+sudo minicom -D /dev/ttyAMA5 -b 2400
 ```
 
 ---

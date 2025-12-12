@@ -518,6 +518,91 @@ Agent şu dosyaları **sırayla** okumalıdır:
 - ✅ Blokaj durumunda alternatif görev seçmeli
 - ✅ Gereksiz bekleme yapmamalı
 
+## KRİTİK KURAL: Multi-Expert Çalışma Stratejisi
+
+**ÖNEMLİ:** Birden fazla expert agent (uzman AI asistanı) aynı anda farklı uzmanlık alanlarında çalışabilmeli, çakışma olmamalıdır.
+
+### Uzmanlık Alanları
+
+Expert agent'lar şu uzmanlık alanlarında çalışabilir:
+- 🔒 **Security Expert** - Güvenlik açıkları, authentication, rate limiting, güvenlik best practices
+- ⚡ **Performance Expert** - Performans bottleneck'leri, optimizasyon, async operations
+- 🏗️ **Architecture Expert** - Mimari desenler, scalability, maintainability, refactoring
+- ✨ **Code Quality Expert** - Kod kalitesi, standartlar, linting, best practices
+- 🚀 **DevOps Expert** - CI/CD, deployment, monitoring, infrastructure
+- 🧪 **Testing Expert** - Test coverage, test stratejisi, quality assurance
+
+### Görev Başlatma Protokolü
+
+**Adım 1: Durum Kontrolü (ZORUNLU)**
+- ✅ `todo/master_live.md` okunur (aktif görevler kontrol edilir)
+- ✅ `todo/master_next.md` okunur (bekleyen görevler kontrol edilir)
+- ✅ Git pull yapılır (`git pull`) - en güncel durum alınır
+
+**Adım 2: Görev Seçimi (Uzmanlık Bazlı)**
+- ✅ `master_next.md`'den kendi uzmanlık alanına uygun görev seçilir
+- ✅ Öncelik sırası: Öncelik 0 > Öncelik 1 > Öncelik 2 > ...
+- ✅ `master_live.md`'de aynı görev yoksa devam edilir
+- ✅ Aynı görev `master_live.md`'de varsa, kendi uzmanlık alanından başka görev seçilir
+- ✅ `master_live.md`'ye görev eklenir (durum: IN_PROGRESS, uzmanlık alanı belirtilir)
+- ✅ Git commit yapılır (`git commit -m "feat: [Uzmanlık Alanı] Görev başlatıldı: [görev adı]"`)
+
+**Adım 3: Çalışma**
+- ✅ Görevle ilgili dosyalar okunur/düzenlenir
+- ✅ Değişiklikler commit edilir (küçük commit'ler, uzmanlık alanı belirtilir)
+- ✅ `master_live.md` güncellenir (ilerleme durumu)
+- ✅ Git pull yapılır (başka expert agent değişiklikleri için)
+
+**Adım 4: Tamamlama**
+- ✅ Görev `master_live.md`'den `master_done.md`'ye taşınır
+- ✅ `project_state.md` güncellenir
+- ✅ `checkpoint.md` güncellenir
+- ✅ Git commit ve push yapılır
+
+### Çakışma Önleme Kuralları
+
+**KRİTİK:** Expert agent'lar birbirlerinin görevlerine müdahale etmemelidir.
+
+- ❌ **YANLIŞ:** `master_live.md`'deki başka expert agent'ın görevini düzenlemek
+- ❌ **YANLIŞ:** Kendi uzmanlık alanı dışındaki görevleri seçmek
+- ✅ **DOĞRU:** Sadece kendi görevini düzenlemek
+- ✅ **DOĞRU:** Kendi uzmanlık alanına uygun görevleri seçmek
+- ✅ **DOĞRU:** Conflict durumunda Git pull yapmak veya kendi uzmanlık alanından alternatif görev seçmek
+- ✅ **DOĞRU:** Görev tamamlanmadan başka göreve geçmemek
+- ✅ **DOĞRU:** Farklı uzmanlık alanlarındaki görevler paralel çalışabilir
+
+### Durum Senkronizasyonu
+
+**Git Workflow:**
+- ✅ Her görev başlangıcında: `git pull` (en güncel durum)
+- ✅ Her değişiklikte: `git commit` (küçük commit'ler, uzmanlık alanı belirtilir)
+- ✅ Görev tamamlandığında: `git push`
+- ✅ Conflict durumunda: `git pull --rebase` veya kendi uzmanlık alanından alternatif görev seç
+
+**Commit Mesaj Formatı:**
+- `feat: [Security Expert] API authentication eklendi`
+- `fix: [Performance Expert] Async operations optimize edildi`
+- `refactor: [Architecture Expert] Modüler yapıya geçildi`
+
+### Single Source of Truth (Tek Kaynak Gerçeklik)
+
+**KRİTİK:** Her bilgi sadece bir yerde bulunmalıdır. Tekrar yasaktır.
+
+**Ana Kaynak Dosyalar:**
+- **Kurallar:** `.cursorrules` (bu dosya)
+- **Proje Bilgileri:** `project_info_20251208_145614.md`
+- **Başlangıç:** `todo/START_HERE.md`
+- **Sistem Mimarisi:** `docs/architecture.md`
+- **API Referansı:** `docs/api_reference.md`
+- **Deployment:** `docs/deployment.md`
+- **Sorun Giderme:** `docs/troubleshooting.md`
+
+**Kurallar:**
+- ✅ Bilgi güncellendiğinde sadece ana kaynak güncellenir
+- ✅ Diğer dosyalar sadece referans verir (link ile)
+- ✅ Tekrar eden bilgiler kaldırılır ve referans ile değiştirilir
+- ✅ Detaylı strateji için `docs/DOCUMENTATION_STRATEGY.md` dosyasına bakınız
+
 ### ÖNEMLİ NOTLAR
 
 - ✅ Agent projeye devam ettiğinde **mutlaka** `todo/START_HERE.md` dosyasını okumalıdır
@@ -526,4 +611,5 @@ Agent şu dosyaları **sırayla** okumalıdır:
 - ✅ Agent her zaman proaktif çalışmalıdır (eksiklikleri tespit edip tamamlamalı) ancak odak kaybetmemelidir
 - ✅ Agent görevleri tamamladıkça todo sistemini güncellemelidir
 - ✅ Detaylı rehber için `todo/PROJECT_CONTINUATION_GUIDE.md` dosyasına bakınız
+- ✅ Dokümantasyon stratejisi için `docs/DOCUMENTATION_STRATEGY.md` dosyasına bakınız
 

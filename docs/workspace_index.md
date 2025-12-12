@@ -450,6 +450,13 @@ Tüm analiz, audit ve değerlendirme raporları bu klasörde toplanmıştır.
 - **Kullanım:** `systemctl enable/start wifi-failover-monitor.service`
 - **İlgili Dosyalar:** `scripts/wifi_failover_monitor.py`
 
+#### `scripts/session_log_export.py`
+- **Ne:** Session log & database export aracı
+- **Amaç:** Belirli bir `session_id` için `logs/session.log` ve `session_events` tablosunu JSON/CSV olarak dışa aktarmak
+- **Kullanım:** `python3 scripts/session_log_export.py <SESSION_ID> [--format csv] [--output path]`
+- **İçerik:** JSON satır loglarını filtreler, SQLite `sessions` ve `session_events` tablolarını okur, tek raporda birleştirir
+- **İlgili Doküman:** `docs/monitoring/LOGGING_GUIDE.md`
+
 ---
 
 ### `tests/` - Test Dosyaları

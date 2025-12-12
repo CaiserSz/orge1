@@ -1,12 +1,39 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-10 14:47:00
+**Son Güncelleme:** 2025-12-12 23:05:00
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
 ---
 
 ## Öncelikli Görevler
+
+### Öncelik 3: Kod Standart Uyarıları (Satır Limiti Yakın Dosyalar)
+
+- [ ] **Görev:** API modüllerini böl (satır limiti yaklaştı)
+  - Açıklama: `scripts/standards_auto_check.py` uyarısı. Aşağıdaki dosyalar 500 satır limitine yaklaştı ve modüllere ayrılmalı.
+  - Öncelik: Orta
+  - Tahmini Süre: 2-4 saat
+  - Durum: 🟡 Uyarı eşiği yakın
+  - Detaylar:
+    - `api/cache.py` (424 satır)
+    - `api/logging_config.py` (469 satır)
+    - `api/event_detector.py` (408 satır)
+    - `api/alerting.py` (413 satır)
+    - `api/session/events.py` (500 satır)
+    - `api/database/core.py` (427 satır)
+    - `api/routers/status.py` (449 satır)
+
+- [ ] **Görev:** Test dosyalarını böl (satır limiti yaklaştı)
+  - Açıklama: `scripts/standards_auto_check.py` uyarısı. Aşağıdaki test dosyaları 500 satır limitine yaklaştı ve suite'e bölünmeli.
+  - Öncelik: Orta
+  - Tahmini Süre: 2-3 saat
+  - Durum: 🟡 Uyarı eşiği yakın
+  - Detaylar:
+    - `tests/test_session_manager.py` (482 satır)
+    - `tests/test_event_detector.py` (423 satır)
+    - `tests/test_command_dry_run.py` (457 satır)
+    - `tests/test_protocol.py` (420 satır)
 
 ### Faz 1: Temel Altyapı (Kritik) - Devam Ediyor
 
@@ -225,6 +252,13 @@
 
 
 ### Öncelik 1: Testing İyileştirmeleri (Testing Expert - Codebase Deep Dive Bulgusu)
+
+- [x] **Görev:** ESP32 modüler test paketi (command_sender, connection_manager, protocol_handler, status_parser)
+  - Açıklama: Yeni modülerleştirilen ESP32 bileşenleri için unit/integration testleri eksik. ACK kuyruk temizliği, reconnect akışları, komut retry/backoff, status parsing edge-case'leri (geçersiz format, eksik alan) ve throttled incident logging senaryoları test edilmeli.
+  - Öncelik: 1 (Yüksek)
+  - Tahmini Süre: 3-4 saat
+  - Durum: ✅ Tamamlandı (2025-12-12 12:55)
+  - Detaylar: `esp32/command_sender.py`, `esp32/connection_manager.py`, `esp32/protocol_handler.py`, `esp32/status_parser.py`
 
 #### 🧪 Performance Testleri Ekleme
 - [ ] **Görev:** Performance testleri ekleme
@@ -532,6 +566,12 @@
 #### 🔴 KRİTİK: Standart İhlalleri (Standart Kontrol Raporu - 2025-12-10)
 
 ##### 🔴 Maksimum Sınır Aşıldı (Acil Refactor Gerekli)
+- [x] **Görev:** `esp32/bridge.py` modüllere bölme (612 satır → <500)
+  - Açıklama: Bridge facade içinde monitor/status/ACK işleme birlikte duruyor; satır sayısı standart (maks 500) üzerinde. Monitoring + mesaj işleme yardımcı modüllere ayrılmalı, status/ack history erişiminde lock eklenmeli, reconnect sırasında stale ACK/queue temizliği planlanmalı.
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 2-3 saat
+  - Durum: ✅ Tamamlandı (2025-12-12 12:55)
+  - Detaylar: `esp32/bridge.py` 612 satır, `reports/BRIDGE_REFACTORING_REPORT.md` ref.
 - [ ] **Görev:** `api/database` paketinde standart uyumu → ✅ Tamamlandı (2025-12-10 21:24)
   - Açıklama: Eski 656 satırlık `api/database/queries.py` dosyası konu bazlı mixin'lere bölündü; fonksiyon uzunlukları ve dosya boyutları limitlerin altına çekildi.
   - Öncelik: 0 (Acil)
@@ -936,6 +976,8 @@ CREATE TABLE sessions (
   - Tahmini Süre: 30 dakika
   - Durum: 📋 Bekliyor
   - Detaylar: `scripts/workspace_auto_check.py` raporuna bakınız
+  - Aksiyon (2025-12-12 21:05:00): `docs/acrel/` klasörü `.gitignore`'a eklenerek ağır görsel/doküman arşivi git geçmişinden hariç tutuldu. Durum: ✅ 2025-12-12 21:12:00 (Code Quality Expert)
+  - Aksiyon (2025-12-12 21:08:00): `git status` çıktısında kök dizinde `3}s` adlı beklenmedik bir dosya görüldü; kaynağı bilinmediği için temizlenmedi, manuel inceleme gerekiyor.
 
 - [x] **Görev:** Eski log dosyalarını arşivleme / temizlik
   - Açıklama: Log klasörü temizlendi (şu anda ~0 MB). İleride log rotation/retention politikası uygulanmalı.

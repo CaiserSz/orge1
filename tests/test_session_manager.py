@@ -158,7 +158,6 @@ class TestSessionManager:
         # Mevcut aktif session'ı temizle (restore edilen session varsa)
         if manager.current_session:
             manager._end_session(
-                manager.current_session.session_id,
                 EventType.CABLE_DISCONNECTED,
                 {"to_state": ESP32State.IDLE.value},
             )

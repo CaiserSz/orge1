@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="tr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,15 +23,18 @@
         /* Üst sol köşe logo - UX optimized */
         .top-left-logo {
             position: fixed;
-            top: 25px;
+            top: 10px;
+            /* Yukarı al */
             left: 25px;
             z-index: 2000;
-            width: 160px;
+            width: 140px;
+            /* Biraz küçült */
             height: auto;
             opacity: 0.95;
             transition: all 0.3s ease;
             background: rgba(255, 255, 255, 0.95);
-            padding: 12px 16px;
+            padding: 10px 14px;
+            /* Daha kompakt padding */
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.3);
         }
@@ -54,7 +58,8 @@
         }
 
         .top-left-logo svg .cls-1 {
-            fill: #0a6d35 !important; /* Daha koyu yeşil */
+            fill: #0a6d35 !important;
+            /* Daha koyu yeşil */
         }
 
         /* Mobil görünümde logo boyutu küçült */
@@ -83,7 +88,7 @@
             margin: 0 auto;
             background: white;
             border-radius: 15px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             overflow: hidden;
         }
 
@@ -139,7 +144,7 @@
             position: sticky;
             top: 0;
             z-index: 1000;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
         }
 
         .status-bar-title {
@@ -173,13 +178,22 @@
 
         .status-item.changed {
             animation: highlight 0.6s ease;
-            box-shadow: 0 0 10px rgba(255,255,255,0.3);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
         }
 
         @keyframes highlight {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); background: #444; }
-            100% { transform: scale(1); }
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+                background: #444;
+            }
+
+            100% {
+                transform: scale(1);
+            }
         }
 
         .status-label {
@@ -198,6 +212,71 @@
             font-size: 0.85em;
             color: #aaa;
             margin-left: auto;
+        }
+
+        /* Meter detail grid */
+        .meter-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+            padding: 0 6px 8px 6px;
+        }
+
+        .meter-detail-card {
+            background: #223220;
+            color: #e8f5e9;
+            border: 1px solid #2f4f2f;
+            border-radius: 8px;
+            padding: 8px 10px;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+        }
+
+        .meter-detail-title {
+            font-weight: 700;
+            font-size: 0.9em;
+            margin-bottom: 4px;
+        }
+
+        .meter-detail-values {
+            font-size: 0.88em;
+            line-height: 1.4;
+        }
+
+        /* Session info bar */
+        .session-bar {
+            background: #1f2d38;
+            color: #e3f2fd;
+            padding: 8px 12px;
+            border-top: 1px solid #2e3f4b;
+            border-bottom: 1px solid #2e3f4b;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .session-item {
+            background: #264156;
+            border: 1px solid #34556b;
+            color: #e3f2fd;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            min-width: 150px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .session-label {
+            color: #b0bec5;
+            font-weight: 600;
+            font-size: 0.85em;
+        }
+
+        .session-value {
+            font-weight: 700;
         }
 
         .bar-action-btn {
@@ -250,37 +329,128 @@
             box-shadow: 0 2px 4px rgba(244, 67, 54, 0.2);
         }
 
-        .status-state-1 { background: #e8e8e8; border-color: #bbb; } /* IDLE - Açık Gri */
-        .status-state-1 .status-label { color: #555; } /* Koyu gri label */
-        .status-state-1 .status-value { color: #000; font-weight: bold; } /* Siyah değer */
+        .status-state-1 {
+            background: #e8e8e8;
+            border-color: #bbb;
+        }
 
-        .status-state-2 { background: rgb(0, 180, 180); border-color: rgb(0, 150, 150); } /* CABLE_DETECT - Turkuaz */
-        .status-state-2 .status-label { color: rgba(255, 255, 255, 0.9); }
-        .status-state-2 .status-value { color: white; font-weight: bold; }
+        /* IDLE - Açık Gri */
+        .status-state-1 .status-label {
+            color: #555;
+        }
 
-        .status-state-3 { background: rgb(30, 30, 255); border-color: rgb(10, 10, 255); } /* EV_CONNECTED - Mavi */
-        .status-state-3 .status-label { color: rgba(255, 255, 255, 0.9); }
-        .status-state-3 .status-value { color: white; font-weight: bold; }
+        /* Koyu gri label */
+        .status-state-1 .status-value {
+            color: #000;
+            font-weight: bold;
+        }
 
-        .status-state-4 { background: rgb(50, 100, 255); border-color: rgb(30, 30, 255); } /* SARJA_HAZIR - Açık Mavi */
-        .status-state-4 .status-label { color: rgba(255, 255, 255, 0.9); }
-        .status-state-4 .status-value { color: white; font-weight: bold; }
+        /* Siyah değer */
 
-        .status-state-5 { background: #2e7d32; border-color: #1b5e20; } /* SARJ_BASLADI - Koyu Yeşil */
-        .status-state-5 .status-label { color: rgba(255, 255, 255, 0.9); }
-        .status-state-5 .status-value { color: white; font-weight: bold; }
+        .status-state-2 {
+            background: rgb(0, 180, 180);
+            border-color: rgb(0, 150, 150);
+        }
 
-        .status-state-6 { background: rgb(255, 193, 7); border-color: rgb(255, 152, 0); } /* SARJ_DURAKLATILDI - Altın Sarı */
-        .status-state-6 .status-label { color: #333; }
-        .status-state-6 .status-value { color: #000; font-weight: bold; }
+        /* CABLE_DETECT - Turkuaz */
+        .status-state-2 .status-label {
+            color: rgba(255, 255, 255, 0.9);
+        }
 
-        .status-state-7 { background: rgb(200, 50, 100); border-color: rgb(180, 40, 90); } /* SARJ_BITIR - Koyu Lila */
-        .status-state-7 .status-label { color: rgba(255, 255, 255, 0.9); }
-        .status-state-7 .status-value { color: white; font-weight: bold; }
+        .status-state-2 .status-value {
+            color: white;
+            font-weight: bold;
+        }
 
-        .status-state-8 { background: #c62828; border-color: #b71c1c; } /* FAULT_HARD - Koyu Kırmızı */
-        .status-state-8 .status-label { color: rgba(255, 255, 255, 0.9); }
-        .status-state-8 .status-value { color: white; font-weight: bold; }
+        .status-state-3 {
+            background: rgb(30, 30, 255);
+            border-color: rgb(10, 10, 255);
+        }
+
+        /* EV_CONNECTED - Mavi */
+        .status-state-3 .status-label {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .status-state-3 .status-value {
+            color: white;
+            font-weight: bold;
+        }
+
+        .status-state-4 {
+            background: rgb(50, 100, 255);
+            border-color: rgb(30, 30, 255);
+        }
+
+        /* SARJA_HAZIR - Açık Mavi */
+        .status-state-4 .status-label {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .status-state-4 .status-value {
+            color: white;
+            font-weight: bold;
+        }
+
+        .status-state-5 {
+            background: #2e7d32;
+            border-color: #1b5e20;
+        }
+
+        /* SARJ_BASLADI - Koyu Yeşil */
+        .status-state-5 .status-label {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .status-state-5 .status-value {
+            color: white;
+            font-weight: bold;
+        }
+
+        .status-state-6 {
+            background: rgb(255, 193, 7);
+            border-color: rgb(255, 152, 0);
+        }
+
+        /* SARJ_DURAKLATILDI - Altın Sarı */
+        .status-state-6 .status-label {
+            color: #333;
+        }
+
+        .status-state-6 .status-value {
+            color: #000;
+            font-weight: bold;
+        }
+
+        .status-state-7 {
+            background: rgb(200, 50, 100);
+            border-color: rgb(180, 40, 90);
+        }
+
+        /* SARJ_BITIR - Koyu Lila */
+        .status-state-7 .status-label {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .status-state-7 .status-value {
+            color: white;
+            font-weight: bold;
+        }
+
+        .status-state-8 {
+            background: #c62828;
+            border-color: #b71c1c;
+        }
+
+        /* FAULT_HARD - Koyu Kırmızı */
+        .status-state-8 .status-label {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .status-state-8 .status-value {
+            color: white;
+            font-weight: bold;
+        }
 
         .status-indicator {
             width: 6px;
@@ -297,8 +467,15 @@
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
         }
 
         .status-last-update {
@@ -322,7 +499,33 @@
             position: sticky;
             top: 0;
             z-index: 999;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Meter Values Bar (low-frequency, safe polling) */
+        .meter-values-bar {
+            background: #1f2a1f;
+            color: white;
+            padding: 8px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            border-bottom: 2px solid #2e7d32;
+            position: sticky;
+            top: 0;
+            z-index: 998;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .meter-interval-select {
+            background: #222;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 0.85em;
         }
 
         .system-metrics-bar-title {
@@ -387,14 +590,17 @@
                 padding: 8px 10px;
                 gap: 6px;
             }
+
             .status-item {
                 padding: 3px 6px;
                 font-size: 0.75em;
             }
+
             .status-bar-title {
                 width: 100%;
                 margin-bottom: 4px;
             }
+
             .status-last-update {
                 width: 100%;
                 margin-left: 0;
@@ -449,10 +655,21 @@
             color: white;
         }
 
-        .method.get { background: #4CAF50; }
-        .method.post { background: #2196F3; }
-        .method.put { background: #FF9800; }
-        .method.delete { background: #F44336; }
+        .method.get {
+            background: #4CAF50;
+        }
+
+        .method.post {
+            background: #2196F3;
+        }
+
+        .method.put {
+            background: #FF9800;
+        }
+
+        .method.delete {
+            background: #F44336;
+        }
 
         .endpoint-path {
             font-family: 'Courier New', monospace;
@@ -546,9 +763,20 @@
             font-size: 0.85em;
         }
 
-        .status-badge.success { background: #4CAF50; color: white; }
-        .status-badge.error { background: #F44336; color: white; }
-        .status-badge.info { background: #2196F3; color: white; }
+        .status-badge.success {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .status-badge.error {
+            background: #F44336;
+            color: white;
+        }
+
+        .status-badge.info {
+            background: #2196F3;
+            color: white;
+        }
 
         .request-display,
         .response-display {
@@ -622,7 +850,7 @@
             display: inline-block;
             width: 16px;
             height: 16px;
-            border: 3px solid rgba(255,255,255,.3);
+            border: 3px solid rgba(255, 255, 255, .3);
             border-radius: 50%;
             border-top-color: white;
             animation: spin 1s ease-in-out infinite;
@@ -630,10 +858,13 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
+
 <body>
     <!-- Üst sol köşe logo -->
     <div class="top-left-logo">
@@ -648,6 +879,24 @@
             </div>
             <p>for testing use only</p>
         </div>
+        <div class="session-bar" id="sessionBar">
+            <div class="session-item">
+                <span class="session-label">Session:</span>
+                <span class="session-value" id="sessionInfo">-</span>
+            </div>
+            <div class="session-item">
+                <span class="session-label">Status:</span>
+                <span class="session-value" id="sessionStatus">-</span>
+            </div>
+            <div class="session-item">
+                <span class="session-label">Power:</span>
+                <span class="session-value" id="sessionPower">-</span>
+            </div>
+            <div class="session-item">
+                <span class="session-label">Energy:</span>
+                <span class="session-value" id="sessionEnergy">-</span>
+            </div>
+        </div>
 
         <!-- ESP32 Real-Time Status Bar -->
         <div class="status-bar" id="statusBar">
@@ -655,7 +904,7 @@
                 <span class="status-bar-title">Real-time EV Charging Values:</span>
                 <div class="status-item" id="statusIndicator">
                     <span class="status-indicator" id="statusDot"></span>
-                    <span class="status-label">Bağlantı</span>
+                    <span class="status-label">Connection</span>
                 </div>
                 <div class="status-item status-state-1" id="statusState">
                     <span class="status-label">STATE:</span>
@@ -686,9 +935,9 @@
                     <span class="status-label">AUTH:</span>
                     <span class="status-value" id="authValue">-</span>
                 </div>
-                <div class="status-last-update" id="lastUpdate">Son güncelleme: -</div>
+                <div class="status-last-update" id="lastUpdate">Last update: -</div>
             </div>
-            <button class="bar-action-btn bar-start-btn" onclick="quickStartCharge()" title="Şarjı başlat">Start</button>
+            <button class="bar-action-btn bar-start-btn" onclick="quickStartCharge()" title="Start charging">Start</button>
         </div>
 
         <!-- System Metrics Bar -->
@@ -716,14 +965,75 @@
                     <span class="metric-value" id="networkValue">-</span>
                 </div>
             </div>
-            <button class="bar-action-btn bar-stop-btn" onclick="quickStopCharge()" title="Şarjı durdur">Stop</button>
+            <button class="bar-action-btn bar-stop-btn" onclick="quickStopCharge()" title="Stop charging">Stop</button>
+        </div>
+
+        <!-- Meter Values Bar -->
+        <div class="meter-values-bar" id="meterValuesBar">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span class="system-metrics-bar-title">Meter Values:</span>
+                <div class="metric-item metric-normal" id="meterIndicator">
+                    <span class="status-indicator offline" id="meterDot"></span>
+                    <span class="metric-label">Connection</span>
+                </div>
+                <div class="metric-item metric-normal" id="meterVoltage">
+                    <span class="metric-label">V:</span>
+                    <span class="metric-value" id="meterVoltageValue">-</span>
+                </div>
+                <div class="metric-item metric-normal" id="meterCurrent">
+                    <span class="metric-label">A:</span>
+                    <span class="metric-value" id="meterCurrentValue">-</span>
+                </div>
+                <div class="metric-item metric-normal" id="meterPower">
+                    <span class="metric-label">kW:</span>
+                    <span class="metric-value" id="meterPowerValue">-</span>
+                </div>
+                <div class="metric-item metric-normal" id="meterEnergy">
+                    <span class="metric-label">kWh:</span>
+                    <span class="metric-value" id="meterEnergyValue">-</span>
+                </div>
+                <div class="metric-item metric-normal" id="meterPF">
+                    <span class="metric-label">PF:</span>
+                    <span class="metric-value" id="meterPFValue">-</span>
+                </div>
+                <div class="metric-item metric-normal" id="meterFreq">
+                    <span class="metric-label">Hz:</span>
+                    <span class="metric-value" id="meterFreqValue">-</span>
+                </div>
+                <div class="metric-item metric-normal" id="meterRefresh">
+                    <span class="metric-label">Refresh:</span>
+                    <select id="meterIntervalSelect" class="meter-interval-select" onchange="onMeterIntervalChange()">
+                        <option value="15000">15 s</option>
+                        <option value="30000" selected>30 s</option>
+                        <option value="0">Off</option>
+                    </select>
+                </div>
+                <div class="status-last-update" id="meterLastUpdate">Meter: -</div>
+            </div>
+            <div class="meter-detail-grid">
+                <div class="meter-detail-card">
+                    <div class="meter-detail-title">Phase Voltage (V)</div>
+                    <div class="meter-detail-values" id="meterPhaseVoltage">L1: -, L2: -, L3: -</div>
+                </div>
+                <div class="meter-detail-card">
+                    <div class="meter-detail-title">Phase Current (A)</div>
+                    <div class="meter-detail-values" id="meterPhaseCurrent">L1: -, L2: -, L3: -</div>
+                </div>
+                <div class="meter-detail-card">
+                    <div class="meter-detail-title">Phase Power (kW)</div>
+                    <div class="meter-detail-values" id="meterPhasePower">L1: -, L2: -, L3: -</div>
+                </div>
+                <div class="meter-detail-card">
+                    <div class="meter-detail-title">Totals</div>
+                    <div class="meter-detail-values" id="meterTotals">P: -, E: -</div>
+                </div>
+            </div>
         </div>
 
         <div class="content">
             <div class="info-box">
                 <p>
-                    <strong>ℹ️ Bilgi:</strong> Bu sayfa test amaçlıdır. Tüm istekler otomatik olarak API key ile gönderilir.
-                    Request ve Response body'leri aşağıda görüntülenir.
+                    <strong>ℹ️ Info:</strong> This page is for testing purposes. All requests are sent automatically with the API key. Request and response bodies are shown below.
                 </p>
             </div>
 
@@ -736,8 +1046,8 @@
                         <span class="method get">GET</span>
                         <span class="endpoint-path">/api/health</span>
                     </div>
-                    <div class="endpoint-description">Sistem sağlık kontrolü</div>
-                    <button class="btn" onclick="testEndpoint('GET', '/api/health', null)">Test Et</button>
+                    <div class="endpoint-description">System health check</div>
+                    <button class="btn" onclick="testEndpoint('GET', '/api/health', null)">Test</button>
                     <div class="response-section" id="response-/api/health"></div>
                 </div>
 
@@ -746,8 +1056,8 @@
                         <span class="method get">GET</span>
                         <span class="endpoint-path">/api/status</span>
                     </div>
-                    <div class="endpoint-description">ESP32 durum bilgisi</div>
-                    <button class="btn" onclick="testEndpoint('GET', '/api/status', null)">Test Et</button>
+                    <div class="endpoint-description">ESP32 status</div>
+                    <button class="btn" onclick="testEndpoint('GET', '/api/status', null)">Test</button>
                     <div class="response-section" id="response-/api/status"></div>
                 </div>
 
@@ -756,8 +1066,8 @@
                         <span class="method get">GET</span>
                         <span class="endpoint-path">/api/current/available</span>
                     </div>
-                    <div class="endpoint-description">Kullanılabilir akım aralığı</div>
-                    <button class="btn" onclick="testEndpoint('GET', '/api/current/available', null)">Test Et</button>
+                    <div class="endpoint-description">Available current range</div>
+                    <button class="btn" onclick="testEndpoint('GET', '/api/current/available', null)">Test</button>
                     <div class="response-section" id="response-/api/current/available"></div>
                 </div>
 
@@ -766,8 +1076,8 @@
                         <span class="method get">GET</span>
                         <span class="endpoint-path">/api/station/info</span>
                     </div>
-                    <div class="endpoint-description">İstasyon bilgileri</div>
-                    <button class="btn" onclick="testEndpoint('GET', '/api/station/info', null)">Test Et</button>
+                    <div class="endpoint-description">Station info</div>
+                    <button class="btn" onclick="testEndpoint('GET', '/api/station/info', null)">Test</button>
                     <div class="response-section" id="response-/api/station/info"></div>
                 </div>
             </div>
@@ -776,7 +1086,7 @@
             <div class="endpoint-group">
                 <h2>Meter Endpoints (Test)</h2>
                 <p style="color: #888; font-size: 0.9em; margin-bottom: 15px;">
-                    ⚠️ Meter modülü henüz aktif değil. Bu endpoint'ler test amaçlıdır ve meter aktif olduğunda çalışacaktır.
+                    ✅ Meter is active. For safety, use low-frequency reads (15-30 s).
                 </p>
 
                 <div class="endpoint">
@@ -785,9 +1095,9 @@
                         <span class="endpoint-path">/api/meter/status</span>
                     </div>
                     <div class="endpoint-description">
-                        Meter durum bilgisi ve bağlantı durumu
+                        Meter status and connectivity
                     </div>
-                    <button class="btn" onclick="testEndpoint('GET', '/api/meter/status', null)">Test Et</button>
+                    <button class="btn" onclick="testEndpoint('GET', '/api/meter/status', null)">Test</button>
                     <div class="response-section" id="response-/api/meter/status"></div>
                 </div>
 
@@ -797,9 +1107,9 @@
                         <span class="endpoint-path">/api/meter/reading</span>
                     </div>
                     <div class="endpoint-description">
-                        Son meter okuması (Voltage, Current, Power, Energy, vb.)
+                        Latest meter reading (Voltage, Current, Power, Energy, etc.)
                     </div>
-                    <button class="btn" onclick="testEndpoint('GET', '/api/meter/reading', null)">Test Et</button>
+                    <button class="btn" onclick="testEndpoint('GET', '/api/meter/reading', null)">Test</button>
                     <div class="response-section" id="response-/api/meter/reading"></div>
                 </div>
             </div>
@@ -813,16 +1123,16 @@
                         <span class="method post">POST</span>
                         <span class="endpoint-path">/api/charge/start</span>
                     </div>
-                    <div class="endpoint-description">Şarj başlatma</div>
+                    <div class="endpoint-description">Start charging</div>
                     <div class="request-body">
                         <label>Request Body (JSON):</label>
                         <textarea id="body-/api/charge/start" placeholder='{"user_id": "your-user-id"}' oninput="updateCurlPreviewDebounced('POST', '/api/charge/start', 'body-/api/charge/start', 'curl-/api/charge/start')">{}</textarea>
                     </div>
                     <div class="curl-preview">
-                        <label>💻 cURL Command (Edit edilebilir):</label>
+                        <label>💻 cURL Command (Editable):</label>
                         <textarea id="curl-/api/charge/start"></textarea>
                     </div>
-                    <button class="btn" onclick="testEndpoint('POST', '/api/charge/start', 'body-/api/charge/start')">Test Et</button>
+                    <button class="btn" onclick="testEndpoint('POST', '/api/charge/start', 'body-/api/charge/start')">Test</button>
                     <div class="response-section" id="response-/api/charge/start"></div>
                 </div>
 
@@ -831,16 +1141,16 @@
                         <span class="method post">POST</span>
                         <span class="endpoint-path">/api/charge/stop</span>
                     </div>
-                    <div class="endpoint-description">Şarj durdurma</div>
+                    <div class="endpoint-description">Stop charging</div>
                     <div class="request-body">
                         <label>Request Body (JSON):</label>
                         <textarea id="body-/api/charge/stop" placeholder='{"user_id": "your-user-id"}' oninput="updateCurlPreviewDebounced('POST', '/api/charge/stop', 'body-/api/charge/stop', 'curl-/api/charge/stop')">{}</textarea>
                     </div>
                     <div class="curl-preview">
-                        <label>💻 cURL Command (Edit edilebilir):</label>
+                        <label>💻 cURL Command (Editable):</label>
                         <textarea id="curl-/api/charge/stop"></textarea>
                     </div>
-                    <button class="btn" onclick="testEndpoint('POST', '/api/charge/stop', 'body-/api/charge/stop')">Test Et</button>
+                    <button class="btn" onclick="testEndpoint('POST', '/api/charge/stop', 'body-/api/charge/stop')">Test</button>
                     <div class="response-section" id="response-/api/charge/stop"></div>
                 </div>
             </div>
@@ -854,16 +1164,16 @@
                         <span class="method post">POST</span>
                         <span class="endpoint-path">/api/maxcurrent</span>
                     </div>
-                    <div class="endpoint-description">Maksimum akım ayarlama (6-32A)</div>
+                    <div class="endpoint-description">Set maximum current (6-32A)</div>
                     <div class="request-body">
                         <label>Amperage:</label>
                         <input type="number" id="body-/api/maxcurrent" placeholder="16" value="16" min="6" max="32" oninput="updateCurlPreviewDebounced('POST', '/api/maxcurrent', 'body-/api/maxcurrent', 'curl-/api/maxcurrent', true)">
                     </div>
                     <div class="curl-preview">
-                        <label>💻 cURL Command (Edit edilebilir):</label>
+                        <label>💻 cURL Command (Editable):</label>
                         <textarea id="curl-/api/maxcurrent"></textarea>
                     </div>
-                    <button class="btn" id="btn-maxcurrent" onclick="testEndpoint('POST', '/api/maxcurrent', 'body-/api/maxcurrent', true, event)">Test Et</button>
+                    <button class="btn" id="btn-maxcurrent" onclick="testEndpoint('POST', '/api/maxcurrent', 'body-/api/maxcurrent', true, event)">Test</button>
                     <div class="response-section" id="response-/api/maxcurrent"></div>
                 </div>
             </div>
@@ -878,14 +1188,14 @@
                         <span class="endpoint-path">/api/sessions/current</span>
                     </div>
                     <div class="endpoint-description">
-                        <strong>⭐ Aktif Session Sorgulama</strong><br>
-                        Herhangi bir parametre girmeden aktif session bilgilerini getirir. Session ID, User ID ve diğer tüm session detaylarını gösterir.
+                        <strong>⭐ Active Session Lookup</strong><br>
+                        Fetches the active session without parameters. Shows Session ID, User ID and all session details.
                     </div>
                     <div class="curl-preview">
-                        <label>💻 cURL Command (Edit edilebilir):</label>
+                        <label>💻 cURL Command (Editable):</label>
                         <textarea id="curl-/api/sessions/current"></textarea>
                     </div>
-                    <button class="btn" onclick="testEndpoint('GET', '/api/sessions/current', null)">Test Et</button>
+                    <button class="btn" onclick="testEndpoint('GET', '/api/sessions/current', null)">Test</button>
                     <div class="response-section" id="response-/api/sessions/current"></div>
                 </div>
 
@@ -894,16 +1204,16 @@
                         <span class="method get">GET</span>
                         <span class="endpoint-path">/api/sessions/{session_id}</span>
                     </div>
-                    <div class="endpoint-description">Belirli bir session'ı getir</div>
+                    <div class="endpoint-description">Fetch a specific session</div>
                     <div class="request-body">
                         <label>Session ID:</label>
                         <input type="text" id="param-/api/sessions/{session_id}" placeholder="session-uuid-here" value="" oninput="updateCurlPreviewForPathParam('GET', '/api/sessions/{session_id}', 'param-/api/sessions/{session_id}', 'curl-/api/sessions/{session_id}')">
                     </div>
                     <div class="curl-preview">
-                        <label>💻 cURL Command (Edit edilebilir):</label>
+                        <label>💻 cURL Command (Editable):</label>
                         <textarea id="curl-/api/sessions/{session_id}"></textarea>
                     </div>
-                    <button class="btn" onclick="testEndpointWithPathParam('GET', '/api/sessions/{session_id}', 'param-/api/sessions/{session_id}')">Test Et</button>
+                    <button class="btn" onclick="testEndpointWithPathParam('GET', '/api/sessions/{session_id}', 'param-/api/sessions/{session_id}')">Test</button>
                     <div class="response-section" id="response-/api/sessions/{session_id}"></div>
                 </div>
 
@@ -913,18 +1223,18 @@
                         <span class="endpoint-path">/api/sessions/users/{user_id}/current</span>
                     </div>
                     <div class="endpoint-description">
-                        <strong>⭐ Kullanıcı Aktif Session</strong><br>
-                        Belirli bir kullanıcının aktif session'ını getirir. Eğer aktif session yoksa null döner.
+                        <strong>⭐ User Active Session</strong><br>
+                        Fetches the active session for a specific user. Returns null if none.
                     </div>
                     <div class="request-body">
                         <label>User ID:</label>
                         <input type="text" id="param-/api/sessions/users/{user_id}/current" placeholder="user-id-here" value="" oninput="updateCurlPreviewForPathParam('GET', '/api/sessions/users/{user_id}/current', 'param-/api/sessions/users/{user_id}/current', 'curl-/api/sessions/users/{user_id}/current')">
                     </div>
                     <div class="curl-preview">
-                        <label>💻 cURL Command (Edit edilebilir):</label>
+                        <label>💻 cURL Command (Editable):</label>
                         <textarea id="curl-/api/sessions/users/{user_id}/current"></textarea>
                     </div>
-                    <button class="btn" onclick="testEndpointWithPathParam('GET', '/api/sessions/users/{user_id}/current', 'param-/api/sessions/users/{user_id}/current')">Test Et</button>
+                    <button class="btn" onclick="testEndpointWithPathParam('GET', '/api/sessions/users/{user_id}/current', 'param-/api/sessions/users/{user_id}/current')">Test</button>
                     <div class="response-section" id="response-/api/sessions/users/{user_id}/current"></div>
                 </div>
 
@@ -934,18 +1244,18 @@
                         <span class="endpoint-path">/api/sessions/users/{user_id}/sessions</span>
                     </div>
                     <div class="endpoint-description">
-                        <strong>📜 Kullanıcı Geçmiş Session'ları</strong><br>
-                        Belirli bir kullanıcının geçmiş session'larını getirir (ACTIVE hariç - tamamlanmış, iptal edilmiş veya hata durumundaki session'lar).
+                        <strong>📜 User Session History</strong><br>
+                        Fetches past sessions for a user (excluding ACTIVE; includes completed/cancelled/faulted).
                     </div>
                     <div class="request-body">
                         <label>User ID:</label>
                         <input type="text" id="param-/api/sessions/users/{user_id}/sessions" placeholder="user-id-here" value="" oninput="updateCurlPreviewForPathParam('GET', '/api/sessions/users/{user_id}/sessions', 'param-/api/sessions/users/{user_id}/sessions', 'curl-/api/sessions/users/{user_id}/sessions')">
                     </div>
                     <div class="curl-preview">
-                        <label>💻 cURL Command (Edit edilebilir):</label>
+                        <label>💻 cURL Command (Editable):</label>
                         <textarea id="curl-/api/sessions/users/{user_id}/sessions"></textarea>
                     </div>
-                    <button class="btn" onclick="testEndpointWithPathParam('GET', '/api/sessions/users/{user_id}/sessions', 'param-/api/sessions/users/{user_id}/sessions')">Test Et</button>
+                    <button class="btn" onclick="testEndpointWithPathParam('GET', '/api/sessions/users/{user_id}/sessions', 'param-/api/sessions/users/{user_id}/sessions')">Test</button>
                     <div class="response-section" id="response-/api/sessions/users/{user_id}/sessions"></div>
                 </div>
             </div>
@@ -965,7 +1275,17 @@
         let lastSystemMetrics = {};
         let statusUpdateInterval = null;
         let systemMetricsInterval = null;
-        let statusErrorCount = 0;  // Ardışık hata sayacı
+        let sessionUpdateInterval = null;
+        let statusErrorCount = 0; // Ardışık hata sayacı
+
+        // Meter Values Tracking (low frequency, no overlap)
+        let lastMeterData = {};
+        let meterUpdateInterval = null;
+        let meterPollInProgress = false;
+        let meterErrorCount = 0;
+        let lastMeterEnergyKwh = null;
+        let sessionEnergyBaselineKwh = null;
+        let currentSessionId = null;
 
         // STATE açıklamaları
         const STATE_MEANINGS = {
@@ -988,7 +1308,9 @@
                 const apiKey = keyData.api_key;
                 const userId = keyData.user_id || null;
 
-                const requestBody = userId ? { user_id: userId } : {};
+                const requestBody = userId ? {
+                    user_id: userId
+                } : {};
 
                 const chargeResponse = await fetch(`${API_BASE_URL}/api/charge/start`, {
                     method: 'POST',
@@ -1001,14 +1323,14 @@
 
                 const result = await chargeResponse.json();
                 if (result.success) {
-                    alert('✅ Şarj başlatıldı!');
+                    alert('✅ Charge started!');
                     // Status'u güncelle
                     await updateStatus();
                 } else {
-                    alert('❌ Şarj başlatılamadı: ' + (result.message || 'Bilinmeyen hata'));
+                    alert('❌ Charge could not start: ' + (result.message || 'Unknown error'));
                 }
             } catch (error) {
-                alert('❌ Hata: ' + error.message);
+                alert('❌ Error: ' + error.message);
             }
         }
 
@@ -1019,7 +1341,9 @@
                 const apiKey = keyData.api_key;
                 const userId = keyData.user_id || null;
 
-                const requestBody = userId ? { user_id: userId } : {};
+                const requestBody = userId ? {
+                    user_id: userId
+                } : {};
 
                 const chargeResponse = await fetch(`${API_BASE_URL}/api/charge/stop`, {
                     method: 'POST',
@@ -1032,14 +1356,14 @@
 
                 const result = await chargeResponse.json();
                 if (result.success) {
-                    alert('✅ Şarj durduruldu!');
+                    alert('✅ Charge stopped!');
                     // Status'u güncelle
                     await updateStatus();
                 } else {
-                    alert('❌ Şarj durdurulamadı: ' + (result.message || 'Bilinmeyen hata'));
+                    alert('❌ Charge stop failed: ' + (result.message || 'Unknown error'));
                 }
             } catch (error) {
-                alert('❌ Hata: ' + error.message);
+                alert('❌ Error: ' + error.message);
             }
         }
 
@@ -1061,6 +1385,7 @@
 
             // Start ESP32 status polling
             startStatusPolling();
+            startSessionPolling();
         });
 
         // Load default values for input fields
@@ -1104,7 +1429,9 @@
                                 chargeStartBody.dispatchEvent(new Event('input'));
                             } catch (e) {
                                 // If parsing fails, set default with user_id
-                                chargeStartBody.value = JSON.stringify({ user_id: userId }, null, 2);
+                                chargeStartBody.value = JSON.stringify({
+                                    user_id: userId
+                                }, null, 2);
                                 chargeStartBody.dispatchEvent(new Event('input'));
                             }
                         }
@@ -1121,7 +1448,9 @@
                                 chargeStopBody.dispatchEvent(new Event('input'));
                             } catch (e) {
                                 // If parsing fails, set default with user_id
-                                chargeStopBody.value = JSON.stringify({ user_id: userId }, null, 2);
+                                chargeStopBody.value = JSON.stringify({
+                                    user_id: userId
+                                }, null, 2);
                                 chargeStopBody.dispatchEvent(new Event('input'));
                             }
                         }
@@ -1160,6 +1489,9 @@
             // Sistem metriklerini güncelle (her 5 saniyede bir)
             systemMetricsInterval = setInterval(updateSystemMetrics, 5000);
             updateSystemMetrics(); // İlk güncelleme
+
+            // Meter değerlerini düşük frekansta güncelle (varsayılan 30 sn)
+            startMeterPolling();
         }
 
         async function updateESP32Status() {
@@ -1188,9 +1520,9 @@
                 // 3 ardışık hata sonrası verileri temizle (UX iyileştirmesi)
                 if (statusErrorCount >= 3) {
                     clearStatusBar();
-                    document.getElementById('lastUpdate').textContent = 'Bağlantı hatası - Veriler temizlendi';
+                    document.getElementById('lastUpdate').textContent = 'Connection error - data cleared';
                 } else {
-                    document.getElementById('lastUpdate').textContent = `Bağlantı hatası (${statusErrorCount}/3)`;
+                    document.getElementById('lastUpdate').textContent = `Connection error (${statusErrorCount}/3)`;
                 }
             }
         }
@@ -1233,11 +1565,12 @@
             const timeStr = now.toLocaleTimeString('tr-TR');
 
             // Son güncelleme zamanı
-            document.getElementById('lastUpdate').textContent = `Son güncelleme: ${timeStr}`;
+            document.getElementById('lastUpdate').textContent = `Last update: ${timeStr}`;
 
             // STATE güncelleme (renk değişimi ile) - Format: "STATE: 1-IDLE"
             const stateText = `${data.STATE}-${STATE_MEANINGS[data.STATE] || 'UNKNOWN'}`;
             updateStatusItem('stateValue', data.STATE, stateText, 'statusState', `status-state-${data.STATE}`);
+            window.lastStatusState = data.STATE;
 
             // Diğer değerler
             updateStatusItem('cpValue', data.CP, data.CP);
@@ -1301,11 +1634,11 @@
 
         function updateSystemMetricsBar(data) {
             // CPU güncelleme
-            const cpuPercent = data.cpu_percent !== null && data.cpu_percent !== undefined
-                ? data.cpu_percent.toFixed(1)
-                : (data.system_cpu_percent !== null && data.system_cpu_percent !== undefined
-                    ? data.system_cpu_percent.toFixed(1)
-                    : null);
+            const cpuPercent = data.cpu_percent !== null && data.cpu_percent !== undefined ?
+                data.cpu_percent.toFixed(1) :
+                (data.system_cpu_percent !== null && data.system_cpu_percent !== undefined ?
+                    data.system_cpu_percent.toFixed(1) :
+                    null);
 
             if (cpuPercent !== null) {
                 updateMetric('cpuValue', cpuPercent + '%', 'metricCPU', cpuPercent, 0, 50, 80);
@@ -1315,19 +1648,19 @@
             }
 
             // RAM güncelleme
-            const ramPercent = data.memory_percent !== null && data.memory_percent !== undefined
-                ? data.memory_percent
-                : (data.system_memory_percent !== null && data.system_memory_percent !== undefined
-                    ? data.system_memory_percent
-                    : null);
+            const ramPercent = data.memory_percent !== null && data.memory_percent !== undefined ?
+                data.memory_percent :
+                (data.system_memory_percent !== null && data.system_memory_percent !== undefined ?
+                    data.system_memory_percent :
+                    null);
 
-            const ramUsed = data.memory_mb !== null && data.memory_mb !== undefined
-                ? data.memory_mb.toFixed(1)
-                : null;
+            const ramUsed = data.memory_mb !== null && data.memory_mb !== undefined ?
+                data.memory_mb.toFixed(1) :
+                null;
 
-            const ramTotal = data.system_memory_total_mb !== null && data.system_memory_total_mb !== undefined
-                ? data.system_memory_total_mb.toFixed(0)
-                : null;
+            const ramTotal = data.system_memory_total_mb !== null && data.system_memory_total_mb !== undefined ?
+                data.system_memory_total_mb.toFixed(0) :
+                null;
 
             if (ramPercent !== null) {
                 let ramDisplay = ramPercent.toFixed(1) + '%';
@@ -1341,17 +1674,17 @@
             }
 
             // SSD güncelleme
-            const ssdPercent = (data.disk_percent !== null && data.disk_percent !== undefined)
-                ? data.disk_percent
-                : null;
+            const ssdPercent = (data.disk_percent !== null && data.disk_percent !== undefined) ?
+                data.disk_percent :
+                null;
 
-            const ssdUsed = (data.disk_used_gb !== null && data.disk_used_gb !== undefined)
-                ? parseFloat(data.disk_used_gb).toFixed(1)
-                : null;
+            const ssdUsed = (data.disk_used_gb !== null && data.disk_used_gb !== undefined) ?
+                parseFloat(data.disk_used_gb).toFixed(1) :
+                null;
 
-            const ssdTotal = (data.disk_total_gb !== null && data.disk_total_gb !== undefined)
-                ? parseFloat(data.disk_total_gb).toFixed(1)
-                : null;
+            const ssdTotal = (data.disk_total_gb !== null && data.disk_total_gb !== undefined) ?
+                parseFloat(data.disk_total_gb).toFixed(1) :
+                null;
 
             if (ssdPercent !== null && !isNaN(ssdPercent)) {
                 let ssdDisplay = ssdPercent.toFixed(1) + '%';
@@ -1365,9 +1698,9 @@
             }
 
             // Temperature güncelleme
-            const tempCelsius = data.cpu_temperature_celsius !== null && data.cpu_temperature_celsius !== undefined
-                ? data.cpu_temperature_celsius
-                : null;
+            const tempCelsius = data.cpu_temperature_celsius !== null && data.cpu_temperature_celsius !== undefined ?
+                data.cpu_temperature_celsius :
+                null;
 
             if (tempCelsius !== null) {
                 const tempDisplay = tempCelsius.toFixed(1) + '°C';
@@ -1377,29 +1710,37 @@
                 document.getElementById('metricTemp').className = 'metric-item metric-normal';
             }
 
-            // Network bilgileri güncelleme (SSID ve IP)
-            const networkIP = (data.network_ip !== null && data.network_ip !== undefined && data.network_ip !== '')
-                ? data.network_ip
-                : null;
+            // Network bilgileri güncelleme (SSID, IP ve sinyal)
+            const networkIP = (data.network_ip !== null && data.network_ip !== undefined && data.network_ip !== '') ?
+                data.network_ip :
+                null;
 
-            const networkSSID = (data.network_ssid !== null && data.network_ssid !== undefined && data.network_ssid !== '')
-                ? data.network_ssid
-                : null;
+            const networkSSID = (data.network_ssid !== null && data.network_ssid !== undefined && data.network_ssid !== '') ?
+                data.network_ssid :
+                null;
 
-            if (networkIP || networkSSID) {
+            const networkSignal = (data.network_signal !== null && data.network_signal !== undefined && !Number.isNaN(Number(data.network_signal))) ?
+                Number(data.network_signal) :
+                null;
+
+            if (networkIP || networkSSID || networkSignal !== null) {
                 let networkDisplay = '';
                 if (networkSSID) {
                     networkDisplay = networkSSID;
                 }
-                if (networkIP) {
-                    if (networkDisplay) {
-                        networkDisplay += ' / ' + networkIP;
-                    } else {
-                        networkDisplay = networkIP;
-                    }
+                if (networkSignal !== null) {
+                    networkDisplay += networkDisplay ? ` (${networkSignal}%)` : `${networkSignal}%`;
                 }
-                document.getElementById('networkValue').textContent = networkDisplay;
+                if (networkIP) {
+                    networkDisplay += networkDisplay ? ` / ${networkIP}` : networkIP;
+                }
+                document.getElementById('networkValue').textContent = networkDisplay || 'N/A';
+                // Sinyal için renk kodlaması (>=70 iyi, >=50 orta, altı düşük)
+                if (networkSignal !== null) {
+                    updateMetric('networkValue', networkDisplay, 'metricNetwork', networkSignal, 0, 50, 70);
+                } else {
                 document.getElementById('metricNetwork').className = 'metric-item metric-normal';
+                }
             } else {
                 document.getElementById('networkValue').textContent = 'N/A';
                 document.getElementById('metricNetwork').className = 'metric-item metric-normal';
@@ -1456,6 +1797,350 @@
             lastSystemMetrics = {};
         }
 
+        // Meter bar helper'ları
+        function clearMeterValues() {
+            document.getElementById('meterVoltageValue').textContent = '-';
+            document.getElementById('meterCurrentValue').textContent = '-';
+            document.getElementById('meterPowerValue').textContent = '-';
+            document.getElementById('meterEnergyValue').textContent = '-';
+            lastMeterData = {};
+        }
+
+        function formatMeterNumber(value, digits) {
+            if (value === null || value === undefined) return '-';
+            const num = Number(value);
+            if (Number.isNaN(num)) return '-';
+            return num.toFixed(digits);
+        }
+
+        function updateMeterItem(elementId, newValue, displayValue, containerId) {
+            const element = document.getElementById(elementId);
+            const container = containerId ? document.getElementById(containerId) : null;
+            if (!element) return;
+
+            const oldValue = lastMeterData[elementId];
+            const hasChanged = oldValue !== undefined && oldValue !== newValue;
+
+            element.textContent = displayValue;
+            lastMeterData[elementId] = newValue;
+
+            if (hasChanged && container) {
+                container.classList.add('changed');
+                setTimeout(() => container.classList.remove('changed'), 600);
+            }
+        }
+
+        function setMetricState(containerId, state = 'normal') {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.classList.remove('metric-normal', 'metric-warning', 'metric-danger');
+            if (state === 'warning') {
+                container.classList.add('metric-warning');
+            } else if (state === 'danger') {
+                container.classList.add('metric-danger');
+            } else {
+                container.classList.add('metric-normal');
+            }
+        }
+
+        function setMeterPollingInterval(intervalMs) {
+            if (meterUpdateInterval) {
+                clearInterval(meterUpdateInterval);
+                meterUpdateInterval = null;
+            }
+
+            if (!intervalMs || intervalMs <= 0) {
+                document.getElementById('meterLastUpdate').textContent = 'Meter: disabled';
+                return;
+            }
+
+            meterUpdateInterval = setInterval(updateMeterValues, intervalMs);
+        }
+
+        function onMeterIntervalChange() {
+            try {
+                const select = document.getElementById('meterIntervalSelect');
+                const intervalMs = select ? parseInt(select.value, 10) : 30000;
+                setMeterPollingInterval(intervalMs);
+                updateMeterValues();
+            } catch (error) {
+                console.error('Meter interval change error:', error);
+            }
+        }
+
+        async function startMeterPolling() {
+            // İlk okuma
+            await updateMeterValues();
+            // Periyodik okuma (default: select değeri)
+            const select = document.getElementById('meterIntervalSelect');
+            const intervalMs = select ? parseInt(select.value, 10) : 30000;
+            setMeterPollingInterval(intervalMs);
+        }
+
+        function startSessionPolling() {
+            // İlk güncelleme
+            updateSessionInfo();
+            // 5 saniye aralıkla session bilgisi
+            if (sessionUpdateInterval) {
+                clearInterval(sessionUpdateInterval);
+            }
+            sessionUpdateInterval = setInterval(updateSessionInfo, 5000);
+        }
+
+        async function updateMeterValues() {
+            if (meterPollInProgress) return;
+            meterPollInProgress = true;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/meter/reading`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US');
+
+                if (result && result.success && result.data) {
+                    meterErrorCount = 0;
+                    document.getElementById('meterDot').classList.remove('offline');
+
+                    const voltage = result.data.voltage_v;
+                    const current = result.data.current_a;
+                    const powerKw = result.data.power_kw;
+                    const energyKwh = result.data.energy_kwh;
+                    const powerFactor = result.data.power_factor;
+                    const frequency = result.data.frequency_hz;
+                    const phaseValuesRaw = result.data.phase_values || {};
+                    const totalsRaw = result.data.totals || {};
+
+                    // If phase values missing, fall back to totals to avoid empty UI
+                    const safe = (val, fallback) =>
+                        val === null || val === undefined ? fallback : val;
+
+                    const pvV = phaseValuesRaw.voltage_v || {};
+                    const pvI = phaseValuesRaw.current_a || {};
+                    const pvP = phaseValuesRaw.power_kw || {};
+
+                    const phaseValues = {
+                        voltage_v: {
+                            l1: safe(pvV.l1, voltage),
+                            l2: safe(pvV.l2, voltage),
+                            l3: safe(pvV.l3, voltage),
+                        },
+                        current_a: {
+                            l1: safe(pvI.l1, current),
+                            l2: safe(pvI.l2, current),
+                            l3: safe(pvI.l3, current),
+                        },
+                        power_kw: {
+                            l1: safe(pvP.l1, powerKw),
+                            l2: safe(pvP.l2, powerKw),
+                            l3: safe(pvP.l3, powerKw),
+                        },
+                    };
+
+                    const totals = {
+                        power_kw: safe(totalsRaw.power_kw, powerKw),
+                        energy_kwh: safe(totalsRaw.energy_kwh, energyKwh),
+                        energy_import_kwh: safe(totalsRaw.energy_import_kwh, null),
+                        energy_export_kwh: safe(totalsRaw.energy_export_kwh, null),
+                    };
+
+                    updateMeterItem(
+                        'meterVoltageValue',
+                        voltage,
+                        formatMeterNumber(voltage, 0),
+                        'meterVoltage'
+                    );
+                    updateMeterItem(
+                        'meterCurrentValue',
+                        current,
+                        formatMeterNumber(current, 2),
+                        'meterCurrent'
+                    );
+                    const powerDir = powerKw < -0.001 ? 'export' : 'import';
+                    const powerDisplay = `${formatMeterNumber(Math.abs(powerKw), 3)} (${powerDir})`;
+
+                    updateMeterItem(
+                        'meterPowerValue',
+                        powerKw,
+                        powerDisplay,
+                        'meterPower'
+                    );
+                    updateMeterItem(
+                        'meterEnergyValue',
+                        energyKwh,
+                        formatMeterNumber(energyKwh, 2),
+                        'meterEnergy'
+                    );
+                    updateMeterItem(
+                        'meterPFValue',
+                        powerFactor,
+                        powerFactor !== null && powerFactor !== undefined ?
+                        powerFactor.toFixed(3) :
+                        '-',
+                        'meterPF'
+                    );
+                    updateMeterItem(
+                        'meterFreqValue',
+                        frequency,
+                        frequency !== null && frequency !== undefined ?
+                        frequency.toFixed(2) :
+                        '-',
+                        'meterFreq'
+                    );
+
+                    // Faz detayları
+                    const fmt = (v, d = 2) =>
+                        v !== null && v !== undefined ? v.toFixed(d) : '-';
+
+                    document.getElementById('meterPhaseVoltage').textContent =
+                        `L1: ${fmt(phaseValues.voltage_v.l1, 0)}, L2: ${fmt(phaseValues.voltage_v.l2, 0)}, L3: ${fmt(phaseValues.voltage_v.l3, 0)}`;
+                    document.getElementById('meterPhaseCurrent').textContent =
+                        `L1: ${fmt(phaseValues.current_a.l1, 2)}, L2: ${fmt(phaseValues.current_a.l2, 2)}, L3: ${fmt(phaseValues.current_a.l3, 2)}`;
+                    document.getElementById('meterPhasePower').textContent =
+                        `L1: ${fmt(phaseValues.power_kw.l1, 3)}, L2: ${fmt(phaseValues.power_kw.l2, 3)}, L3: ${fmt(phaseValues.power_kw.l3, 3)}`;
+
+                    const totalPower = totals.power_kw;
+                    const totalEnergy = totals.energy_kwh;
+                    const totalDir = totalPower !== null && totalPower !== undefined && totalPower < -0.001 ? 'export' : 'import';
+                    document.getElementById('meterTotals').textContent =
+                        `P: ${fmt(Math.abs(totalPower || 0), 3)} kW (${totalDir}), E: ${fmt(totalEnergy, 2)} kWh`;
+
+                    // Meter enerji baseline'ını güncelle
+                    lastMeterEnergyKwh = energyKwh;
+                    lastMeterData.power_kw = powerKw;
+                    lastMeterData.energy_kwh = energyKwh;
+                    lastMeterData.total_power_dir = totalDir;
+
+                    // Güç yönü uyarısı (STATE=CHARGING ve export ise)
+                    const isCharging = window.lastStatusState === 5;
+                    const isExport = powerKw < -0.1;
+                    setMetricState('meterPower', isExport && isCharging ? 'warning' : 'normal');
+                    setMetricState('meterEnergy', 'normal');
+
+                    document.getElementById('meterLastUpdate').textContent = `Meter: ${timeStr}`;
+                } else {
+                    meterErrorCount += 1;
+                    document.getElementById('meterDot').classList.add('offline');
+
+                    if (meterErrorCount >= 3) {
+                        clearMeterValues();
+                        document.getElementById('meterLastUpdate').textContent =
+                            'Meter: offline - data cleared';
+                    } else {
+                        document.getElementById('meterLastUpdate').textContent =
+                            `Meter: offline (${meterErrorCount}/3)`;
+                    }
+                }
+            } catch (error) {
+                console.error('Meter update error:', error);
+                meterErrorCount += 1;
+                document.getElementById('meterDot').classList.add('offline');
+                if (meterErrorCount >= 3) {
+                    clearMeterValues();
+                    document.getElementById('meterLastUpdate').textContent =
+                        'Meter: read error - data cleared';
+                } else {
+                    document.getElementById('meterLastUpdate').textContent =
+                        `Meter: read error (${meterErrorCount}/3)`;
+                }
+            } finally {
+                meterPollInProgress = false;
+            }
+        }
+
+        async function updateSessionInfo() {
+            try {
+                const resp = await fetch(`${API_BASE_URL}/api/sessions/current`);
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const result = await resp.json();
+
+                const infoEl = document.getElementById('sessionInfo');
+                const powerEl = document.getElementById('sessionPower');
+                const energyEl = document.getElementById('sessionEnergy');
+                const statusEl = document.getElementById('sessionStatus');
+
+                if (result && result.success && result.session) {
+                    const s = result.session;
+                    const sessionId = s.session_id || '-';
+                    const startTime = s.start_time || null;
+                    const status = (s.status || 'UNKNOWN').toUpperCase();
+                    const meta = s.metadata || {};
+                    const userId = meta.user_id || '-';
+                    const startEnergy =
+                        meta.start_energy_kwh !== null && meta.start_energy_kwh !== undefined
+                            ? meta.start_energy_kwh
+                            : (meta.start_energy !== null && meta.start_energy !== undefined
+                                ? meta.start_energy
+                                : null);
+                    const durationSec = s.duration_seconds || (startTime ? Math.max(0, (Date.now() - new Date(startTime).getTime()) / 1000) : 0);
+
+                    // Show only if ACTIVE; otherwise clear
+                    const isActive = status === 'ACTIVE';
+                    if (!isActive) {
+                        infoEl.textContent = 'No active session';
+                        statusEl.textContent = '';
+                        powerEl.textContent = '';
+                        energyEl.textContent = '';
+                        currentSessionId = null;
+                        sessionEnergyBaselineKwh = null;
+                        return;
+                    }
+
+                    // Session değiştiyse enerji baseline'ı belirle
+                    if (currentSessionId !== sessionId) {
+                        currentSessionId = sessionId;
+                        sessionEnergyBaselineKwh = startEnergy !== null ? startEnergy : lastMeterEnergyKwh;
+                    }
+
+                    const durationText = formatDuration(durationSec);
+                    const powerKw = lastMeterData.power_kw !== undefined ? lastMeterData.power_kw : null;
+                    const currentEnergy =
+                        lastMeterEnergyKwh !== null && lastMeterEnergyKwh !== undefined
+                            ? lastMeterEnergyKwh
+                            : (lastMeterData.energy_kwh !== null && lastMeterData.energy_kwh !== undefined
+                                ? lastMeterData.energy_kwh
+                                : null);
+                    if (sessionEnergyBaselineKwh === null && startEnergy !== null) {
+                        sessionEnergyBaselineKwh = startEnergy;
+                    }
+                    let energyDelta = null;
+                    if (currentEnergy !== null && sessionEnergyBaselineKwh !== null && currentEnergy >= sessionEnergyBaselineKwh) {
+                        energyDelta = currentEnergy - sessionEnergyBaselineKwh;
+                    }
+
+                    infoEl.textContent = sessionId;
+                    statusEl.textContent = `${status} | Duration: ${durationText}${userId !== '-' ? ` | User: ${userId}` : ''}`;
+                    powerEl.textContent = powerKw !== null ? `${Math.abs(powerKw).toFixed(3)} kW` : '-';
+                    energyEl.textContent =
+                        energyDelta !== null ? `${energyDelta.toFixed(3)} kWh` : '-';
+                } else {
+                    document.getElementById('sessionInfo').textContent = 'No active session';
+                    document.getElementById('sessionStatus').textContent = '';
+                    document.getElementById('sessionPower').textContent = '-';
+                    document.getElementById('sessionEnergy').textContent = '-';
+                    currentSessionId = null;
+                    sessionEnergyBaselineKwh = null;
+                }
+            } catch (error) {
+                console.error('Session info error:', error);
+            }
+        }
+
+        function formatDuration(seconds) {
+            if (!seconds || seconds < 1) return '0 s';
+            const hrs = Math.floor(seconds / 3600);
+            const mins = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+            const parts = [];
+            if (hrs) parts.push(`${hrs} h`);
+            if (mins) parts.push(`${mins} min`);
+            if (secs || parts.length === 0) parts.push(`${secs} s`);
+            return parts.join(' ');
+        }
+
         // Sayfa kapatılırken polling'i durdur
         window.addEventListener('beforeunload', () => {
             if (statusUpdateInterval) {
@@ -1463,6 +2148,12 @@
             }
             if (systemMetricsInterval) {
                 clearInterval(systemMetricsInterval);
+            }
+            if (meterUpdateInterval) {
+                clearInterval(meterUpdateInterval);
+            }
+            if (sessionUpdateInterval) {
+                clearInterval(sessionUpdateInterval);
             }
         });
 
@@ -1495,16 +2186,18 @@
 
             if (bodyElementId) {
                 const bodyElement = document.getElementById(bodyElementId);
-                    if (isNumber) {
-                        // For number input (maxcurrent)
-                        const value = parseInt(bodyElement.value);
-                        // Validate amperage
-                        if (isNaN(value) || value < 6 || value > 32) {
-                            curlElement.value = `# Invalid amperage: ${bodyElement.value}. Must be between 6 and 32.`;
-                            return;
-                        }
-                        requestBody = { amperage: value };
-                        requestBodyDisplay = JSON.stringify(requestBody, null, 2);
+                if (isNumber) {
+                    // For number input (maxcurrent)
+                    const value = parseInt(bodyElement.value);
+                    // Validate amperage
+                    if (isNaN(value) || value < 6 || value > 32) {
+                        curlElement.value = `# Invalid amperage: ${bodyElement.value}. Must be between 6 and 32.`;
+                        return;
+                    }
+                    requestBody = {
+                        amperage: value
+                    };
+                    requestBodyDisplay = JSON.stringify(requestBody, null, 2);
                 } else {
                     // For textarea (JSON)
                     const text = bodyElement.value.trim();
@@ -1549,8 +2242,8 @@
                 }
                 if (!button) {
                     // Son çare: response section'a en yakın button'u bul
-                    const parent = responseSection?.closest('.endpoint');
-                    button = parent?.querySelector('button.btn');
+                    const parent = responseSection ? responseSection.closest('.endpoint') : null;
+                    button = parent ? parent.querySelector('button.btn') : null;
                 }
             }
             if (!button) {
@@ -1577,7 +2270,9 @@
                     if (isNumber) {
                         // For number input (maxcurrent)
                         const value = parseInt(bodyElement.value);
-                        requestBody = { amperage: value };
+                        requestBody = {
+                            amperage: value
+                        };
                         requestBodyDisplay = JSON.stringify(requestBody, null, 2);
                     } else {
                         // For textarea (JSON)
@@ -1693,12 +2388,12 @@
              */
             if (typeof str !== 'string') return '';
             return str
-                .replace(/\\/g, '\\\\')  // Backslash'i önce escape et
-                .replace(/'/g, "'\\''")   // Single quote escape
-                .replace(/[;&|`$(){}[\]<>]/g, '\\$&')  // Diğer shell özel karakterler
-                .replace(/\n/g, '\\n')    // Newline
-                .replace(/\r/g, '\\r')    // Carriage return
-                .replace(/\t/g, '\\t');   // Tab
+                .replace(/\\/g, '\\\\') // Backslash'i önce escape et
+                .replace(/'/g, "'\\''") // Single quote escape
+                .replace(/[;&|`$(){}[\]<>]/g, '\\$&') // Diğer shell özel karakterler
+                .replace(/\n/g, '\\n') // Newline
+                .replace(/\r/g, '\\r') // Carriage return
+                .replace(/\t/g, '\\t'); // Tab
         }
 
         function generateCurlCommand(method, path, apiKey, requestBody) {
@@ -1853,7 +2548,7 @@
 
         async function displayResponse(section, data) {
             const statusClass = data.status >= 200 && data.status < 300 ? 'success' :
-                               data.status === 'ERROR' ? 'error' : 'info';
+                data.status === 'ERROR' ? 'error' : 'info';
 
             // Use provided API key or get it
             const apiKey = data.apiKey || await getApiKey();
@@ -1889,5 +2584,5 @@ ${data.requestBody && data.requestBody !== 'null' ? escapeHtml(data.requestBody)
         }
     </script>
 </body>
-</html>
 
+</html>

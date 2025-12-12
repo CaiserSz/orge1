@@ -1,8 +1,8 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-10 21:24:46
-**Version:** 1.4.0
+**Son Güncelleme:** 2025-12-12 22:35:00
+**Version:** 1.6.0
 
 ---
 
@@ -14,9 +14,14 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251210-023
-**Tarih:** 2025-12-10 21:24:00
-**Durum:** ✅ Database Queries Paketi Refactor Tamamlandı
+**Checkpoint ID:** CP-20251212-026
+**Tarih:** 2025-12-12 22:35:00
+**Durum:** ✅ Acrel Meter + `/test` UI Stabilizasyonu Tamamlandı
+
+### Önceki Checkpoint: CP-20251212-025 (2025-12-12 08:50:00)
+**Durum:** ✅ Meter Entegrasyonu Aktivasyonu Tamamlandı
+### Önceki Checkpoint: CP-20251212-024 (2025-12-12 05:05:00)
+**Durum:** ✅ Pytest Suite Stabilizasyonu Tamamlandı
 
 ### Önceki Checkpoint: CP-20251210-022 (2025-12-10 18:45:00)
 **Durum:** ✅ Error Recovery İyileştirmesi Tamamlandı
@@ -97,6 +102,21 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 **Durum:** ✅ Logging Sistemi ve Kritik Düzeltmeler Tamamlandı
 
 ### Son Tamamlanan İş
+- **Görev:** Meter entegrasyonu aktivasyonu (ABB B23 112-100 / RS485 / Modbus)
+- **Durum:** ✅ Tamamlandı
+- **Tarih:** 2025-12-12 08:50:00
+- **Detaylar:**
+  - ✅ Sahada baudrate 2400 + RS485 A/B swap sonrası iletişim kuruldu.
+  - ✅ Meter okuma `0x03` (Holding Registers) ile stabil hale getirildi (voltage/current/power/energy).
+  - ✅ API `/api/meter/status` ve `/api/meter/reading` gerçek meter değerleri döndürüyor.
+- **Test Sonucu:**
+  - `python meter/test_meter_scan.py` → ✅ 2400/ID=1 kombinasyonunda okuma başarılı
+  - `./env/bin/python -m pytest` → 534 passed, 4 skipped, 6 warnings
+- **Beklenen İyileştirmeler:**
+  - Frekans/power factor gibi ek alanlar istenirse register map genişletilebilir
+  - Export/net enerji register'ları gerekirse signed/scale olarak doğrulanabilir
+
+### Önceki Tamamlanan İş
 - **Görev:** `api/database` paketinde standart uyumu ve modülerleştirme
 - **Durum:** ✅ Tamamlandı
 - **Tarih:** 2025-12-10 21:24:00
@@ -106,7 +126,7 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
   - ✅ Fonksiyon uzunlukları 100 satır altına çekildi, query cache uyumu korundu
   - ✅ Kod kalitesi uyarıları giderildi (unused import temizliği, placeholder'sız f-string düzeltmeleri, Black formatlaması)
 - **Test Sonucu:**
-  - `./env/bin/python -m pytest` çalıştırıldı; 159 failure, 414 passed, 4 skipped. Çoğu hata rate limiting tetiklenmesi, API/bridge mock konfigürasyonu ve sınır değer senaryolarından kaynaklanıyor. Takip aksiyonu gerekiyor.
+  - `./env/bin/python -m pytest` çalıştırıldı; 159 failure, 414 passed, 4 skipped. Çoğu hata rate limiting tetiklenmesi, API/bridge mock konfigürasyonu ve sınır değer senaryolarından kaynaklanıyor. Takip aksiyonu gerekiyordu.
 - **Beklenen İyileştirmeler:**
   - Database modüllerinin bakım kolaylığı ve okunabilirliğinde artış
   - Standart ihlallerinin giderilmesiyle kalite metriklerinde iyileşme

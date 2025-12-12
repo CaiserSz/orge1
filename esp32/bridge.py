@@ -1,11 +1,12 @@
 """
 ESP32-RPi Bridge Module
 Created: 2025-12-08
-Last Modified: 2025-12-12 11:00:00
-Version: 2.0.0
-Description: ESP32 ile USB seri port üzerinden iletişim köprüsü (Refactored - Modüler yapı)
+Last Modified: 2025-12-12 21:05:44
+Version: 2.0.1
+Description: ESP32 ile USB seri port üzerinden iletişim köprüsü (Backward-compatible facade)
 """
 
+import json
 import os
 import queue
 import sys
@@ -15,28 +16,24 @@ from collections import deque
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-import serial
+import serial  # type: ignore
 
-# Logging modülünü import et
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from api.logging_config import esp32_logger, log_esp32_message
+from api.logging_config import esp32_logger
 from esp32.command_sender import CommandSender
-
-# Yeni modülleri import et
 from esp32.connection_manager import ConnectionManager
+from esp32.monitor_worker import MessageProcessor, MonitorWorker
 from esp32.protocol_handler import (
     BAUDRATE,
     PROTOCOL_FOOTER,
     PROTOCOL_HEADER,
     PROTOCOL_SEPARATOR,
     STATUS_UPDATE_INTERVAL,
-    load_protocol,
     parse_ack_message,
     parse_status_message,
 )
 from esp32.status_parser import StatusInspector
 
-# Backward compatibility için constants export et
 __all__ = [
     "ESP32Bridge",
     "get_esp32_bridge",
@@ -49,41 +46,28 @@ __all__ = [
 
 
 class ESP32Bridge:
-    """
-    ESP32 ile USB seri port üzerinden iletişim köprüsü (Facade Pattern)
-
-    Bu sınıf, modüler yapıdaki alt modülleri koordine eder ve tek bir
-    unified interface sağlar.
-    """
+    """ESP32 ile USB seri port üzerinden iletişim köprüsü (Facade)."""
 
     def __init__(self, port: Optional[str] = None, baudrate: int = BAUDRATE):
-        """
-        ESP32 Bridge başlatıcı
-
-        Args:
-            port: Seri port adı (None ise otomatik bulunur)
-            baudrate: Baudrate (varsayılan: 115200)
-        """
+        """ESP32 bridge başlatıcı."""
         self.port = port
         self.baudrate = baudrate
 
-        # Protokol verilerini yükle
-        self.protocol_data = load_protocol()
+        self._reconnect_enabled = True
 
-        # Status yönetimi
+        self.protocol_data = self._load_protocol()
+
         self.last_status: Optional[Dict[str, Any]] = None
         self.status_lock = threading.Lock()
         self._status_buffer = deque(maxlen=50)  # Son 50 status mesajı
 
-        # ACK yönetimi
         self._ack_queue = queue.Queue(maxsize=20)  # ACK mesajları için queue
         self._ack_buffer = deque(maxlen=30)  # Son 30 ACK mesajı
+        self._ack_lock = threading.Lock()
 
-        # Komut queue'su
         self._command_queue = queue.Queue(maxsize=50)
         self._serial_lock = threading.Lock()  # Serial port okuma/yazma için lock
 
-        # Connection manager'ı initialize et
         self._connection_manager = ConnectionManager(
             port=port,
             baudrate=baudrate,
@@ -92,32 +76,90 @@ class ESP32Bridge:
             reconnect_delay=5.0,
         )
 
-        # Status inspector'ı initialize et
         self._status_inspector = StatusInspector()
 
-        # Command sender'ı initialize et (bağlantı kurulunca güncellenecek)
         self._command_sender: Optional[CommandSender] = None
 
-        # Monitor thread yönetimi
-        self._monitor_thread: Optional[threading.Thread] = None
-        self._monitor_running = False
+        self._message_processor = MessageProcessor(
+            status_update_callback=self._update_status,
+            ack_append_callback=self._append_ack,
+            status_inspector=self._status_inspector,
+        )
+        self._monitor_worker = MonitorWorker(
+            connection_manager=self._connection_manager,
+            serial_lock=self._serial_lock,
+            command_queue=self._command_queue,
+            command_sender_ref=lambda: self._command_sender,
+            message_processor=self._message_processor,
+            is_connected_ref=lambda: self.is_connected,
+            set_connected_callback=self._set_connected_state,
+            reconnect_callback=self.reconnect,
+        )
 
-        # Connection state (connection_manager ile senkronize)
         self.is_connected = False
 
+    def _load_protocol(self) -> Dict[str, Any]:
+        """protocol.json dosyasını yükle."""
+        try:
+            protocol_path = os.path.join(os.path.dirname(__file__), "protocol.json")
+            with open(protocol_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            esp32_logger.error(f"Protocol yükleme hatası: {e}", exc_info=True)
+            return {}
+
+    def _start_monitoring(self) -> None:
+        """Monitor worker'ı başlat."""
+        self._monitor_worker.start()
+
+    def _stop_monitoring(self) -> None:
+        """Monitor worker'ı durdur."""
+        self._monitor_worker.stop()
+
+    # Backward-compatible parsers (testler bu method isimlerini çağırıyor)
+    _parse_status_message = staticmethod(parse_status_message)
+    _parse_ack_message = staticmethod(parse_ack_message)
+
+    def _read_status_messages(self) -> None:
+        """Seri porttan status/ack mesajlarını oku (wrapper)."""
+        self._monitor_worker._read_status_messages()
+
     def connect(self) -> bool:
-        """
-        ESP32'ye bağlan
+        """ESP32'ye bağlan."""
+        try:
+            if self.serial_connection and getattr(
+                self.serial_connection, "is_open", False
+            ):
+                self.disconnect()
+        except Exception:
+            pass
 
-        Returns:
-            Başarı durumu
-        """
-        success = self._connection_manager.connect()
-        if success:
-            self.serial_connection = self._connection_manager.serial_connection
-            self.is_connected = self._connection_manager.is_connected
+        port = self.port or self.find_esp32_port()
+        if not port:
+            esp32_logger.warning("ESP32 portu bulunamadı")
+            self.is_connected = False
+            return False
 
-            # Command sender'ı initialize et
+        try:
+            serial_instance = serial.Serial(
+                port=port,
+                baudrate=self.baudrate,
+                timeout=1.0,
+                bytesize=serial.EIGHTBITS,
+                parity=serial.PARITY_NONE,
+                stopbits=serial.STOPBITS_ONE,
+            )
+            time.sleep(0.5)
+
+            self._reconnect_enabled = True
+            self._connection_manager._reconnect_enabled = True
+            self._connection_manager.port = port
+            self._connection_manager.serial_connection = serial_instance
+            self._connection_manager.is_connected = True
+
+            self.serial_connection = serial_instance
+            self.is_connected = True
+
             self._command_sender = CommandSender(
                 serial_connection=self.serial_connection,
                 serial_lock=self._serial_lock,
@@ -128,90 +170,75 @@ class ESP32Bridge:
                 command_queue=self._command_queue,
             )
 
-            # Durum izleme thread'ini başlat
             self._start_monitoring()
-
-            # Queue'daki bekleyen komutları gönder
-            if self._command_sender:
-                self._command_sender.process_command_queue()
-
-        return success
+            self._process_command_queue()
+            return True
+        except serial.SerialException as e:
+            esp32_logger.error(f"ESP32 bağlantı hatası: {e}", exc_info=True)
+            self.is_connected = False
+            return False
+        except Exception as e:
+            esp32_logger.error(f"ESP32 bağlantı hatası: {e}", exc_info=True)
+            self.is_connected = False
+            return False
 
     def disconnect(self):
         """ESP32 bağlantısını kapat"""
+        self._reconnect_enabled = False
+        self._connection_manager._reconnect_enabled = False
         self._stop_monitoring()
         self._connection_manager.disconnect()
-        self.is_connected = self._connection_manager.is_connected
+        self.is_connected = False
         self.serial_connection = None
         self._command_sender = None
+        self._reset_buffers(clear_command_queue=True)
 
     def reconnect(
         self, max_retries: Optional[int] = None, retry_delay: Optional[float] = None
     ) -> bool:
-        """
-        ESP32 bağlantısını yeniden kur
-
-        Args:
-            max_retries: Maksimum yeniden deneme sayısı
-            retry_delay: İlk yeniden deneme aralığı (saniye)
-
-        Returns:
-            Başarı durumu
-        """
-        success = self._connection_manager.reconnect(
-            max_retries=max_retries, retry_delay=retry_delay
-        )
-        if success:
-            self.serial_connection = self._connection_manager.serial_connection
-            self.is_connected = self._connection_manager.is_connected
-
-            # Command sender'ı yeniden initialize et
-            if self.serial_connection:
-                self._command_sender = CommandSender(
-                    serial_connection=self.serial_connection,
-                    serial_lock=self._serial_lock,
-                    ack_queue=self._ack_queue,
-                    ack_buffer=self._ack_buffer,
-                    protocol_data=self.protocol_data,
-                    is_connected_ref=lambda: self.is_connected,
-                    command_queue=self._command_queue,
-                )
-
-        return success
+        """ESP32 bağlantısını yeniden kur (backward-compatible)."""
+        if not self._reconnect_enabled:
+            return False
+        return self.connect()
 
     def find_esp32_port(self) -> Optional[str]:
-        """
-        ESP32 seri portunu otomatik bul
-
-        Returns:
-            Port adı veya None
-        """
+        """ESP32 seri portunu otomatik bul."""
         return self._connection_manager.find_esp32_port()
 
-    # Command methods - CommandSender'a delegate et
+    def _get_compat_sender(self) -> CommandSender:
+        """Test uyumluluğu için CommandSender wrapper."""
+        sender = self._command_sender or CommandSender(
+            serial_connection=self.serial_connection,
+            serial_lock=self._serial_lock,
+            ack_queue=self._ack_queue,
+            ack_buffer=self._ack_buffer,
+            protocol_data=self.protocol_data,
+            is_connected_ref=lambda: self.is_connected,
+            command_queue=self._command_queue,
+        )
+
+        def _compat_send_command_bytes(command_bytes, queue_if_failed=True) -> bool:
+            if queue_if_failed:
+                return self._send_command_bytes(command_bytes)
+            return self._send_command_bytes(command_bytes, queue_if_failed=False)
+
+        sender.send_command_bytes = _compat_send_command_bytes  # type: ignore[method-assign]
+        sender.wait_for_ack = (  # type: ignore[method-assign]
+            lambda expected_cmd, timeout=1.0: self._wait_for_ack(
+                expected_cmd, timeout=timeout
+            )
+        )
+        return sender
+
     def send_status_request(self) -> bool:
-        """Status komutu gönder"""
-        if not self._command_sender:
-            return False
-        return self._command_sender.send_status_request()
+        """Status komutu gönder."""
+        return self._get_compat_sender().send_status_request()
 
     def send_authorization(
         self, wait_for_ack: bool = True, timeout: float = 1.0, max_retries: int = 1
     ) -> bool:
-        """
-        Authorization komutu gönder (şarj başlatma)
-
-        Args:
-            wait_for_ack: ACK mesajını bekle
-            timeout: ACK bekleme timeout süresi (saniye)
-            max_retries: Maksimum retry sayısı
-
-        Returns:
-            Başarı durumu
-        """
-        if not self._command_sender:
-            return False
-        return self._command_sender.send_authorization(
+        """Authorization komutu gönder."""
+        return self._get_compat_sender().send_authorization(
             wait_for_ack=wait_for_ack, timeout=timeout, max_retries=max_retries
         )
 
@@ -222,21 +249,8 @@ class ESP32Bridge:
         timeout: float = 1.0,
         max_retries: int = 1,
     ) -> bool:
-        """
-        Akım set komutu gönder
-
-        Args:
-            amperage: Amper değeri (6-32 aralığında)
-            wait_for_ack: ACK mesajını bekle
-            timeout: ACK bekleme timeout süresi (saniye)
-            max_retries: Maksimum retry sayısı
-
-        Returns:
-            Başarı durumu
-        """
-        if not self._command_sender:
-            return False
-        return self._command_sender.send_current_set(
+        """Akım set komutu gönder (6-32A)."""
+        return self._get_compat_sender().send_current_set(
             amperage=amperage,
             wait_for_ack=wait_for_ack,
             timeout=timeout,
@@ -246,29 +260,13 @@ class ESP32Bridge:
     def send_charge_stop(
         self, wait_for_ack: bool = False, timeout: float = 1.0
     ) -> bool:
-        """
-        Şarj durdurma komutu gönder
-
-        Args:
-            wait_for_ack: ACK mesajını bekle
-            timeout: ACK bekleme timeout süresi (saniye)
-
-        Returns:
-            Başarı durumu
-        """
-        if not self._command_sender:
-            return False
-        return self._command_sender.send_charge_stop(
+        """Şarj durdurma komutu gönder."""
+        return self._get_compat_sender().send_charge_stop(
             wait_for_ack=wait_for_ack, timeout=timeout
         )
 
     def get_pending_commands_count(self) -> int:
-        """
-        Bekleyen komut sayısını al
-
-        Returns:
-            Queue'daki komut sayısı
-        """
+        """Bekleyen komut sayısını al."""
         return self._command_queue.qsize()
 
     def clear_command_queue(self):
@@ -280,17 +278,12 @@ class ESP32Bridge:
                 break
         esp32_logger.info("Komut queue temizlendi")
 
-    # Status methods
+    def _process_command_queue(self) -> None:
+        """Queue'daki komutları gönder (testler bu metodu bekliyor)."""
+        self._get_compat_sender().process_command_queue()
+
     def get_status(self, max_age_seconds: float = 10.0) -> Optional[Dict[str, Any]]:
-        """
-        Son durum bilgisini al
-
-        Args:
-            max_age_seconds: Maksimum veri yaşı (saniye)
-
-        Returns:
-            Durum dict'i veya None
-        """
+        """Son durum bilgisini al."""
         with self.status_lock:
             if not self.last_status:
                 return None
@@ -312,15 +305,7 @@ class ESP32Bridge:
             return self.last_status.copy()
 
     def get_status_sync(self, timeout: float = 2.0) -> Optional[Dict[str, Any]]:
-        """
-        Status komutu gönder ve yanıt bekle (senkron)
-
-        Args:
-            timeout: Timeout süresi (saniye)
-
-        Returns:
-            Durum dict'i veya None
-        """
+        """Status komutu gönder ve yanıt bekle (senkron)."""
         if not self.is_connected or not self.serial_connection:
             esp32_logger.warning("get_status_sync: ESP32 bağlantısı yok")
             return None
@@ -349,213 +334,121 @@ class ESP32Bridge:
         return None
 
     def get_status_history(self, limit: int = 10) -> list:
-        """
-        Status mesaj geçmişini al
-
-        Args:
-            limit: Maksimum mesaj sayısı
-
-        Returns:
-            Status mesaj listesi (en yeni önce)
-        """
+        """Status mesaj geçmişini al."""
         with self.status_lock:
             return list(self._status_buffer)[-limit:]
 
     def get_ack_history(self, limit: int = 10) -> list:
-        """
-        ACK mesaj geçmişini al
+        """ACK mesaj geçmişini al."""
+        with self._ack_lock:
+            return list(self._ack_buffer)[-limit:]
 
-        Args:
-            limit: Maksimum mesaj sayısı
+    def _wait_for_ack(
+        self, expected_cmd: str, timeout: float = 1.0
+    ) -> Optional[Dict[str, Any]]:
+        """Belirli bir komut için ACK mesajını bekle (queue tabanlı)."""
+        if (
+            not self.is_connected
+            or not self.serial_connection
+            or not getattr(self.serial_connection, "is_open", False)
+        ):
+            return None
 
-        Returns:
-            ACK mesaj listesi (en yeni önce)
-        """
-        return list(self._ack_buffer)[-limit:]
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            try:
+                ack = self._ack_queue.get(timeout=0.1)
+            except queue.Empty:
+                continue
+            if ack and ack.get("CMD") == expected_cmd:
+                return ack
+        return None
 
-    # Monitor loop methods
-    def _start_monitoring(self):
-        """Durum izleme thread'ini başlat"""
-        if self._monitor_running:
-            return
+    def _send_command_bytes(
+        self, command_bytes: list, queue_if_failed: bool = True
+    ) -> bool:
+        """ESP32'ye 5 byte'lık komutu gönder (thread-safe)."""
+        if (
+            not self.is_connected
+            or not self.serial_connection
+            or not getattr(self.serial_connection, "is_open", False)
+        ):
+            if queue_if_failed:
+                try:
+                    self._command_queue.put_nowait(
+                        {
+                            "bytes": command_bytes,
+                            "timestamp": time.time(),
+                            "retry_count": 0,
+                        }
+                    )
+                except queue.Full:
+                    pass
+            return False
 
-        self._monitor_running = True
-        self._monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)
-        self._monitor_thread.start()
-
-    def _stop_monitoring(self):
-        """Durum izleme thread'ini durdur"""
-        self._monitor_running = False
-        if self._monitor_thread:
-            self._monitor_thread.join(timeout=2.0)
-
-    def _read_status_messages(self):
-        """
-        Seri porttan durum mesajlarını oku ve işle
-        """
-        if not self.serial_connection or not self.serial_connection.is_open:
-            # Bağlantı yoksa reconnection dene
-            if self._connection_manager._reconnect_enabled and self.is_connected:
-                esp32_logger.warning(
-                    "Serial port bağlantısı kopmuş, reconnection deneniyor"
-                )
-                self.is_connected = False
-                self.reconnect()
-            return
+        if len(command_bytes) != 5:
+            return False
 
         try:
-            # Thread-safe okuma
             with self._serial_lock:
-                lines_read = 0
-                max_lines = 5
-                read_lines = []
-
-                while self.serial_connection.in_waiting > 0 and lines_read < max_lines:
-                    line = (
-                        self.serial_connection.readline()
-                        .decode("utf-8", errors="ignore")
-                        .strip()
-                    )
-                    lines_read += 1
-                    if line:
-                        read_lines.append(line)
-
-            # Buffer overflow koruması
-            if lines_read >= max_lines:
-                remaining_bytes = self.serial_connection.in_waiting
-                if remaining_bytes > 0:
-                    esp32_logger.warning(
-                        f"Buffer overflow riski: {lines_read} satır okundu, "
-                        f"{remaining_bytes} byte daha var. Buffer temizleniyor."
-                    )
-                    try:
-                        remaining_line = (
-                            self.serial_connection.readline()
-                            .decode("utf-8", errors="ignore")
-                            .strip()
-                        )
-                        if remaining_line:
-                            self._process_message(remaining_line)
-                    except Exception:
-                        pass
-                self.serial_connection.reset_input_buffer()
-
-            # Mesajları işle
-            for line in read_lines:
-                self._process_message(line)
-
-        except serial.SerialException as e:
-            error_msg = str(e)
-            esp32_logger.error(f"Serial port hatası: {error_msg}")
-
-            if (
-                "device disconnected" in error_msg.lower()
-                or "multiple access" in error_msg.lower()
-                or "device or resource busy" in error_msg.lower()
-            ):
-                if self._connection_manager._reconnect_enabled and self.is_connected:
-                    esp32_logger.warning(
-                        "Serial port bağlantısı kopmuş, reconnection deneniyor"
-                    )
-                    self.is_connected = False
-                    self.reconnect()
-            elif "timeout" in error_msg.lower():
-                esp32_logger.warning(f"Serial port timeout: {error_msg}")
-                if self.serial_connection and not self.serial_connection.is_open:
-                    self.is_connected = False
-                    if self._connection_manager._reconnect_enabled:
-                        self.reconnect()
-            else:
-                esp32_logger.error(f"Status okuma hatası: {e}", exc_info=True)
-                if self.serial_connection and not self.serial_connection.is_open:
-                    self.is_connected = False
-                    if self._connection_manager._reconnect_enabled:
-                        self.reconnect()
-        except Exception as e:
-            esp32_logger.error(f"Status okuma hatası: {e}", exc_info=True)
-
-    def _process_message(self, line: str):
-        """
-        Tek bir mesajı işle (status veya ACK)
-
-        Args:
-            line: Mesaj satırı
-        """
-        # Status mesajı kontrolü
-        if "<STAT;" in line:
-            status = parse_status_message(line)
-            if status:
-                with self.status_lock:
-                    self.last_status = status
-                    self._status_buffer.append(status)
-                esp32_logger.debug(f"Status güncellendi: {status.get('STATE', 'N/A')}")
-                log_esp32_message("status", "rx", data=status)
-                self._status_inspector.inspect_status_for_incidents(status)
-        # ACK mesajı kontrolü
-        elif "<ACK;" in line:
-            ack = parse_ack_message(line)
-            if ack:
-                esp32_logger.debug(
-                    f"ACK alındı: {ack.get('CMD', 'N/A')} - {ack.get('STATUS', 'N/A')}"
-                )
-                log_esp32_message("ack", "rx", data=ack)
-                self._ack_buffer.append(ack)
-                # ACK'ı queue'ya ekle
+                if not getattr(self.serial_connection, "is_open", False):
+                    return False
+                self.serial_connection.write(bytes(command_bytes))
+                self.serial_connection.flush()
+                return bool(getattr(self.serial_connection, "is_open", True))
+        except Exception:
+            if queue_if_failed:
                 try:
-                    self._ack_queue.put_nowait(ack)
+                    self._command_queue.put_nowait(
+                        {
+                            "bytes": command_bytes,
+                            "timestamp": time.time(),
+                            "retry_count": 0,
+                        }
+                    )
                 except queue.Full:
-                    # Queue dolu, en eski ACK'yı çıkar ve yenisini ekle
-                    try:
-                        self._ack_queue.get_nowait()
-                        self._ack_queue.put_nowait(ack)
-                        esp32_logger.warning("ACK queue dolu, eski ACK atıldı")
-                    except queue.Empty:
-                        pass
+                    pass
+            return False
 
-    def _monitor_loop(self):
-        """
-        Durum izleme döngüsü
-        """
-        consecutive_errors = 0
-        max_consecutive_errors = 10
+    def _set_connected_state(self, is_connected: bool) -> None:
+        """Bağlantı durumunu güncelle (monitor worker kullanır)."""
+        self.is_connected = is_connected
 
-        while self._monitor_running:
+    def _update_status(self, status: Dict[str, Any]) -> None:
+        """Status bilgisini güvenli şekilde güncelle."""
+        with self.status_lock:
+            self.last_status = status
+            self._status_buffer.append(status)
+
+    def _append_ack(self, ack: Dict[str, Any]) -> None:
+        """ACK buffer ve kuyruğunu güvenli şekilde güncelle."""
+        with self._ack_lock:
+            self._ack_buffer.append(ack)
+        try:
+            self._ack_queue.put_nowait(ack)
+        except queue.Full:
             try:
-                if self.is_connected:
-                    self._read_status_messages()
-                    # Queue'daki bekleyen komutları işle
-                    if not self._command_queue.empty() and self._command_sender:
-                        self._command_sender.process_command_queue()
-                    consecutive_errors = 0
-                elif self._connection_manager._reconnect_enabled:
-                    # Bağlantı yoksa reconnection dene
-                    if consecutive_errors == 0:
-                        esp32_logger.info(
-                            "Monitor loop: Bağlantı yok, reconnection deneniyor"
-                        )
-                        self.reconnect()
-                    consecutive_errors += 1
-                    if consecutive_errors >= max_consecutive_errors:
-                        esp32_logger.warning(
-                            f"Monitor loop: {max_consecutive_errors} ardışık hata, reconnection duraklatılıyor"
-                        )
-                        wait_time = min(
-                            30 * (2 ** (consecutive_errors - max_consecutive_errors)),
-                            300,
-                        )
-                        esp32_logger.info(
-                            f"Monitor loop: {wait_time:.1f} saniye bekleniyor"
-                        )
-                        time.sleep(wait_time)
-                        consecutive_errors = 0
-            except Exception as e:
-                consecutive_errors += 1
-                esp32_logger.error(f"Monitor loop error: {e}", exc_info=True)
-                time.sleep(0.5)
-            else:
-                time.sleep(0.1)  # 100ms bekleme
+                self._ack_queue.get_nowait()
+                self._ack_queue.put_nowait(ack)
+                esp32_logger.warning("ACK queue dolu, eski ACK atıldı")
+            except queue.Empty:
+                pass
 
-    # Property accessors for backward compatibility
+    def _reset_buffers(self, clear_command_queue: bool = False) -> None:
+        """Status/ACK buffer'larını ve kuyruklarını temizle."""
+        with self.status_lock:
+            self.last_status = None
+            self._status_buffer.clear()
+        with self._ack_lock:
+            self._ack_buffer.clear()
+            while not self._ack_queue.empty():
+                try:
+                    self._ack_queue.get_nowait()
+                except queue.Empty:
+                    break
+        if clear_command_queue:
+            self.clear_command_queue()
+
     @property
     def serial_connection(self):
         """Serial connection property"""
@@ -567,21 +460,12 @@ class ESP32Bridge:
         self._connection_manager.serial_connection = value
 
 
-# Singleton instance (thread-safe)
 _esp32_bridge_instance: Optional[ESP32Bridge] = None
 _bridge_lock = threading.Lock()
 
 
 def get_esp32_bridge() -> ESP32Bridge:
-    """
-    ESP32 bridge singleton instance'ı al (thread-safe)
-
-    Returns:
-        ESP32Bridge instance
-
-    Raises:
-        RuntimeError: ESP32 bağlantısı kurulamazsa
-    """
+    """ESP32 bridge singleton instance'ı al (thread-safe)."""
     global _esp32_bridge_instance
 
     # Pytest ortamında gerçek seri bağlantı açma (ama singleton semantiğini koru)

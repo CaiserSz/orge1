@@ -15,7 +15,12 @@ from typing import Any, Dict, Optional
 # Logging modülünü import et
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 from api.event_detector import ESP32State, EventType
-from api.logging_config import log_event, system_logger
+from api.logging_config import (
+    log_event,
+    log_incident,
+    log_session_snapshot,
+    system_logger,
+)
 from api.session.metrics import calculate_power
 from api.session.session import ChargingSession
 from api.session.status import SessionStatus
@@ -75,6 +80,12 @@ class SessionEventMixin:
                         system_logger.info(
                             f"Resume event'i mevcut session'a eklendi: {self.current_session.session_id}"
                         )
+                        self._log_session_snapshot(
+                            session_id=self.current_session.session_id,
+                            event_label=event_type.value,
+                            summary="Session resume event işlendi",
+                            event_data=event_data,
+                        )
                     else:
                         # Yeni session başlat (normal CHARGE_STARTED)
                         self._start_session(event_data)
@@ -105,6 +116,12 @@ class SessionEventMixin:
                     session_id=self.current_session.session_id,
                     events=self.current_session.events,
                     metadata=self.current_session.metadata,
+                )
+                self._log_session_snapshot(
+                    session_id=self.current_session.session_id,
+                    event_label=event_type.value,
+                    summary="Session event işlendi",
+                    event_data=event_data,
                 )
 
             # Fault durumunda session'ı fault olarak işaretle
@@ -158,8 +175,8 @@ class SessionEventMixin:
             if user_id:
                 session.metadata["user_id"] = user_id
 
-            # Normalized event tablosuna kaydet
-            self._save_event_to_table(EventType.CHARGE_STARTED, event_data, user_id)
+            # Session referansını ata ki event logging/tablo kaydı yapılabilsin
+            self.current_session = session
 
             # Meter'dan başlangıç enerji seviyesini oku (eğer meter varsa)
             if self.meter and self.meter.is_connected():
@@ -186,7 +203,16 @@ class SessionEventMixin:
                 user_id=user_id,
             )
 
-            self.current_session = session
+            # Normalized event tablosuna kaydet (FK için önce sessions satırı oluşmalı)
+            self._save_event_to_table(EventType.CHARGE_STARTED, event_data, user_id)
+
+            self._log_session_snapshot(
+                session_id=session_id,
+                event_label=EventType.CHARGE_STARTED.value,
+                summary="Session started",
+                event_data=event_data,
+                user_id=user_id,
+            )
 
             # Maksimum session sayısını kontrol et
             self._cleanup_old_sessions()
@@ -326,6 +352,18 @@ class SessionEventMixin:
             },
         )
 
+        self._log_session_snapshot(
+            session_id=session.session_id,
+            event_label="SESSION_ENDED",
+            summary=f"Session ended with status {status.value}",
+            event_data={
+                "from_state": session.start_state,
+                "to_state": end_state,
+            },
+            status=status.value,
+            metrics=final_metrics,
+        )
+
     def _handle_fault(self, event_data: Dict[str, Any]):
         """
         Fault durumunu işle
@@ -347,6 +385,57 @@ class SessionEventMixin:
                     events=self.current_session.events,
                     metadata=self.current_session.metadata,
                 )
+
+                self._log_session_snapshot(
+                    self.current_session.session_id,
+                    EventType.FAULT_DETECTED.value,
+                    "Fault detected during session",
+                    event_data=event_data,
+                    severity="warning",
+                )
+                log_incident(
+                    title="Session fault detected",
+                    severity="warning",
+                    description="ESP32 fault event kaydedildi",
+                    session_id=self.current_session.session_id,
+                    event_data=event_data,
+                )
+
+    def _log_session_snapshot(
+        self,
+        session_id: str,
+        event_label: str,
+        summary: str,
+        event_data: Optional[Dict[str, Any]] = None,
+        **kwargs: Any,
+    ) -> None:
+        """Helper: session.log dosyasına kapsamlı kayıt yazar."""
+        snapshot = dict(kwargs)
+        if event_data:
+            snapshot.update(
+                {
+                    "from_state": event_data.get("from_state"),
+                    "to_state": event_data.get("to_state"),
+                    "user_id": event_data.get("user_id")
+                    or event_data.get("data", {}).get("user_id"),
+                }
+            )
+            status_payload = (
+                event_data.get("status")
+                or event_data.get("data", {}).get("status")
+                or {}
+            )
+            if status_payload:
+                snapshot["status"] = status_payload
+            if "data" in event_data:
+                snapshot["raw_data"] = event_data.get("data")
+
+        log_session_snapshot(
+            session_id=session_id,
+            event_type=event_label,
+            summary=summary,
+            **snapshot,
+        )
 
     def _save_event_to_table(
         self,
@@ -394,3 +483,18 @@ class SessionEventMixin:
             )
         except Exception as e:
             system_logger.warning(f"Event kaydetme hatası (session_events): {e}")
+            if self.current_session:
+                log_incident(
+                    title="Session event persistence failed",
+                    severity="error",
+                    description=str(e),
+                    session_id=self.current_session.session_id,
+                    event_type=event_type.value,
+                )
+                self._log_session_snapshot(
+                    session_id=self.current_session.session_id,
+                    event_label="SESSION_EVENT_PERSISTENCE_ERROR",
+                    summary="Session event DB kaydı başarısız",
+                    event_data=event_data,
+                    error=str(e),
+                )

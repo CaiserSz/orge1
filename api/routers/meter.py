@@ -42,6 +42,17 @@ async def get_meter_status():
                 )
 
             # Meter bağlantı durumu
+            # (İlk çağrıda bağlanmayı dene - bağlantı yoksa sorun değil)
+            try:
+                if (
+                    hasattr(meter, "connect")
+                    and hasattr(meter, "is_connected")
+                    and not meter.is_connected()
+                ):
+                    meter.connect()
+            except Exception:
+                pass
+
             is_connected = (
                 meter.is_connected() if hasattr(meter, "is_connected") else False
             )
@@ -73,6 +84,8 @@ async def get_meter_status():
                         "frequency_hz": getattr(reading, "frequency_hz", None),
                         "power_factor": getattr(reading, "power_factor", None),
                         "timestamp": getattr(reading, "timestamp", None),
+                        "phase_values": getattr(reading, "phase_values", None),
+                        "totals": getattr(reading, "totals", None),
                     }
                     return APIResponse(
                         success=True,
@@ -149,6 +162,17 @@ async def get_meter_reading():
                 )
 
             # Meter bağlantı durumu
+            # (İlk çağrıda bağlanmayı dene - bağlantı yoksa sorun değil)
+            try:
+                if (
+                    hasattr(meter, "connect")
+                    and hasattr(meter, "is_connected")
+                    and not meter.is_connected()
+                ):
+                    meter.connect()
+            except Exception:
+                pass
+
             is_connected = (
                 meter.is_connected() if hasattr(meter, "is_connected") else False
             )
@@ -173,6 +197,8 @@ async def get_meter_reading():
                     "frequency_hz": getattr(reading, "frequency_hz", None),
                     "power_factor": getattr(reading, "power_factor", None),
                     "timestamp": getattr(reading, "timestamp", None),
+                    "phase_values": getattr(reading, "phase_values", None),
+                    "totals": getattr(reading, "totals", None),
                 }
                 return APIResponse(
                     success=True,

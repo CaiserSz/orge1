@@ -58,6 +58,13 @@ Thumbs.db
 *.swo
 *~
 .cache/
+# Documentation archives
+# 2025-12-12 21:12:00 - Acrel teknik doküman klasörünü git geçmişi dışında tut
+docs/acrel/
+
+# 2025-12-12 22:30:00 - Office dokümanları repo dışında kalsın (binary)
+*.docx
+*.doc
 
 # Environment variables
 .env

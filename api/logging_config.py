@@ -1,19 +1,20 @@
 """
 Logging Configuration Module
 Created: 2025-12-09 15:40:00
-Last Modified: 2025-12-09 15:40:00
-Version: 1.0.0
-Description: Structured logging configuration for AC Charger API
+Last Modified: 2025-12-12 05:40:00
+Version: 1.1.0
+Description: Structured logging + context propagation for AC Charger API
 """
 
-import logging
+import contextvars
 import json
+import logging
 import sys
-from pathlib import Path
+import threading
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from typing import Any, Dict, Optional
-import threading
 
 # Log dosyaları için klasör
 LOG_DIR = Path(__file__).parent.parent / "logs"
@@ -23,6 +24,8 @@ LOG_DIR.mkdir(exist_ok=True)
 API_LOG_FILE = LOG_DIR / "api.log"
 ESP32_LOG_FILE = LOG_DIR / "esp32.log"
 SYSTEM_LOG_FILE = LOG_DIR / "system.log"
+SESSION_LOG_FILE = LOG_DIR / "session.log"
+INCIDENT_LOG_FILE = LOG_DIR / "incident.log"
 
 # Log rotation ayarları
 MAX_BYTES = 10 * 1024 * 1024  # 10MB
@@ -55,6 +58,11 @@ class JSONFormatter(logging.Formatter):
                 "function": record.funcName,
                 "line": record.lineno,
             }
+
+            # Aktif logging context (correlation_id, session_id, vb.)
+            context_fields = get_logging_context()
+            if context_fields:
+                log_data.update(context_fields)
 
             # Exception bilgisi varsa ekle
             if record.exc_info:
@@ -151,6 +159,52 @@ def setup_logger(
 api_logger = setup_logger("api", API_LOG_FILE)
 esp32_logger = setup_logger("esp32", ESP32_LOG_FILE)
 system_logger = setup_logger("system", SYSTEM_LOG_FILE)
+session_logger = setup_logger("session", SESSION_LOG_FILE)
+incident_logger = setup_logger("incident", INCIDENT_LOG_FILE, level=logging.WARNING)
+
+# ContextVar tabanlı logging context
+_logging_context: contextvars.ContextVar[Dict[str, Any]] = contextvars.ContextVar(
+    "logging_context", default={}
+)
+
+
+def get_logging_context() -> Dict[str, Any]:
+    """Aktif logging context'inin kopyasını döndür."""
+    ctx = _logging_context.get({})
+    return dict(ctx) if ctx else {}
+
+
+def push_logging_context(**kwargs: Any) -> contextvars.Token:
+    """
+    Logging context'ine alan ekle (ör. correlation_id, session_id).
+
+    Returns:
+        contextvars.Token: Reset için token
+    """
+    ctx = get_logging_context()
+    cleaned = {k: v for k, v in kwargs.items() if v is not None}
+    ctx.update(cleaned)
+    return _logging_context.set(ctx)
+
+
+def reset_logging_context(token: contextvars.Token) -> None:
+    """ContextVar'ı önceki değerine döndür."""
+    _logging_context.reset(token)
+
+
+def clear_logging_context() -> None:
+    """Tüm logging context alanlarını temizle."""
+    _logging_context.set({})
+
+
+def bind_session_context(
+    session_id: Optional[str] = None, **kwargs: Any
+) -> contextvars.Token:
+    """Session bazlı alanları context'e ekle ve token döndür."""
+    cleaned = {"session_id": session_id}
+    cleaned.update(kwargs)
+    filtered = {k: v for k, v in cleaned.items() if v is not None}
+    return push_logging_context(**filtered)
 
 
 def log_api_request(
@@ -271,6 +325,7 @@ def log_event(
     event_type: str,
     event_data: Optional[Dict[str, Any]] = None,
     level: int = logging.INFO,
+    incident: bool = False,
     **kwargs: Any,
 ) -> None:
     """
@@ -292,17 +347,23 @@ def log_event(
             import inspect
 
             frame = inspect.currentframe().f_back
-            record = logging.LogRecord(
-                name=system_logger.name,
-                level=level,
-                pathname=frame.f_code.co_filename if frame else "",
-                lineno=frame.f_lineno if frame else 0,
-                msg=f"Event: {event_type}",
-                args=(),
-                exc_info=None,
-            )
-            record.extra_fields = extra_fields
-            system_logger.handle(record)
+
+            def _emit(logger: logging.Logger):
+                record = logging.LogRecord(
+                    name=logger.name,
+                    level=level,
+                    pathname=frame.f_code.co_filename if frame else "",
+                    lineno=frame.f_lineno if frame else 0,
+                    msg=f"Event: {event_type}",
+                    args=(),
+                    exc_info=None,
+                )
+                record.extra_fields = extra_fields
+                logger.handle(record)
+
+            _emit(system_logger)
+            if incident:
+                _emit(incident_logger)
     except Exception as e:
         # Logging hatası uygulamayı etkilememeli
         try:
@@ -355,3 +416,54 @@ def thread_safe_log(
             logger.handle(record)
         else:
             logger.log(level, message)
+
+
+def log_session_snapshot(
+    session_id: str,
+    event_type: str,
+    summary: str,
+    level: int = logging.INFO,
+    **kwargs: Any,
+) -> None:
+    """
+    Session özel log kaydı oluşturur (session.log). Opsiyonel ekstra alanları ekler.
+    """
+    with _log_lock:
+        record = logging.LogRecord(
+            name=session_logger.name,
+            level=level,
+            pathname="",
+            lineno=0,
+            msg=summary,
+            args=(),
+            exc_info=None,
+        )
+        record.extra_fields = {
+            "session_id": session_id,
+            "event_type": event_type,
+            **kwargs,
+        }
+        session_logger.handle(record)
+
+
+def log_incident(
+    title: str,
+    severity: str = "warning",
+    description: Optional[str] = None,
+    **kwargs: Any,
+) -> None:
+    """
+    Kritik incident'ları hem incident.log hem de system log'una yazar.
+    """
+    incident_payload = {
+        "title": title,
+        "severity": severity,
+        "description": description,
+        **kwargs,
+    }
+    log_event(
+        event_type=f"INCIDENT:{title}",
+        event_data=incident_payload,
+        level=logging.WARNING,
+        incident=True,
+    )

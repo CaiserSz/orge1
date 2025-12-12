@@ -6,15 +6,17 @@ Version: 1.0.0
 Description: Farklı parity ayarlarını test eder
 """
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from meter.read_meter import ABBMeterReader
-import serial
-import time
 import logging
+import time
+
+import serial
+
+from meter.read_meter import ABB_REGISTERS, ABBMeterReader
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -30,7 +32,7 @@ PARITY_OPTIONS = [
     ("NONE", serial.PARITY_NONE),
 ]
 
-BAUDRATES = [9600, 19200]
+BAUDRATES = [2400, 9600, 19200]
 SLAVE_IDS = [1, 2]
 
 found = False
@@ -72,7 +74,9 @@ for baudrate in BAUDRATES:
                     time.sleep(0.1)
 
                     # Test okuma
-                    result = reader.read_input_registers(0x0000, 1)
+                    result = reader.read_holding_registers(
+                        ABB_REGISTERS["voltage_l1"], 2
+                    )
 
                     if result is not None:
                         print(f"✅ BAŞARILI! Response: {result}")

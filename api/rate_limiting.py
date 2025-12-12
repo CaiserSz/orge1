@@ -1,14 +1,15 @@
 """
 Rate Limiting Module
 Created: 2025-12-10 13:00:00
-Last Modified: 2025-12-11 23:40:00
-Version: 1.1.0
+Last Modified: 2025-12-12 05:05:00
+Version: 1.1.1
 Description: Rate limiting implementation using slowapi for DDoS and brute force protection.
 
 Not: Test ortamında `config.RATE_LIMIT_ENABLED == False` ise decorator'lar
 no-op olarak çalışır; production'da rate limiting tam aktiftir.
 """
 
+import inspect
 from functools import wraps
 from typing import Any, Awaitable, Callable, Optional, TypeVar, Union
 
@@ -160,24 +161,30 @@ def _wrap_with_optional_limit(
     """
     Rate limiting'i config.RATE_LIMIT_ENABLED'e göre opsiyonel uygula.
 
-    - ENABLED False ise: Orijinal fonksiyon döner (rate limiting yok)
-    - ENABLED True ise: slowapi limiter.wrap edilmiş async wrapper döner
+    - ENABLED False ise: runtime'da direkt orijinal fonksiyon çağrılır
+    - ENABLED True ise: slowapi limiter.wrap edilmiş wrapper devreye girer
     """
 
-    # Eğer rate limiting kapalıysa, fonksiyonu olduğu gibi döndür
-    if not config.RATE_LIMIT_ENABLED:
-        return func
-
-    # Normal durumda limiter.limit decorator'ını uygula
     limited_func = limiter.limit(limit_value)(func)
+    is_async = inspect.iscoroutinefunction(func)
 
-    # slowapi hem sync hem async fonksiyonları destekliyor; bizim endpoint'ler
-    # async olduğundan burada async wrapper kullanmak yeterli.
+    if is_async:
+
+        @wraps(func)
+        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
+            if not config.RATE_LIMIT_ENABLED:
+                return await func(*args, **kwargs)  # type: ignore[misc]
+            return await limited_func(*args, **kwargs)  # type: ignore[misc]
+
+        return async_wrapper  # type: ignore[return-value]
+
     @wraps(func)
-    async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
-        return await limited_func(*args, **kwargs)  # type: ignore[misc]
+    def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
+        if not config.RATE_LIMIT_ENABLED:
+            return func(*args, **kwargs)
+        return limited_func(*args, **kwargs)
 
-    return async_wrapper
+    return sync_wrapper  # type: ignore[return-value]
 
 
 # Rate limit decorator'ları (kolay kullanım için)

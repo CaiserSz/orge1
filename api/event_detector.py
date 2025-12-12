@@ -6,17 +6,17 @@ Version: 1.0.0
 Description: ESP32 state transition detection ve event classification modülü
 """
 
+import os
+import sys
 import threading
 import time
-from typing import Optional, Dict, Any, Callable
 from datetime import datetime
 from enum import Enum
-import sys
-import os
+from typing import Any, Callable, Dict, Optional
 
 # Logging modülünü import et
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from api.logging_config import system_logger, log_event
+from api.logging_config import log_event, log_incident, system_logger
 
 
 # ESP32 State değerleri (ESP32 firmware'den)
@@ -275,6 +275,16 @@ class EventDetector:
         # Event'i logla
         log_event(event_type=event_type.value, event_data=event_data)
 
+        incident_payload = self._detect_power_supply_warning(status)
+        if incident_payload:
+            log_incident(
+                title=incident_payload["title"],
+                severity=incident_payload.get("severity", "warning"),
+                description=incident_payload.get("description"),
+                status=status,
+                event_type=event_type.value,
+            )
+
         # Callback'leri çağır (hata toleranslı)
         failed_callbacks = []
         for i, callback in enumerate(self.event_callbacks):
@@ -321,6 +331,31 @@ class EventDetector:
             8: "FAULT_HARD",
         }
         return state_names.get(state, f"UNKNOWN_{state}")
+
+    def _detect_power_supply_warning(
+        self, status: Optional[Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]:
+        """Status sözlüğünde EV'nin güç alamadığına dair işaretleri arar."""
+        if not status:
+            return None
+
+        warning_text = ""
+        for key in ("WARNING", "MESSAGE", "MSG"):
+            value = status.get(key)
+            if isinstance(value, str):
+                warning_text = value.lower()
+                break
+
+        if warning_text and "external" in warning_text and "power" in warning_text:
+            return {
+                "title": "Vehicle power warning",
+                "description": status.get(
+                    key, "Vehicle reports external equipment issue."
+                ),
+                "severity": "warning",
+            }
+
+        return None
 
     def register_callback(self, callback: Callable):
         """

@@ -6,14 +6,15 @@ Version: 1.0.0
 Description: Farklı baudrate ve slave ID kombinasyonlarını test eder
 """
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from meter.read_meter import ABBMeterReader
-import time
 import logging
+import time
+
+from meter.read_meter import ABB_REGISTERS, ABBMeterReader
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -23,7 +24,7 @@ print("ABB Meter RS485 Tarama Testi")
 print("=" * 60)
 
 # Test edilecek kombinasyonlar
-BAUDRATES = [9600, 19200, 4800]
+BAUDRATES = [2400, 9600, 19200, 4800]
 SLAVE_IDS = [1, 2, 3, 247]  # 247 genellikle broadcast adresi
 DEVICES = ["/dev/ttyAMA5", "/dev/ttyAMA4"]
 
@@ -46,7 +47,9 @@ for device in DEVICES:
 
                 if reader.connect():
                     # Basit bir register okuma denemesi
-                    result = reader.read_input_registers(0x0000, 1)
+                    result = reader.read_holding_registers(
+                        ABB_REGISTERS["voltage_l1"], 2
+                    )
 
                     if result is not None:
                         print(f"✅ BAŞARILI! Response: {result}")

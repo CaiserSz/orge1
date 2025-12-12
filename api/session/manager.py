@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional
 # Logging modülünü import et
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 from api.database import get_database
-from api.logging_config import system_logger
+from api.logging_config import log_session_snapshot, system_logger
 from api.session.events import SessionEventMixin
 from api.session.metrics import SessionMetricsCalculator
 from api.session.session import ChargingSession
@@ -42,14 +42,22 @@ class SessionManager(SessionEventMixin):
 
         # Meter entegrasyonu için hazırlık
         try:
+            from api.config import config
             from api.meter import get_meter
 
             self.meter = get_meter()
             # Meter bağlantısını dene (başarısız olursa sorun değil)
             try:
-                self.meter.connect()
+                auto_connect = bool(getattr(config, "METER_AUTO_CONNECT", True))
+                if (
+                    auto_connect
+                    and self.meter is not None
+                    and hasattr(self.meter, "is_connected")
+                    and not self.meter.is_connected()
+                ):
+                    self.meter.connect()
             except Exception:
-                pass  # Meter yok, sorun değil
+                pass  # Meter yok veya bağlantı hatalı, sorun değil
         except ImportError:
             self.meter = None
 
@@ -80,6 +88,12 @@ class SessionManager(SessionEventMixin):
                 system_logger.info(
                     f"Aktif session restore edildi: {session.session_id}",
                     extra={"session_id": session.session_id},
+                )
+                log_session_snapshot(
+                    session_id=session.session_id,
+                    event_type="SESSION_RESTORED",
+                    summary="Aktif session memory'e yüklendi",
+                    status=session.status.value,
                 )
         except Exception as e:
             system_logger.error(f"Active session restore error: {e}", exc_info=True)

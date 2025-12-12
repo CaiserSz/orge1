@@ -8,5 +8,6 @@ Description: Energy meter entegrasyonu için abstraction layer
 
 from api.meter.interface import MeterInterface, MeterReading, get_meter
 from api.meter.mock import MockMeter
+from api.meter.modbus import ModbusMeter
 
-__all__ = ["MeterInterface", "MeterReading", "get_meter", "MockMeter"]
+__all__ = ["MeterInterface", "MeterReading", "get_meter", "MockMeter", "ModbusMeter"]

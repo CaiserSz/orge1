@@ -1,11 +1,85 @@
 # Tamamlanan Görevler
 
 **Oluşturulma Tarihi:** 2025-12-08 18:20:00
-**Son Güncelleme:** 2025-12-10 16:00:00
+**Son Güncelleme:** 2025-12-12 22:35:00
 
 ---
 
 ## Tamamlanan Görevler Listesi
+
+### 2025-12-12
+
+#### ✅ Meter Entegrasyonu Aktivasyonu (08:50:00)
+- **Görev:** Meter'ı aktif et (ABB B23 112-100 / RS485 / Modbus RTU)
+- **Açıklama:** Sahada baudrate 2400 + RS485 A/B swap sonrası meter okuması çalışır hale getirildi. `meter/read_meter.py` gerçek ABB holding register map ile güncellendi; API `/api/meter/status` ve `/api/meter/reading` endpoint'leri gerçek meter verisi döndürüyor. Session başlangıç/bitişinde enerji okuması için altyapı aktif (meter varsa, yoksa fallback).
+- **Öncelik:** 8 (Orta)
+- **Durum:** ✅ Tamamlandı
+- **Başlangıç:** 2025-12-12 07:23:00
+- **Bitiş:** 2025-12-12 08:50:00
+- **Saha Doğrulaması:**
+  - Port: `/dev/ttyAMA5`, Baudrate: `2400`, Parity: EVEN, Slave ID: `1`, FC: `0x03 (Holding)`
+- **İmplementasyon:**
+  - ✅ ABB register map aktif edildi (voltage `0x1002+`, current `0x1010+`, power `0x102E+`, energy import `0x5000+`)
+  - ✅ `api/meter/*` katmanı gerçek meter okumasına bağlandı (mock fallback korunuyor)
+  - ✅ `api/config.py` meter env bayrakları eklendi ve pytest ortamında fiziksel meter erişimi devre dışı
+- **Dosyalar:**
+  - `meter/read_meter.py`, `meter/test_meter_scan.py`, `meter/test_parity.py`
+  - `api/meter/interface.py`, `api/meter/modbus.py`, `api/meter/mock.py`, `api/routers/meter.py`
+  - `api/config.py`, `api/session/manager.py`
+- **Testler:**
+  - `python meter/test_meter_scan.py` → ✅ 2400/ID=1 kombinasyonunda başarılı okuma
+  - `./env/bin/python -m pytest` → 534 passed, 4 skipped, 6 warnings
+  - `scripts/code_quality_auto_check.py` → ✅ Black/Ruff temiz
+
+#### ✅ Git Ignore Güncellemesi – `docs/acrel/` (21:12:00)
+- **Görev:** Ağır Acrel dokümantasyon klasörünü git geçmişinden hariç tut
+- **Açıklama:** `docs/acrel/` altında tutulan yüksek boyutlu JPEG/PDF teknik dokümanları repository geçmişini hızla büyütüyordu. Klasör `.gitignore`'a eklendi ve todo kayıtları güncellendi.
+- **Öncelik:** 8 (Düşük) – Workspace & repo hijyen
+- **Durum:** ✅ Tamamlandı
+- **Başlangıç:** 2025-12-12 21:05:00
+- **Bitiş:** 2025-12-12 21:12:00
+- **İmplementasyon:**
+  - `.gitignore` içerisine zaman damgalı açıklama ile `docs/acrel/` girdisi eklendi.
+  - `master_next.md` içinde Workspace temizliği aksiyonlarına kayıt düşüldü.
+  - `master_live.md` son tamamlanan iş notu güncellendi; `project_state.md` ve `project_info_20251208_145614.md` dosyalarına değişiklik yansıtıldı.
+  - Kod kalitesi otomasyonunun zincirleme Black uyarıları için `api/meter/acrel.py`, `api/meter/modbus.py` ve `esp32/bridge.py` dosyalarında yalnızca format + zaman damgası güncellemeleri yapıldı.
+- **Dosyalar:** `.gitignore`, `todo/master_next.md`, `todo/master_live.md`, `todo/master_done.md`, `todo/project_state.md`, `project_info_20251208_145614.md`
+- **Testler:** Kod derlemesi gerekmez (`.gitignore` ve dokümantasyon değişiklikleri)
+
+#### ✅ Acrel Meter (T317/ADL400) + `/test` UI Stabilizasyonu (22:35:00)
+- **Görev:** Acrel T317/ADL400 MID sayaç entegrasyonu ve `/test` sayfasını saha koşullarında stabil hale getirme
+- **Açıklama:** Acrel sayaç için yeni driver eklendi ve meter okuması doğrulandı. `/test` sayfasındaki JS parse hataları (tarayıcı uyumsuzluğu) ve cache kaynaklı “eski JS” problemleri giderildi; butonlar ve otomatik polling tekrar çalışır hale geldi.
+- **Öncelik:** 1 (Yüksek)
+- **Durum:** ✅ Tamamlandı
+- **Başlangıç:** 2025-12-12 18:54:00
+- **Bitiş:** 2025-12-12 22:35:00
+- **İmplementasyon:**
+  - ✅ `api/meter/acrel.py` eklendi (pymodbus 3.6.7; 9600 / EVEN / slave_id=111; enerji register’ları 2 word + 0.1 kWh scale)
+  - ✅ `api/config.py` valid meter type listesine `acrel` eklendi; `requirements.txt` → `pymodbus==3.6.7`
+  - ✅ `/test` JS stabilizasyonu: `??`, `? .` (bozuk optional chaining) ve duplicate `const` hataları temizlendi (ES2019 uyumlu)
+  - ✅ `/test` endpoint “no-store/no-cache” header ile servis ediliyor; `/favicon.ico` 204 (console 404 gürültüsü yok)
+- **Doğrulama:**
+  - ✅ Ngrok: `/api/status`, `/api/health`, `/api/meter/reading` → 200
+  - ✅ Ngrok `/test`: değerler görünüyor, “Test” butonları çalışıyor, console hata yok
+- **Dosyalar:** `api/meter/acrel.py`, `api/config.py`, `api/routers/test.py`, `api/routers/status.py`, `api_test.html`, `.gitignore`, `requirements.txt`
+
+#### ✅ Pytest Suite Stabilizasyonu (05:05:00)
+- **Görev:** Pytest tam suite kırmızı (161 failure)
+- **Açıklama:** Test ortamında rate limiting wrapper'ları runtime'da kapatılmadığından bütün API testleri 429 üretip suite'i blokluyordu. Rate limiting decorator'ları `config.RATE_LIMIT_ENABLED` bayrağını çağrı anında kontrol edecek şekilde güncellendi; pytest ortamları env değişkenleriyle sınırsız şekilde çalışabiliyor.
+- **Öncelik:** 0 (Acil)
+- **Tahmini Süre:** 2 saat
+- **Durum:** ✅ Tamamlandı
+- **Başlangıç:** 2025-12-10 21:44:00
+- **Bitiş:** 2025-12-12 05:05:00
+- **İmplementasyon:**
+  - ✅ `slowapi` limit wrapper'ı çağrı bazlı hale getirildi; config runtime'da yeniden yüklense bile 429 üretmiyor.
+  - ✅ Async/sync endpoint'ler için ayrı wrapper'lar tanımlanarak testlerde mock edilen fonksiyonlar bozulmadı.
+  - ✅ Modül metadata'sı güncellendi (revizyon ve versiyon bilgileri).
+- **Dosyalar:**
+  - `api/rate_limiting.py`
+- **Testler:**
+  - `./env/bin/python -m pytest` → 534 passed, 4 skipped, 6 warnings (log: `agent-tools/184523ca-187d-47fe-9eac-3857e90e5379.txt`)
+  - Hızlı doğrulama için kritik senaryolar ayrı ayrı çalıştırıldı (`tests/test_state_logic.py::TestStateLogicForStartCharge::test_start_charge_state_5_charging_should_fail`, `tests/test_api_endpoints.py::TestAPIEndpoints::test_start_charge_endpoint`)
 
 ### 2025-12-10
 

@@ -1,8 +1,8 @@
 # Proje Durumu ve İlerleme Takibi
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-10 21:24:46
-**Version:** 1.4.0
+**Son Güncelleme:** 2025-12-12 22:35:00
+**Version:** 1.6.0
 
 ---
 
@@ -10,8 +10,8 @@
 
 **Mevcut Faz:** Faz 6 - Logging ve Session Yönetimi (Tamamlandı ✅)
 **Sonraki Faz:** Faz 7 - Production Deployment ve Mobil Uygulama Entegrasyonu
-**Proje Sağlığı:** ✅ Mükemmel (Skor: 9.5/10)
-**Son Aktif Çalışma:** Database queries paketi refactor ve kod kalitesi temizliği (Tamamlandı - 2025-12-10 21:24:00)
+**Proje Sağlığı:** ✅ Mükemmel (Skor: 9.6/10)
+**Son Aktif Çalışma:** Acrel meter + `/test` UI stabilizasyonu (Tamamlandı - 2025-12-12 22:35:00)
 **İstasyon Durumu:** ✅ Production-Ready (2025-12-10 15:40:00)
 **Checkpoint Tag:** v1.0.0-test-complete
 
@@ -123,7 +123,7 @@
    - İyileştirme Fırsatları: Multi-environment deployment, security scanning
 
 8. **Meter Entegrasyonu Tamamlama** (Öncelik 8)
-   - Durum: Devam Ediyor (Kod var, fiziksel test bekliyor)
+   - Durum: ✅ Tamamlandı (Sahada okuma + API endpoint doğrulandı)
    - Öncelik: Orta
    - Tahmini Süre: 1-2 gün
    - İyileştirme Fırsatları: Data caching, aggregation, visualization
@@ -136,6 +136,22 @@
   - `api/database/queries.py` agregasyon dosyasına indirildi; `session_queries.py`, `event_queries.py`, `maintenance_queries.py` oluşturuldu
   - Black/ruff uyarıları giderildi (router/service/meter test dosyalarında format ve f-string düzeltmeleri)
   - `./env/bin/python -m pytest` çalıştırıldı (159 failure, 414 passed, 4 skipped) — ağırlıklı rate limiting ve mock/konfigürasyon kaynaklı hatalar; takip gerekiyor
+
+### 2025-12-12
+- **05:05:00** - Pytest suite stabilizasyonu tamamlandı
+  - Rate limiting decorator'ları runtime'da `config.RATE_LIMIT_ENABLED` bayrağını kontrol edecek şekilde yeniden yazıldı; pytest ortamı için `PYTEST_DISABLE_RATE_LIMIT` env'si artık yeterli.
+  - Async ve sync endpoint'ler için ayrı wrapper'lar tanımlanarak slowapi limitleri testte devre dışı bırakıldı.
+  - `./env/bin/python -m pytest` → 534 passed, 4 skipped, 6 warnings (log: `agent-tools/184523ca-187d-47fe-9eac-3857e90e5379.txt`)
+  - Kritik senaryolar ayrıca tekil olarak doğrulandı (`tests/test_state_logic.py::TestStateLogicForStartCharge::test_start_charge_state_5_charging_should_fail`, `tests/test_api_endpoints.py::TestAPIEndpoints::test_start_charge_endpoint`)
+
+- **08:50:00** - Meter entegrasyonu aktivasyonu tamamlandı
+  - Sahada baudrate 2400 + RS485 A/B swap sonrası meter okuması çalışır hale getirildi.
+  - `meter/read_meter.py` ABB B23 holding register map ile güncellendi; `/api/meter/*` endpoint'leri gerçek meter değerleri döndürüyor.
+- **21:06:00** - Black formatter uyarıları temizlendi
+  - `api/meter/acrel.py`, `api/meter/modbus.py` ve `esp32/bridge.py` dosyalarında yalnızca format + revizyon damgası güncellemeleri yapılarak `scripts/code_quality_auto_check.py` raporundaki zincirleme uyarılar giderildi.
+- **21:12:00** - `docs/acrel/` arşivi `.gitignore` kapsamına alındı
+  - `.gitignore` dosyasına zaman damgalı açıklama ile `docs/acrel/` girdisi eklendi; ağır Acrel dokümantasyon seti artık versiyon kontrolüne girmeyecek.
+  - `master_next.md`, `master_live.md`, `master_done.md`, `project_state.md` ve `project_info_20251208_145614.md` dosyalarında kayıtlar güncellendi.
 
 ### 2025-12-10
 - **09:30:00** - Todo dosyaları deep dive analizi ve temizlik tamamlandı
@@ -277,10 +293,9 @@
    - Tahmini Süre: 1-2 gün
 
 8. **Meter Entegrasyonu Tamamlama** (Öncelik 8 - Orta)
-   - Fiziksel test
-   - Register address doğrulama
-   - API endpoint'leri
-   - Tahmini Süre: 1-2 gün
+   - ✅ Fiziksel okuma doğrulandı (2400/ID=1)
+   - ✅ Register adresleri sahada çalışır hale getirildi
+   - ✅ API endpoint'leri meter ile çalışıyor
 
 ---
 

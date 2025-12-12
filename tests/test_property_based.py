@@ -321,7 +321,11 @@ class TestPropertyBasedConcurrency:
         amperage=st.integers(min_value=6, max_value=32),
     )
     @settings(
-        max_examples=10, suppress_health_check=[HealthCheck.function_scoped_fixture]
+        # Thread spawn + TestClient çağrıları RPi/CI ortamlarında 200ms default deadline'ı aşabiliyor.
+        # Bu testin amacı "doğruluk/thread-safety", performans değil; performans eşikleri ayrı testte ölçülüyor.
+        deadline=None,
+        max_examples=10,
+        suppress_health_check=[HealthCheck.function_scoped_fixture],
     )
     def test_concurrent_status_requests(
         self, client, mock_esp32_bridge, num_requests, amperage

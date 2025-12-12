@@ -7,6 +7,7 @@ Description: Merkezi configuration management - Environment variable yönetimi v
 """
 
 import os
+import sys
 from pathlib import Path
 from typing import List, Optional
 
@@ -50,6 +51,15 @@ class Config:
     ESP32_PORT: Optional[str] = None  # None ise otomatik bulunur
     ESP32_BAUDRATE: int = 115200
 
+    # Meter Configuration
+    # Not: Varsayılan olarak ABB (Modbus/RS485) kullanılır. Fiziksel meter yoksa sistem çalışmaya devam eder.
+    METER_TYPE: str = "abb"  # mock, abb, acrel
+    METER_PORT: str = "/dev/ttyAMA5"
+    METER_BAUDRATE: int = 2400
+    METER_SLAVE_ID: int = 1
+    METER_TIMEOUT: float = 1.0
+    METER_AUTO_CONNECT: bool = True
+
     @classmethod
     def load(cls) -> None:
         """
@@ -89,8 +99,13 @@ class Config:
         cls.RATE_LIMIT_CHARGE = os.getenv("RATE_LIMIT_CHARGE", "10/minute")
         cls.RATE_LIMIT_STATUS = os.getenv("RATE_LIMIT_STATUS", "30/minute")
 
-        # Test ortamı otomatik tespiti (pytest çalışırken rate limit devre dışı)
-        if os.getenv("PYTEST_CURRENT_TEST") is not None:
+        # Test ortamı otomatik tespiti (pytest çalışırken rate limit ve meter erişimi devre dışı)
+        # Not: PYTEST_CURRENT_TEST her zaman import/collection aşamasında set olmayabilir.
+        is_pytest = os.getenv("PYTEST_CURRENT_TEST") is not None or any(
+            "pytest" in arg for arg in sys.argv
+        )
+
+        if is_pytest:
             cls.RATE_LIMIT_ENABLED = False
 
         # Ek test modu bayrağı: PYTEST_DISABLE_RATE_LIMIT=1|true ise her durumda kapat
@@ -109,6 +124,41 @@ class Config:
                 f"Geçersiz ESP32_BAUDRATE değeri: {os.getenv('ESP32_BAUDRATE')}, varsayılan kullanılıyor: 115200"
             )
             cls.ESP32_BAUDRATE = 115200
+
+        # Meter Configuration
+        cls.METER_TYPE = os.getenv("METER_TYPE", "abb").lower()
+        cls.METER_PORT = os.getenv("METER_PORT", "/dev/ttyAMA5")
+        cls.METER_AUTO_CONNECT = (
+            os.getenv("METER_AUTO_CONNECT", "true").lower() == "true"
+        )
+
+        try:
+            cls.METER_BAUDRATE = int(os.getenv("METER_BAUDRATE", "2400"))
+        except ValueError:
+            system_logger.warning(
+                f"Geçersiz METER_BAUDRATE değeri: {os.getenv('METER_BAUDRATE')}, varsayılan kullanılıyor: 2400"
+            )
+            cls.METER_BAUDRATE = 2400
+
+        try:
+            cls.METER_SLAVE_ID = int(os.getenv("METER_SLAVE_ID", "1"))
+        except ValueError:
+            system_logger.warning(
+                f"Geçersiz METER_SLAVE_ID değeri: {os.getenv('METER_SLAVE_ID')}, varsayılan kullanılıyor: 1"
+            )
+            cls.METER_SLAVE_ID = 1
+
+        try:
+            cls.METER_TIMEOUT = float(os.getenv("METER_TIMEOUT", "1.0"))
+        except ValueError:
+            system_logger.warning(
+                f"Geçersiz METER_TIMEOUT değeri: {os.getenv('METER_TIMEOUT')}, varsayılan kullanılıyor: 1.0"
+            )
+            cls.METER_TIMEOUT = 1.0
+
+        # Pytest sırasında fiziksel meter erişimi denenmemeli
+        if is_pytest:
+            cls.METER_TYPE = "mock"
 
         # Validation
         cls.validate()
@@ -154,6 +204,32 @@ class Config:
             system_logger.warning(
                 f"ESP32_BAUDRATE standart değil: {cls.ESP32_BAUDRATE} (standart: {valid_baudrates})"
             )
+
+        # Meter validation (invalid config sistemin çalışmasını engellememeli)
+        valid_meter_types = {"mock", "abb", "acrel"}
+        if cls.METER_TYPE not in valid_meter_types:
+            system_logger.warning(
+                f"Geçersiz METER_TYPE: {cls.METER_TYPE} (geçerli: {sorted(valid_meter_types)}). 'mock' kullanılacak."
+            )
+            cls.METER_TYPE = "mock"
+
+        if cls.METER_BAUDRATE <= 0:
+            system_logger.warning(
+                f"Geçersiz METER_BAUDRATE: {cls.METER_BAUDRATE}. Varsayılan 9600 kullanılacak."
+            )
+            cls.METER_BAUDRATE = 9600
+
+        if cls.METER_SLAVE_ID <= 0 or cls.METER_SLAVE_ID > 247:
+            system_logger.warning(
+                f"Geçersiz METER_SLAVE_ID: {cls.METER_SLAVE_ID}. Varsayılan 1 kullanılacak."
+            )
+            cls.METER_SLAVE_ID = 1
+
+        if cls.METER_TIMEOUT <= 0:
+            system_logger.warning(
+                f"Geçersiz METER_TIMEOUT: {cls.METER_TIMEOUT}. Varsayılan 1.0 kullanılacak."
+            )
+            cls.METER_TIMEOUT = 1.0
 
     @classmethod
     def get_secret_api_key(cls) -> str:

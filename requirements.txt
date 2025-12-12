@@ -6,6 +6,9 @@
 # ESP32 Communication
 pyserial>=3.5
 
+# Modbus (Meter)
+pymodbus==3.6.7
+
 # REST API Framework
 fastapi>=0.124.0
 uvicorn[standard]>=0.38.0

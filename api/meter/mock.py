@@ -27,9 +27,10 @@ class MockMeter(MeterInterface):
 
     def connect(self) -> bool:
         """Meter'a bağlan (mock)"""
-        self._connected = True
-        system_logger.debug("Mock meter connected (no actual meter)")
-        return True
+        # Fiziksel meter yok: "connected" olmamalı. Sistem güvenliği için False döner.
+        self._connected = False
+        system_logger.debug("Mock meter: fiziksel cihaz yok (bağlantı kurulmadı)")
+        return False
 
     def disconnect(self) -> bool:
         """Meter bağlantısını kes"""

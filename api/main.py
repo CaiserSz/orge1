@@ -9,6 +9,7 @@ Description: ESP32 kontrolü için REST API endpoint'leri
 import os
 import sys
 import time
+import uuid
 from datetime import datetime
 from pathlib import Path
 
@@ -42,7 +43,12 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from api.config import config
 from api.event_detector import get_event_detector
 from api.exceptions import APIException
-from api.logging_config import log_api_request, system_logger
+from api.logging_config import (
+    log_api_request,
+    push_logging_context,
+    reset_logging_context,
+    system_logger,
+)
 from api.rate_limiting import setup_rate_limiting
 
 # Router'ları import et
@@ -81,11 +87,29 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
         # İstemci IP adresini al
         client_ip = request.client.host if request.client else None
 
+        # Correlation ID üret (header varsa onu kullan)
+        correlation_id = (
+            request.headers.get("X-Request-ID")
+            or request.headers.get("X-Correlation-ID")
+            or str(uuid.uuid4())
+        )
+        request.state.correlation_id = correlation_id
+
         # User ID'yi configuration'dan al (audit trail için)
         user_id = config.get_user_id()
 
-        # İsteği işle
-        response = await call_next(request)
+        token = push_logging_context(
+            correlation_id=correlation_id,
+            client_ip=client_ip,
+            user_id=user_id,
+            http_method=request.method,
+            http_path=request.url.path,
+        )
+        try:
+            # İsteği işle
+            response = await call_next(request)
+        finally:
+            reset_logging_context(token)
 
         # Yanıt süresini hesapla
         process_time = (time.time() - start_time) * 1000  # milisaniye
@@ -127,6 +151,15 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
                 # Logging hatası API response'u etkilememeli
                 # Sessizce geç (veya fallback logging)
                 pass
+
+        # Response header'a correlation id ekle (mock response desteği)
+        if hasattr(response, "headers"):
+            try:
+                response.headers["X-Request-ID"] = correlation_id
+            except Exception:
+                response.headers = {"X-Request-ID": correlation_id}
+        else:
+            response.headers = {"X-Request-ID": correlation_id}
 
         return response
 
