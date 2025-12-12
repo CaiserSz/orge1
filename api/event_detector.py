@@ -1,8 +1,8 @@
 """
 Event Detection Module
 Created: 2025-12-09 22:50:00
-Last Modified: 2025-12-09 22:50:00
-Version: 1.0.0
+Last Modified: 2025-12-13 02:00:00
+Version: 1.1.0
 Description: ESP32 state transition detection ve event classification modülü
 """
 
@@ -11,43 +11,13 @@ import sys
 import threading
 import time
 from datetime import datetime
-from enum import Enum
 from typing import Any, Callable, Dict, Optional
 
-# Logging modülünü import et
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from api.event_types import ESP32State, EventType
 from api.logging_config import log_event, log_incident, system_logger
 
-
-# ESP32 State değerleri (ESP32 firmware'den)
-class ESP32State(Enum):
-    """ESP32 state değerleri"""
-
-    HARDFAULT_END = 0  # ESP32 firmware'de tanımlı (Commercial_08122025.ino:197)
-    IDLE = 1
-    CABLE_DETECT = 2
-    EV_CONNECTED = 3
-    READY = 4
-    CHARGING = 5
-    PAUSED = 6
-    STOPPED = 7
-    FAULT_HARD = 8
-
-
-# Event types
-class EventType(Enum):
-    """Event type'ları"""
-
-    CABLE_CONNECTED = "CABLE_CONNECTED"
-    EV_CONNECTED = "EV_CONNECTED"
-    CHARGE_READY = "CHARGE_READY"
-    CHARGE_STARTED = "CHARGE_STARTED"
-    CHARGE_PAUSED = "CHARGE_PAUSED"
-    CHARGE_STOPPED = "CHARGE_STOPPED"
-    CHARGE_START_REQUESTED = "CHARGE_START_REQUESTED"  # charge_start log event'i için
-    CABLE_DISCONNECTED = "CABLE_DISCONNECTED"
-    FAULT_DETECTED = "FAULT_DETECTED"
-    STATE_CHANGED = "STATE_CHANGED"  # Genel state değişikliği
+__all__ = ["EventDetector", "ESP32State", "EventType", "get_event_detector"]
 
 
 class EventDetector:

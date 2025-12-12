@@ -1,0 +1,234 @@
+"""
+Session Lifecycle Helpers
+Created: 2025-12-13 02:12:00
+Last Modified: 2025-12-13 02:12:00
+Version: 1.0.0
+Description: Session başlatma, sonlandırma ve fault yönetimi mixin'i.
+"""
+
+from __future__ import annotations
+
+import uuid
+from datetime import datetime
+from typing import Any, Dict, Optional
+
+from api.event_detector import ESP32State, EventType
+from api.logging_config import log_event, log_incident, system_logger
+from api.session.events_logging import SessionEventLoggingMixin
+from api.session.session import ChargingSession
+from api.session.status import SessionStatus
+
+
+class SessionLifecycleMixin(SessionEventLoggingMixin):
+    """Session yaşam döngüsü işlemleri."""
+
+    def _start_session(self, event_data: Dict[str, Any]):
+        with self.sessions_lock:
+            if self.current_session:
+                system_logger.warning(
+                    f"Yeni session başlatılıyor ama aktif session var: {self.current_session.session_id}"
+                )
+                self._end_session_internal(
+                    self.current_session,
+                    datetime.now(),
+                    event_data.get("to_state", ESP32State.CHARGING.value),
+                    SessionStatus.CANCELLED,
+                )
+
+            session_id = str(uuid.uuid4())
+            start_time = datetime.now()
+            start_state = event_data.get("to_state", ESP32State.CHARGING.value)
+
+            session = ChargingSession(session_id, start_time, start_state)
+            session.add_event(EventType.CHARGE_STARTED, event_data)
+
+            user_id = event_data.get("user_id") or event_data.get("data", {}).get(
+                "user_id"
+            )
+            if not user_id:
+                with self.pending_user_id_lock:
+                    user_id = self.pending_user_id
+                    self.pending_user_id = None
+
+            if user_id:
+                session.metadata["user_id"] = user_id
+
+            self.current_session = session
+
+            if self.meter and self.meter.is_connected():
+                try:
+                    meter_reading = self.meter.read_all()
+                    if meter_reading and meter_reading.is_valid:
+                        session.metadata["start_energy_kwh"] = meter_reading.energy_kwh
+                        session.metadata["meter_available"] = True
+                except Exception as exc:
+                    system_logger.warning(
+                        f"Meter okuma hatası (session başlangıcı): {exc}"
+                    )
+                    session.metadata["meter_available"] = False
+            else:
+                session.metadata["meter_available"] = False
+
+            self.db.create_session(
+                session_id=session_id,
+                start_time=start_time,
+                start_state=start_state,
+                events=session.events,
+                metadata=session.metadata,
+                user_id=user_id,
+            )
+
+            self._save_event_to_table(EventType.CHARGE_STARTED, event_data, user_id)
+
+            self._log_session_snapshot(
+                session_id=session_id,
+                event_label=EventType.CHARGE_STARTED.value,
+                summary="Session started",
+                event_data=event_data,
+                user_id=user_id,
+            )
+
+            self._cleanup_old_sessions()
+
+            system_logger.info(
+                f"Yeni session başlatıldı: {session_id}",
+                extra={"session_id": session_id, "start_time": start_time.isoformat()},
+            )
+
+            log_event(
+                event_type="SESSION_STARTED",
+                event_data={
+                    "session_id": session_id,
+                    "start_time": start_time.isoformat(),
+                    "start_state": start_state,
+                },
+            )
+
+    def _end_session(self, event_type: EventType, event_data: Dict[str, Any]):
+        with self.sessions_lock:
+            if not self.current_session:
+                system_logger.warning(
+                    "Session sonlandırma denemesi ama aktif session yok"
+                )
+                return
+
+            status = (
+                SessionStatus.CANCELLED
+                if event_type == EventType.CABLE_DISCONNECTED
+                else SessionStatus.COMPLETED
+            )
+
+            end_state = event_data.get("to_state", ESP32State.STOPPED.value)
+            user_id = event_data.get("user_id") or event_data.get("data", {}).get(
+                "user_id"
+            )
+
+            self.current_session.add_event(event_type, event_data)
+            self._save_event_to_table(event_type, event_data, user_id)
+            self._end_session_internal(
+                self.current_session, datetime.now(), end_state, status
+            )
+
+            self.current_session = None
+
+    def _end_session_internal(
+        self,
+        session: ChargingSession,
+        end_time: datetime,
+        end_state: int,
+        status: SessionStatus,
+    ):
+        session.end_session(end_time, end_state, status)
+
+        final_metrics = self._calculate_final_metrics(session, end_time)
+
+        if self.meter and self.meter.is_connected():
+            try:
+                meter_reading = self.meter.read_all()
+                if meter_reading and meter_reading.is_valid:
+                    end_energy = meter_reading.energy_kwh
+                    start_energy = session.metadata.get("start_energy_kwh")
+
+                    if start_energy is not None:
+                        total_energy = end_energy - start_energy
+                        session.metadata["end_energy_kwh"] = end_energy
+                        session.metadata["total_energy_kwh"] = max(0, total_energy)
+                        session.metadata["energy_source"] = "meter"
+                    else:
+                        session.metadata["end_energy_kwh"] = end_energy
+            except Exception as exc:
+                system_logger.warning(f"Meter okuma hatası (session bitişi): {exc}")
+                session.metadata["energy_source"] = "calculated"
+        else:
+            session.metadata["energy_source"] = "calculated"
+
+        self.db.update_session(
+            session_id=session.session_id,
+            end_time=end_time,
+            end_state=end_state,
+            status=status.value,
+            events=session.events,
+            metadata=session.metadata,
+            **final_metrics,
+        )
+
+        system_logger.info(
+            f"Session sonlandırıldı: {session.session_id}",
+            extra={
+                "session_id": session.session_id,
+                "end_time": end_time.isoformat(),
+                "status": status.value,
+                "duration_seconds": (end_time - session.start_time).total_seconds(),
+            },
+        )
+
+        log_event(
+            event_type="SESSION_ENDED",
+            event_data={
+                "session_id": session.session_id,
+                "end_time": end_time.isoformat(),
+                "status": status.value,
+                "duration_seconds": (end_time - session.start_time).total_seconds(),
+            },
+        )
+
+        self._log_session_snapshot(
+            session_id=session.session_id,
+            event_label="SESSION_ENDED",
+            summary=f"Session ended with status {status.value}",
+            event_data={
+                "from_state": session.start_state,
+                "to_state": end_state,
+            },
+            status=status.value,
+            metrics=final_metrics,
+        )
+
+    def _handle_fault(self, event_data: Dict[str, Any]):
+        with self.sessions_lock:
+            if self.current_session:
+                self.current_session.add_event(EventType.FAULT_DETECTED, event_data)
+                self.current_session.status = SessionStatus.FAULTED
+
+                self.db.update_session(
+                    session_id=self.current_session.session_id,
+                    status=SessionStatus.FAULTED.value,
+                    events=self.current_session.events,
+                    metadata=self.current_session.metadata,
+                )
+
+                self._log_session_snapshot(
+                    self.current_session.session_id,
+                    EventType.FAULT_DETECTED.value,
+                    "Fault detected during session",
+                    event_data=event_data,
+                    severity="warning",
+                )
+                log_incident(
+                    title="Session fault detected",
+                    severity="warning",
+                    description="ESP32 fault event kaydedildi",
+                    session_id=self.current_session.session_id,
+                    event_data=event_data,
+                )
+

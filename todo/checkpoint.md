@@ -14,15 +14,16 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251213-027
-**Tarih:** 2025-12-13 01:05:00
-**Durum:** ✅ Workspace temizliği ve log rotasyonu tamamlandı
-- `du -sh .` 172 MB → 135 MB (logs 37 MB → 0.01 MB, env 102 MB).
-- `logs/api.log.*` dosyaları temizlendi, aktif loglar sıfırlandı.
-- `python3 scripts/workspace_auto_check.py` → env/logs hariç 29.13 MB (test geçti); env boyutu için yeni görev açıldı.
+**Checkpoint ID:** CP-20251213-028
+**Tarih:** 2025-12-13 02:45:00
+**Durum:** ✅ Env boyutu ve standart refactor paketi tamamlandı
+- env/ klasörü 102MB → 76.7MB (pyc/__pycache__ temizliği, `workspace_auto_check.py` doğrulandı).
+- `scripts/standards_auto_check.py` üzerindeki tüm uyarılar kapatıldı.
+- Yeni modüler yapılar: `api/cache_backend.py`, `api/logging_setup.py`, `api/event_types.py`, `api/alerting_models.py`, `api/session/events_{logging,lifecycle}.py`, `api/database/schema_mixin.py`, `api/services/health_service.py`.
+- Test suite’ler bölündü (`tests/test_session_model.py`, `tests/test_session_manager_integration.py`, `tests/test_event_detector_integration.py`, `tests/test_command_protocol.py`, `tests/test_protocol_rules.py`).
 
-### Önceki Checkpoint: CP-20251212-026 (2025-12-12 22:35:00)
-**Durum:** ✅ Acrel Meter + `/test` UI Stabilizasyonu Tamamlandı
+### Önceki Checkpoint: CP-20251213-027 (2025-12-13 01:05:00)
+**Durum:** ✅ Workspace temizliği ve log rotasyonu tamamlandı
 
 ### Önceki Checkpoint: CP-20251212-025 (2025-12-12 08:50:00)
 **Durum:** ✅ Meter Entegrasyonu Aktivasyonu Tamamlandı
@@ -108,6 +109,22 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 **Durum:** ✅ Logging Sistemi ve Kritik Düzeltmeler Tamamlandı
 
 ### Son Tamamlanan İş
+- **Görev:** API & test standart refactor + env temizliği
+- **Durum:** ✅ Tamamlandı
+- **Tarih:** 2025-12-13 02:45:00
+- **Detaylar:**
+  - ✅ env klasörü 102 MB → 76.7 MB; `python3 scripts/workspace_auto_check.py` → env/logs hariç 29.26 MB.
+  - ✅ `api/cache.py`, `api/logging_config.py`, `api/event_detector.py`, `api/alerting.py`, `api/session/events.py`, `api/database/core.py`, `api/routers/status.py` modüler alt dosyalara bölündü.
+  - ✅ Sağlık endpoint’i `api/services/health_service.py` altına alındı; logging setup ve cache backend için ayrı yardımcı modüller eklendi.
+  - ✅ Test dosyaları satır limitine göre ayrıldı (`tests/test_session_model.py`, `tests/test_session_manager_integration.py`, `tests/test_event_detector_integration.py`, `tests/test_command_protocol.py`, `tests/test_protocol_rules.py`).
+- **Test Sonucu:**
+  - `./env/bin/pytest` hedefli dosya bazlı koşular (cache, logging, session manager, event detector, command dry run/protocol, protocol, api_endpoints) → ✅ tamamı geçti.
+  - `scripts/standards_auto_check.py` → ✅ Uyarı bulunamadı.
+- **Beklenen İyileştirmeler:**
+  - Yeni modüler yapılar için dokümantasyon linkleri `project_info` ve ilgili rehberlere eklenmeli.
+  - Health endpoint için opsiyonel psutil kurulum rehberi hazırlanabilir.
+
+### Önceki Tamamlanan İş
 - **Görev:** Workspace temizliği ve log rotasyonu
 - **Durum:** ✅ Tamamlandı
 - **Tarih:** 2025-12-13 00:59:00

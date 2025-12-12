@@ -1,78 +1,23 @@
 """
 Alerting Module
 Created: 2025-12-10
-Last Modified: 2025-12-10 18:00:00
-Version: 1.0.0
+Last Modified: 2025-12-13 02:05:00
+Version: 1.1.0
 Description: Alerting rules and notification system for monitoring
 """
 
-from typing import Dict, List, Optional, Callable
-from datetime import datetime
-from enum import Enum
+from typing import Dict, List, Optional
+
+from api.alerting_models import Alert, AlertRule, AlertSeverity
 from api.logging_config import system_logger
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from esp32.bridge import ESP32Bridge
     from api.event_detector import EventDetector
 
-
-class AlertSeverity(Enum):
-    """Alert severity levels"""
-
-    INFO = "info"
-    WARNING = "warning"
-    CRITICAL = "critical"
-
-
-class Alert:
-    """Alert representation"""
-
-    def __init__(
-        self,
-        name: str,
-        severity: AlertSeverity,
-        message: str,
-        timestamp: Optional[datetime] = None,
-        metadata: Optional[Dict] = None,
-    ):
-        self.name = name
-        self.severity = severity
-        self.message = message
-        self.timestamp = timestamp or datetime.now()
-        self.metadata = metadata or {}
-
-    def __repr__(self) -> str:
-        return f"Alert(name={self.name}, severity={self.severity.value}, message={self.message})"
-
-
-class AlertRule:
-    """Alert rule definition"""
-
-    def __init__(
-        self,
-        name: str,
-        severity: AlertSeverity,
-        check_function: Callable[[], Optional[Alert]],
-        enabled: bool = True,
-    ):
-        self.name = name
-        self.severity = severity
-        self.check_function = check_function
-        self.enabled = enabled
-
-    def evaluate(self, bridge=None, event_detector=None) -> Optional[Alert]:
-        """Evaluate alert rule"""
-        if not self.enabled:
-            return None
-
-        try:
-            return self.check_function(bridge=bridge, event_detector=event_detector)
-        except Exception as e:
-            system_logger.error(
-                f"Alert rule '{self.name}' evaluation error: {e}", exc_info=True
-            )
-            return None
+__all__ = ["AlertManager", "get_alert_manager", "Alert", "AlertRule", "AlertSeverity"]
 
 
 class AlertManager:

@@ -1,168 +1,48 @@
 """
 Logging Configuration Module
 Created: 2025-12-09 15:40:00
-Last Modified: 2025-12-12 05:40:00
-Version: 1.1.0
+Last Modified: 2025-12-13 01:55:00
+Version: 1.2.0
 Description: Structured logging + context propagation for AC Charger API
 """
 
 import contextvars
-import json
 import logging
 import sys
 import threading
-from datetime import datetime
-from logging.handlers import RotatingFileHandler
-from pathlib import Path
 from typing import Any, Dict, Optional
 
-# Log dosyaları için klasör
-LOG_DIR = Path(__file__).parent.parent / "logs"
-LOG_DIR.mkdir(exist_ok=True)
+from api.logging_setup import (
+    API_LOG_FILE,
+    ESP32_LOG_FILE,
+    INCIDENT_LOG_FILE,
+    JSONFormatter,
+    SESSION_LOG_FILE,
+    SYSTEM_LOG_FILE,
+    setup_logger,
+)
 
-# Log dosya yolları
-API_LOG_FILE = LOG_DIR / "api.log"
-ESP32_LOG_FILE = LOG_DIR / "esp32.log"
-SYSTEM_LOG_FILE = LOG_DIR / "system.log"
-SESSION_LOG_FILE = LOG_DIR / "session.log"
-INCIDENT_LOG_FILE = LOG_DIR / "incident.log"
+__all__ = [
+    "api_logger",
+    "esp32_logger",
+    "system_logger",
+    "session_logger",
+    "incident_logger",
+    "get_logging_context",
+    "push_logging_context",
+    "reset_logging_context",
+    "clear_logging_context",
+    "bind_session_context",
+    "log_api_request",
+    "log_esp32_message",
+    "log_event",
+    "thread_safe_log",
+    "log_session_snapshot",
+    "log_incident",
+    "JSONFormatter",
+    "setup_logger",
+]
 
-# Log rotation ayarları
-MAX_BYTES = 10 * 1024 * 1024  # 10MB
-BACKUP_COUNT = 5  # 5 yedek dosya
-
-
-class JSONFormatter(logging.Formatter):
-    """
-    JSON formatında log mesajları oluşturan formatter
-    Thread-safe
-    """
-
-    def format(self, record: logging.LogRecord) -> str:
-        """
-        Log kaydını JSON formatına dönüştür
-
-        Args:
-            record: Log kaydı
-
-        Returns:
-            JSON formatında log mesajı
-        """
-        try:
-            log_data: Dict[str, Any] = {
-                "timestamp": datetime.fromtimestamp(record.created).isoformat(),
-                "level": record.levelname,
-                "logger": record.name,
-                "message": record.getMessage(),
-                "module": record.module,
-                "function": record.funcName,
-                "line": record.lineno,
-            }
-
-            # Aktif logging context (correlation_id, session_id, vb.)
-            context_fields = get_logging_context()
-            if context_fields:
-                log_data.update(context_fields)
-
-            # Exception bilgisi varsa ekle
-            if record.exc_info:
-                log_data["exception"] = self.formatException(record.exc_info)
-
-            # Ekstra alanlar varsa ekle
-            if hasattr(record, "extra_fields"):
-                # Non-serializable objeleri string'e çevir
-                safe_fields = {}
-                for key, value in record.extra_fields.items():
-                    try:
-                        json.dumps(value)  # Test serialization
-                        safe_fields[key] = value
-                    except (TypeError, ValueError):
-                        safe_fields[key] = str(value)
-                log_data.update(safe_fields)
-
-            return json.dumps(log_data, ensure_ascii=False)
-        except Exception as e:
-            # Fallback: basit JSON format
-            return json.dumps(
-                {
-                    "timestamp": datetime.now().isoformat(),
-                    "level": getattr(record, "levelname", "ERROR"),
-                    "logger": getattr(record, "name", "unknown"),
-                    "message": (
-                        str(record.getMessage())
-                        if hasattr(record, "getMessage")
-                        else str(record)
-                    ),
-                    "error": f"JSON serialization failed: {e}",
-                },
-                ensure_ascii=False,
-            )
-
-
-def setup_logger(
-    name: str,
-    log_file: Path,
-    level: int = logging.INFO,
-    max_bytes: int = MAX_BYTES,
-    backup_count: int = BACKUP_COUNT,
-) -> logging.Logger:
-    """
-    Logger oluştur ve yapılandır
-
-    Args:
-        name: Logger adı
-        log_file: Log dosyası yolu
-        level: Log seviyesi
-        max_bytes: Maksimum dosya boyutu (rotation için)
-        backup_count: Yedek dosya sayısı
-
-    Returns:
-        Yapılandırılmış logger
-    """
-    logger = logging.getLogger(name)
-    logger.setLevel(level)
-
-    # Zaten handler'lar varsa ekleme (duplicate önleme)
-    if logger.handlers:
-        return logger
-
-    # JSON formatter
-    json_formatter = JSONFormatter()
-
-    # File handler (rotation ile)
-    try:
-        file_handler = RotatingFileHandler(
-            log_file, maxBytes=max_bytes, backupCount=backup_count, encoding="utf-8"
-        )
-        file_handler.setLevel(level)
-        file_handler.setFormatter(json_formatter)
-        logger.addHandler(file_handler)
-    except (OSError, PermissionError) as e:
-        # Dosya yazma hatası - sadece console logging kullan
-        logger.warning(f"File logging failed for {log_file}: {e}, using console only")
-
-    # Console handler (geliştirme için)
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(level)
-    # Console için daha okunabilir format
-    console_formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-    console_handler.setFormatter(console_formatter)
-    logger.addHandler(console_handler)
-
-    return logger
-
-
-# Ana logger'lar
-api_logger = setup_logger("api", API_LOG_FILE)
-esp32_logger = setup_logger("esp32", ESP32_LOG_FILE)
-system_logger = setup_logger("system", SYSTEM_LOG_FILE)
-session_logger = setup_logger("session", SESSION_LOG_FILE)
-incident_logger = setup_logger("incident", INCIDENT_LOG_FILE, level=logging.WARNING)
-
-# ContextVar tabanlı logging context
 _logging_context: contextvars.ContextVar[Dict[str, Any]] = contextvars.ContextVar(
     "logging_context", default={}
 )
@@ -175,12 +55,7 @@ def get_logging_context() -> Dict[str, Any]:
 
 
 def push_logging_context(**kwargs: Any) -> contextvars.Token:
-    """
-    Logging context'ine alan ekle (ör. correlation_id, session_id).
-
-    Returns:
-        contextvars.Token: Reset için token
-    """
+    """Logging context'ine alan ekle (ör. correlation_id, session_id)."""
     ctx = get_logging_context()
     cleaned = {k: v for k, v in kwargs.items() if v is not None}
     ctx.update(cleaned)
@@ -205,6 +80,25 @@ def bind_session_context(
     cleaned.update(kwargs)
     filtered = {k: v for k, v in cleaned.items() if v is not None}
     return push_logging_context(**filtered)
+
+
+# Ana logger'lar
+api_logger = setup_logger("api", API_LOG_FILE, context_getter=get_logging_context)
+esp32_logger = setup_logger(
+    "esp32", ESP32_LOG_FILE, context_getter=get_logging_context
+)
+system_logger = setup_logger(
+    "system", SYSTEM_LOG_FILE, context_getter=get_logging_context
+)
+session_logger = setup_logger(
+    "session", SESSION_LOG_FILE, context_getter=get_logging_context
+)
+incident_logger = setup_logger(
+    "incident",
+    INCIDENT_LOG_FILE,
+    level=logging.WARNING,
+    context_getter=get_logging_context,
+)
 
 
 def log_api_request(

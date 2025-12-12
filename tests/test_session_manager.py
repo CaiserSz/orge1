@@ -1,8 +1,8 @@
 """
 Session Manager Test Suite
 Created: 2025-12-10 03:30:00
-Last Modified: 2025-12-10 03:30:00
-Version: 1.0.0
+Last Modified: 2025-12-13 02:30:00
+Version: 1.1.0
 Description: Session Manager modülü için unit testler
 """
 
@@ -17,76 +17,6 @@ from api.session import (
     get_session_manager,
 )
 
-
-class TestChargingSession:
-    """ChargingSession sınıfı için testler"""
-
-    def test_session_creation(self):
-        """Session oluşturma testi"""
-        session_id = "test-session-123"
-        start_time = datetime.now()
-        start_state = ESP32State.CHARGING.value
-
-        session = ChargingSession(session_id, start_time, start_state)
-
-        assert session.session_id == session_id
-        assert session.start_time == start_time
-        assert session.start_state == start_state
-        assert session.status == SessionStatus.ACTIVE
-        assert len(session.events) == 0
-        assert session.end_time is None
-        assert session.end_state is None
-
-    def test_add_event(self):
-        """Session'a event ekleme testi"""
-        session = ChargingSession("test-123", datetime.now(), ESP32State.CHARGING.value)
-        event_data = {"test": "data"}
-
-        session.add_event(EventType.CHARGE_PAUSED, event_data)
-
-        assert len(session.events) == 1
-        assert session.events[0]["event_type"] == EventType.CHARGE_PAUSED.value
-        assert "timestamp" in session.events[0]
-        assert session.events[0]["data"] == event_data
-
-    def test_end_session(self):
-        """Session sonlandırma testi"""
-        session = ChargingSession("test-123", datetime.now(), ESP32State.CHARGING.value)
-        end_time = datetime.now()
-        end_state = ESP32State.STOPPED.value
-
-        session.end_session(end_time, end_state, SessionStatus.COMPLETED)
-
-        assert session.end_time == end_time
-        assert session.end_state == end_state
-        assert session.status == SessionStatus.COMPLETED
-
-    def test_to_dict(self):
-        """Session dict dönüşümü testi"""
-        session = ChargingSession("test-123", datetime.now(), ESP32State.CHARGING.value)
-        session.add_event(EventType.CHARGE_STARTED, {"test": "data"})
-
-        session_dict = session.to_dict()
-
-        assert session_dict["session_id"] == "test-123"
-        assert session_dict["status"] == SessionStatus.ACTIVE.value
-        assert session_dict["event_count"] == 1
-        assert session_dict["end_time"] is None
-        assert "start_time" in session_dict
-        assert "events" in session_dict
-
-    def test_to_dict_with_end_time(self):
-        """Bitiş zamanı olan session dict dönüşümü testi"""
-        start_time = datetime.now()
-        session = ChargingSession("test-123", start_time, ESP32State.CHARGING.value)
-        end_time = datetime.now()
-        session.end_session(end_time, ESP32State.STOPPED.value, SessionStatus.COMPLETED)
-
-        session_dict = session.to_dict()
-
-        assert session_dict["end_time"] == end_time.isoformat()
-        assert session_dict["duration_seconds"] is not None
-        assert session_dict["duration_seconds"] > 0
 
 
 class TestSessionManager:
@@ -437,46 +367,3 @@ class TestSessionManager:
             manager.get_session_count(SessionStatus.CANCELLED) == cancelled_before + 1
         )
 
-
-class TestSessionManagerSingleton:
-    """Session Manager singleton pattern testleri"""
-
-    def test_singleton_pattern(self):
-        """Singleton pattern testi"""
-        manager1 = get_session_manager()
-        manager2 = get_session_manager()
-
-        assert manager1 is manager2
-
-
-class TestSessionManagerIntegration:
-    """Session Manager entegrasyon testleri"""
-
-    def test_register_with_event_detector(self):
-        """Event Detector'a kayıt testi"""
-        manager = SessionManager()
-        event_detector = Mock()
-        event_detector.register_callback = Mock()
-
-        manager.register_with_event_detector(event_detector)
-
-        event_detector.register_callback.assert_called_once()
-        # Callback'in manager._on_event olduğunu kontrol et
-        callback = event_detector.register_callback.call_args[0][0]
-        assert callable(callback)
-
-    def test_event_detector_callback(self):
-        """Event Detector callback entegrasyonu testi"""
-        manager = SessionManager()
-        event_detector = Mock()
-
-        manager.register_with_event_detector(event_detector)
-
-        # Callback'i al ve çağır
-        callback = event_detector.register_callback.call_args[0][0]
-        event_data = {"to_state": ESP32State.CHARGING.value}
-
-        callback(EventType.CHARGE_STARTED, event_data)
-
-        assert manager.current_session is not None
-        assert manager.current_session.status == SessionStatus.ACTIVE

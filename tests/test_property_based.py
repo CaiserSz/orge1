@@ -63,7 +63,9 @@ class TestPropertyBasedCurrentSetting:
 
     @given(amperage=st.integers(min_value=6, max_value=32))
     @settings(
-        max_examples=20, suppress_health_check=[HealthCheck.function_scoped_fixture]
+        max_examples=20,
+        deadline=None,
+        suppress_health_check=[HealthCheck.function_scoped_fixture],
     )
     def test_set_current_all_valid_states(self, client, mock_esp32_bridge, amperage):
         """Tüm geçerli state'lerde akım ayarlanabilmeli"""

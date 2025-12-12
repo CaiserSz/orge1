@@ -8,32 +8,6 @@
 
 ## Öncelikli Görevler
 
-### Öncelik 3: Kod Standart Uyarıları (Satır Limiti Yakın Dosyalar)
-
-- [ ] **Görev:** API modüllerini böl (satır limiti yaklaştı)
-  - Açıklama: `scripts/standards_auto_check.py` uyarısı. Aşağıdaki dosyalar 500 satır limitine yaklaştı ve modüllere ayrılmalı.
-  - Öncelik: Orta
-  - Tahmini Süre: 2-4 saat
-  - Durum: 🟡 Uyarı eşiği yakın
-  - Detaylar:
-    - `api/cache.py` (424 satır)
-    - `api/logging_config.py` (469 satır)
-    - `api/event_detector.py` (408 satır)
-    - `api/alerting.py` (413 satır)
-    - `api/session/events.py` (500 satır)
-    - `api/database/core.py` (427 satır)
-    - `api/routers/status.py` (449 satır)
-
-- [ ] **Görev:** Test dosyalarını böl (satır limiti yaklaştı)
-  - Açıklama: `scripts/standards_auto_check.py` uyarısı. Aşağıdaki test dosyaları 500 satır limitine yaklaştı ve suite'e bölünmeli.
-  - Öncelik: Orta
-  - Tahmini Süre: 2-3 saat
-  - Durum: 🟡 Uyarı eşiği yakın
-  - Detaylar:
-    - `tests/test_session_manager.py` (482 satır)
-    - `tests/test_event_detector.py` (423 satır)
-    - `tests/test_command_dry_run.py` (457 satır)
-    - `tests/test_protocol.py` (420 satır)
 
 ### Faz 1: Temel Altyapı (Kritik) - Devam Ediyor
 
@@ -597,96 +571,15 @@
     - `api/session/events.py` - Event handling (396 satır)
     - `api/session/metrics.py` - Metrics calculation (zaten var)
 
-- [ ] **Görev:** `tests/test_charge_status_current_apis.py` test suite'e bölme
-  - Açıklama: Maksimum sınır (500 satır) aşıldı (787 satır). Test suite'e bölünmeli
-  - Öncelik: 0 (Acil)
-  - Tahmini Süre: 2-3 saat
-  - Durum: ✅ Güncel ölçüm 308 satır (2025-12-13 00:55) – limitin altında, task temizliği gerekli
-  - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
-
-- **Not (2025-12-13 00:55):** `wc -l tests/test_charge_status_current_apis.py` → 308. Görev master_done kayıtları doğrultusunda kaldırılabilir.
-
-- [ ] **Görev:** `tests/test_bridge.py` test suite'e bölme
-  - Açıklama: Maksimum sınır (500 satır) aşıldı (681 satır). Test suite'e bölünmeli
-  - Öncelik: 0 (Acil)
-  - Tahmini Süre: 2-3 saat
-  - Durum: 🟡 Güncel ölçüm 365 satır (2025-12-13 00:55) – limitin altında ancak izlenmeli
-  - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
-  - Not: `wc -l tests/test_bridge.py` → 365. Limit altı olup standby konumuna alındı.
-
-##### 🟡 Uyarı Eşiği Yakın (Yakın Zamanda Refactor Planlanmalı)
-- [ ] **Görev:** `api/cache.py` modüllere bölme
-  - Açıklama: Uyarı eşiği (500 satır) yakın (415 satır). Modüllere bölünebilir
-  - Öncelik: 0 (Acil)
-  - Tahmini Süre: 2-3 saat
-  - Durum: 🟡 Uyarı eşiği yakın
-  - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
-
-- [ ] **Görev:** `api/logging_config.py` modüllere bölme
-  - Açıklama: Uyarı eşiği (500 satır) yakın (469 satır). Modüllere bölünebilir
-  - Öncelik: 0 (Acil)
-  - Tahmini Süre: 2-3 saat
-  - Durum: 🟡 Uyarı eşiği yakın
-  - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
-
-- [ ] **Görev:** `api/event_detector.py` modüllere bölme
-  - Açıklama: Uyarı eşiği (500 satır) yakın (408 satır). Modüllere bölünebilir
-  - Öncelik: 0 (Acil)
-  - Tahmini Süre: 2-3 saat
-  - Durum: 🟡 Uyarı eşiği yakın
-  - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
-
-- [ ] **Görev:** `api/alerting.py` modüllere bölme
-  - Açıklama: Uyarı eşiği (500 satır) yakın (413 satır). Modüllere bölünebilir
-  - Öncelik: 0 (Acil)
-  - Tahmini Süre: 2-3 saat
-  - Durum: 🟡 Uyarı eşiği yakın
-  - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
-
-- [ ] **Görev:** `api/session/events.py` modüllere bölme
-  - Açıklama: Uyarı eşiği (500 satır) sınırında (500 satır). Modüllere bölünmeli
-  - Öncelik: 0 (Acil)
-  - Tahmini Süre: 2-3 saat
-  - Durum: 🟡 Uyarı eşiği sınırında
-  - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
-
-- [ ] **Görev:** `api/database/core.py` modüllere bölme
-  - Açıklama: Uyarı eşiği (500 satır) yakın (427 satır). Modüllere bölünebilir
-  - Öncelik: 0 (Acil)
-  - Tahmini Süre: 2-3 saat
-  - Durum: 🟡 Uyarı eşiği yakın
-  - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
-
-- [ ] **Görev:** `api/routers/status.py` modüllere bölme
-  - Açıklama: Uyarı eşiği (500 satır) yakın (420 satır). Modüllere bölünebilir
-  - Öncelik: 0 (Acil)
-  - Tahmini Süre: 2-3 saat
-  - Durum: 🟡 Uyarı eşiği yakın
-  - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
-
-- [ ] **Görev:** Test dosyaları refactoring (4 dosya)
-  - Açıklama: Uyarı eşiği (500 satır) yakın. Test suite'e bölünmeli
-  - Öncelik: 0 (Acil)
-  - Tahmini Süre: 4-6 saat
-  - Durum: 🟡 Uyarı eşiği yakın
-  - Dosyalar:
-    - `tests/test_session_manager.py` (457 satır)
-    - `tests/test_event_detector.py` (423 satır)
-    - `tests/test_command_dry_run.py` (456 satır)
-    - `tests/test_protocol.py` (420 satır)
-  - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
-
 #### 🔴 KRİTİK: Workspace Boyutu (Workspace Kontrol Raporu - 2025-12-10)
-- [ ] **Görev:** env/ klasörü boyutunu 80 MB altına çek
-  - Açıklama: env/ sanal ortamı 102.07 MB (warning eşiği 100 MB) – dependency temizliği veya env'in workspace dışına taşınması planlanmalı.
+- [x] **Görev:** env/ klasörü boyutunu 80 MB altına çek
+  - Açıklama: env/ sanal ortamı 102.07 MB idi. __pycache__/pyc temizliği ile 76.7 MB seviyesine indirildi.
   - Öncelik: 2 (Yüksek) – Workspace standartları
-  - Tahmini Süre: 1-2 saat
-  - Durum: 🟡 Uyarı eşiği aşıldı (2025-12-13 00:59)
-  - Detaylar: `scripts/workspace_auto_check.py` raporu (env/logs hariç 29.13 MB, env 102.07 MB)
+  - Durum: ✅ Tamamlandı (2025-12-13 01:55, `python3 scripts/workspace_auto_check.py`)
   - Aksiyonlar:
-    - env/ içindeki pip/pip cache dosyalarını temizle (`pip cache purge`, `__pycache__` silme)
-    - Kullanılmayan paketleri kaldır veya slim virtualenv oluştur
-    - env/ klasörünü workspace dışına taşıyıp sembolik link bırakma opsiyonunu değerlendir
+    - `find env -type d -name '__pycache__' -delete`
+    - `find env -name '*.pyc' -delete`
+    - Çalıştırılan script sonucu: env 76.73 MB, logs 2.90 MB.
 
 
 #### ✅ State Değerleri Standardizasyonu (API Testleri Deep Dive Bulgusu) - Tamamlandı
@@ -994,12 +887,11 @@ CREATE TABLE sessions (
   - Durum: ✅ Tamamlandı (2025-12-12 03:24)
   - Detaylar: `scripts/code_quality_auto_check.py` raporuna bakınız
 
-- [ ] **Görev:** Uyarı eşiğine yakın dosyaları refactor planı
-  - Açıklama: `scripts/standards_auto_check.py` uyarıları için modül/test dosyaları (limit 500 satıra yakın) sadeleştirilmeli veya modüllere ayrılmalı.
+- [x] **Görev:** Uyarı eşiğine yakın dosyaları refactor planı
+  - Açıklama: `scripts/standards_auto_check.py` uyarısı veren API ve test dosyaları modüler alt yapılara taşındı; satır sayıları <400.
   - Öncelik: 8
-  - Tahmini Süre: 2-4 saat
-  - Durum: 📋 Bekliyor
-  - Detaylar: Uyarı listesi: `api/cache.py`, `api/alerting.py`, `api/database/core.py`, `api/routers/status.py`, `tests/test_session_manager.py`, `tests/test_event_detector.py`, `tests/test_command_dry_run.py`, `tests/test_protocol.py`
+  - Durum: ✅ Tamamlandı (2025-12-13 02:45)
+  - Güncellemeler: `api/cache_backend.py`, `api/logging_setup.py`, `api/event_types.py`, `api/alerting_models.py`, `api/session/events_logging.py`, `api/session/events_lifecycle.py`, `api/database/schema_mixin.py`, `api/services/health_service.py`, `tests/test_session_model.py`, `tests/test_session_manager_integration.py`, `tests/test_event_detector_integration.py`, `tests/test_command_protocol.py`, `tests/test_protocol_rules.py`
 
 ### Database İyileştirmeleri
 
