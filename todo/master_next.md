@@ -601,15 +601,18 @@
   - Açıklama: Maksimum sınır (500 satır) aşıldı (787 satır). Test suite'e bölünmeli
   - Öncelik: 0 (Acil)
   - Tahmini Süre: 2-3 saat
-  - Durum: 🔴 Maksimum sınır aşıldı
+  - Durum: ✅ Güncel ölçüm 308 satır (2025-12-13 00:55) – limitin altında, task temizliği gerekli
   - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
+
+- **Not (2025-12-13 00:55):** `wc -l tests/test_charge_status_current_apis.py` → 308. Görev master_done kayıtları doğrultusunda kaldırılabilir.
 
 - [ ] **Görev:** `tests/test_bridge.py` test suite'e bölme
   - Açıklama: Maksimum sınır (500 satır) aşıldı (681 satır). Test suite'e bölünmeli
   - Öncelik: 0 (Acil)
   - Tahmini Süre: 2-3 saat
-  - Durum: 🔴 Maksimum sınır aşıldı
+  - Durum: 🟡 Güncel ölçüm 365 satır (2025-12-13 00:55) – limitin altında ancak izlenmeli
   - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
+  - Not: `wc -l tests/test_bridge.py` → 365. Limit altı olup standby konumuna alındı.
 
 ##### 🟡 Uyarı Eşiği Yakın (Yakın Zamanda Refactor Planlanmalı)
 - [ ] **Görev:** `api/cache.py` modüllere bölme
@@ -674,17 +677,16 @@
   - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
 
 #### 🔴 KRİTİK: Workspace Boyutu (Workspace Kontrol Raporu - 2025-12-10)
-- [ ] **Görev:** Workspace temizliği ve arşivleme
-  - Açıklama: Workspace boyutu 137.48 MB (Limit: 100 MB). Temizlik ve arşivleme gerekli
-  - Öncelik: 0 (Acil)
+- [ ] **Görev:** env/ klasörü boyutunu 80 MB altına çek
+  - Açıklama: env/ sanal ortamı 102.07 MB (warning eşiği 100 MB) – dependency temizliği veya env'in workspace dışına taşınması planlanmalı.
+  - Öncelik: 2 (Yüksek) – Workspace standartları
   - Tahmini Süre: 1-2 saat
-  - Durum: 🔴 Workspace boyutu çok büyük
-  - Detaylar: `scripts/workspace_auto_check.py` raporuna bakınız
+  - Durum: 🟡 Uyarı eşiği aşıldı (2025-12-13 00:59)
+  - Detaylar: `scripts/workspace_auto_check.py` raporu (env/logs hariç 29.13 MB, env 102.07 MB)
   - Aksiyonlar:
-    - Eski log dosyalarını arşivleme
-    - Gereksiz dosyaları temizleme
-    - Backup dosyalarını kontrol etme
-    - env/ klasörü boyutunu kontrol etme
+    - env/ içindeki pip/pip cache dosyalarını temizle (`pip cache purge`, `__pycache__` silme)
+    - Kullanılmayan paketleri kaldır veya slim virtualenv oluştur
+    - env/ klasörünü workspace dışına taşıyıp sembolik link bırakma opsiyonunu değerlendir
 
 
 #### ✅ State Değerleri Standardizasyonu (API Testleri Deep Dive Bulgusu) - Tamamlandı

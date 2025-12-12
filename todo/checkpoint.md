@@ -14,8 +14,14 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251212-026
-**Tarih:** 2025-12-12 22:35:00
+**Checkpoint ID:** CP-20251213-027
+**Tarih:** 2025-12-13 01:05:00
+**Durum:** ✅ Workspace temizliği ve log rotasyonu tamamlandı
+- `du -sh .` 172 MB → 135 MB (logs 37 MB → 0.01 MB, env 102 MB).
+- `logs/api.log.*` dosyaları temizlendi, aktif loglar sıfırlandı.
+- `python3 scripts/workspace_auto_check.py` → env/logs hariç 29.13 MB (test geçti); env boyutu için yeni görev açıldı.
+
+### Önceki Checkpoint: CP-20251212-026 (2025-12-12 22:35:00)
 **Durum:** ✅ Acrel Meter + `/test` UI Stabilizasyonu Tamamlandı
 
 ### Önceki Checkpoint: CP-20251212-025 (2025-12-12 08:50:00)
@@ -102,6 +108,21 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 **Durum:** ✅ Logging Sistemi ve Kritik Düzeltmeler Tamamlandı
 
 ### Son Tamamlanan İş
+- **Görev:** Workspace temizliği ve log rotasyonu
+- **Durum:** ✅ Tamamlandı
+- **Tarih:** 2025-12-13 00:59:00
+- **Detaylar:**
+  - ✅ `logs/api.log.1-3` dosyaları silindi, aktif loglar sıfırlandı (`system.log`, `esp32.log`, `api.log`, `session.log`, `incident.log`).
+  - ✅ `du -sh .` ölçümü 172 MB → 135 MB; `logs/` 37 MB → 0.01 MB; `env/` 102 MB.
+  - ✅ `python3 scripts/workspace_auto_check.py` ile env/logs hariç boyutun 29.13 MB olduğu teyit edildi.
+  - ✅ `master_next.md` içine env küçültme görevi eklendi, `master_live/master_done/project_state/project_info` güncellendi.
+- **Test Sonucu:**
+  - `python3 scripts/workspace_auto_check.py` → ✅ Tüm kontroller geçti (env boyutu warning olarak listelendi).
+- **Beklenen İyileştirmeler:**
+  - env/ klasörü küçültülerek (<80 MB) uyarı eşiği altına indirilmeli.
+  - Otomatik log rotasyonu için günlük cron veya logrotate entegrasyonu planlanabilir.
+
+### Önceki Tamamlanan İş
 - **Görev:** Meter entegrasyonu aktivasyonu (ABB B23 112-100 / RS485 / Modbus)
 - **Durum:** ✅ Tamamlandı
 - **Tarih:** 2025-12-12 08:50:00
@@ -116,7 +137,6 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
   - Frekans/power factor gibi ek alanlar istenirse register map genişletilebilir
   - Export/net enerji register'ları gerekirse signed/scale olarak doğrulanabilir
 
-### Önceki Tamamlanan İş
 - **Görev:** `api/database` paketinde standart uyumu ve modülerleştirme
 - **Durum:** ✅ Tamamlandı
 - **Tarih:** 2025-12-10 21:24:00

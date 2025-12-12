@@ -1,7 +1,7 @@
 # Proje Durumu ve İlerleme Takibi
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-12 22:35:00
+**Son Güncelleme:** 2025-12-13 01:05:00
 **Version:** 1.6.0
 
 ---
@@ -137,6 +137,12 @@
   - Black/ruff uyarıları giderildi (router/service/meter test dosyalarında format ve f-string düzeltmeleri)
   - `./env/bin/python -m pytest` çalıştırıldı (159 failure, 414 passed, 4 skipped) — ağırlıklı rate limiting ve mock/konfigürasyon kaynaklı hatalar; takip gerekiyor
 
+### 2025-12-13
+- **00:59:00** - Workspace temizliği ve log rotasyonu
+  - `du -sh .` ölçümü 172 MB → 135 MB (logs 37 MB → 0.01 MB, env 102 MB).
+  - `logs/api.log.1-3` dosyaları temizlendi, mevcut log dosyaları sıfırlandı.
+  - `python3 scripts/workspace_auto_check.py` çalıştırılarak env/logs hariç boyutun 29.13 MB olduğu teyit edildi; env büyüklüğü için yeni görev açıldı (`master_next.md`).
+
 ### 2025-12-12
 - **05:05:00** - Pytest suite stabilizasyonu tamamlandı
   - Rate limiting decorator'ları runtime'da `config.RATE_LIMIT_ENABLED` bayrağını kontrol edecek şekilde yeniden yazıldı; pytest ortamı için `PYTEST_DISABLE_RATE_LIMIT` env'si artık yeterli.
@@ -245,6 +251,11 @@
    - Risk: Manuel deployment hataları
    - Etki: Düşük
    - Çözüm: GitHub Actions kurulumu (gelecek)
+
+4. **env/ klasörü boyutu uyarı seviyesinde**
+   - Risk: env 102 MB ile 100 MB uyarı eşiğinin üzerinde; disk kullanımını artırıyor, backup/transfer süreçlerini yavaşlatıyor.
+   - Etki: Düşük-Orta
+   - Çözüm: env temizliği (pip cache purge, kullanılmayan paketleri kaldırma) veya env'i workspace dışına taşıma (symbolic link).
 
 ---
 

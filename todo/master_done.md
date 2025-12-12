@@ -7,6 +7,23 @@
 
 ## Tamamlanan Görevler Listesi
 
+### 2025-12-13
+
+#### ✅ Workspace Temizliği ve Log Rotasyonu (00:59:00)
+- **Görev:** Workspace temizliği ve arşivleme
+- **Açıklama:** Workspace boyutu 172 MB ölçülüyordu (env 94 MB, logs 37 MB). Eski log dosyaları (api.log.*) silindi, aktif loglar sıfırlandı ve standart script ile teyit edilerek workspace boyutu (env/logs hariç) 29.13 MB olarak doğrulandı.
+- **Öncelik:** 0 (Acil) – Workspace standart ihlali şüphesi
+- **Başlangıç:** 2025-12-13 00:45:00
+- **Bitiş:** 2025-12-13 00:59:00
+- **İmplementasyon:**
+  - `logs/api.log.1`, `logs/api.log.2`, `logs/api.log.3` dosyaları silindi.
+  - `logs/api.log`, `logs/system.log`, `logs/esp32.log`, `logs/session.log`, `logs/incident.log` dosyaları sıfırlandı (log rotasyonu sonrası yeni kayıtlar için hazır).
+  - Genel boyut ölçümü `du -sh .` ile 135 MB olarak teyit edildi (önce 172 MB).
+  - Workspace denetimi `python3 scripts/workspace_auto_check.py` ile yapıldı (env/logs hariç 29.13 MB, env 102.07 MB, logs 0.01 MB).
+- **Test/Doğrulama:**
+  - `python3 scripts/workspace_auto_check.py` (önce ve sonra) → ✅ tüm kontroller geçti, env boyutu uyarı seviyesinde raporlandı.
+  - Manuel boyut ölçümü: `du -sh .`, `du -sh logs`.
+
 ### 2025-12-12
 
 #### ✅ Meter Entegrasyonu Aktivasyonu (08:50:00)
