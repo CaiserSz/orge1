@@ -17,7 +17,7 @@ Tüm geliştirme süreci (env) virtual environment ile yönetilecektir.
 Terminal açıldığında otomatik olarak virtual ortamda açılacak ve kodlar orada yürütülecektir.
 Kullanıcı ile Türkçe iletişim kurulacaktır.
 Tüm kodlar profesyonel standartlarda yazılacaktır.
-Her değişiklik sonrası testler çalıştırılacaktır.
+**ÖNEMLİ - Test Zamanlaması:** Her dosya editinden sonra SADECE o dosyanın syntax kontrolü yapılmalıdır (`python3 -m py_compile dosya.py` veya `python3 -c "import ast; ast.parse(open('dosya.py').read())"`). İlgili test dosyası varsa SADECE o test dosyası çalıştırılmalıdır (`pytest tests/test_ilgili_dosya.py`). TÜM test suite'i (`pytest` veya `./env/bin/python -m pytest`) SADECE görev tamamlandığında, commit öncesi veya kullanıcıya teslim etmeden önce çalıştırılmalıdır. Her dosya editinden sonra tüm test suite'ini çalıştırmak VERİMSİZDİR ve YAPILMAMALIDIR.
 Tüm önemli değişiklikler dokümante edilecektir.
 Tüm kod dosyalarına oluşturulma tarihi, revizyon tarihleri(saat ve dakika dahil) ve kısa açıklama eklenecektir.
 Tüm dosya isimleri her zaman İngilizce olacaktır.
@@ -25,17 +25,30 @@ Tüm dosya isimleri her zaman İngilizce olacaktır.
 Dosya, klasör, alt klasör, ikilik (binary) yaratacak durumlara izin verilmeyecektir.
 Kod standardı tüm workspace ve projede korunacaktır.
 /home/basar/charger/project_info_20251208_145614.md ve /home/basar/charger/.cursorrules dosyaları her zaman güncel tutulacaktır.
-Agent projede ilgili adım ve işlemlerde her seferinde otonom olarak o konuda veya veya başka konuya geçtiğine diğer konuda kıdemli uzman olacaktır. ve gerekli işlemleri kıdemli uzman olarak yerine getirecektir.
-Agent çalışmaları esnasında ne yapıyorsa o konuda kıdemli uzman dır.  Çalışmaları dosya ve klasörleri en doğru zamanda githuba yükleyeceğini projeye etkisi ve ilerleme durumunda göre optimum noktalarda gerekli döküman kod, açıklama, rpor vb tüm ilgili verileri githuba aktaravcak veya githubı güncellleyecektir.
+**Agent Çalışma Prensipleri:**
+- Agent her görevde o konuda uzman seviyesinde çalışmalıdır
+- Agent otonom çalışmalıdır ancak mantıklı ve verimli olmalıdır
+- Agent görevleri tamamladıkça Git commit ve push yapmalıdır (her görev sonrası veya mantıklı checkpoint'lerde)
+- Agent gereksiz dosya okuma, gereksiz test çalıştırma veya gereksiz işlem yapmamalıdır
 
 ## KRİTİK KURAL: Test ve Teyit Zorunluluğu
 
 **ÖNEMLİ:** Agent, kullanıcıya teslim etmeden önce MUTLAKA test edip teyit etmelidir.
 
+**TEST ZAMANLAMASI (KRİTİK):**
+- ❌ **YANLIŞ:** Her dosya editinden sonra tüm test suite'ini çalıştırmak (`pytest` veya `./env/bin/python -m pytest`)
+- ✅ **DOĞRU:** Her dosya editinden sonra SADECE o dosyanın syntax kontrolü yapılmalıdır
+- ✅ **DOĞRU:** İlgili test dosyası varsa SADECE o test dosyası çalıştırılmalıdır (`pytest tests/test_ilgili_dosya.py`)
+- ✅ **DOĞRU:** Tüm test suite'i SADECE şu durumlarda çalıştırılmalıdır:
+  1. Görev tamamlandığında
+  2. Commit öncesi
+  3. Kullanıcıya teslim etmeden önce
+  4. Büyük refactoring sonrası
+
 - Test edilmemiş veya teyit edilmemiş hiçbir şey kullanıcıya verilmemelidir
-- Her implementasyon sonrası çalıştırılabilir testler yapılmalıdır
+- Her implementasyon sonrası çalıştırılabilir testler yapılmalıdır (SADECE ilgili testler, tüm suite değil)
 - API endpoint'leri test edilmeli ve çalıştığı doğrulanmalıdır
-- Dosya oluşturma/değiştirme sonrası syntax kontrolü yapılmalıdır
+- Dosya oluşturma/değiştirme sonrası syntax kontrolü yapılmalıdır (SADECE o dosya için)
 - Servis başlatma sonrası erişilebilirlik test edilmelidir
 - Hata durumlarında kullanıcıya bilgi verilmemeli, önce düzeltilmelidir
 
@@ -468,12 +481,49 @@ Agent şu dosyaları **sırayla** okumalıdır:
   - Code quality iyileştirmeleri
   - Standart ihlalleri
 
+## KRİTİK KURAL: Verimlilik ve Odak Yönetimi
+
+**ÖNEMLİ:** Agent verimli çalışmalı, gereksiz token harcamamalı, odak kaybetmemeli ve mantıklı ilerlemelidir.
+
+### Token Kullanımı ve Verimlilik Kuralları
+
+**Gereksiz Dosya Okuma Önleme:**
+- ❌ **YANLIŞ:** Her seferinde tüm dokümantasyonu okumak
+- ✅ **DOĞRU:** Sadece gerekli dosyaları okumak
+- ✅ **DOĞRU:** Durum tespiti için sadece `todo/START_HERE.md` ve `todo/checkpoint.md` okunmalıdır
+- ✅ **DOĞRU:** Detaylı bilgi gerektiğinde spesifik dosyalar okunmalıdır
+- ✅ **DOĞRU:** Aynı bilgiyi tekrar okumamak için önce mevcut bilgiyi kontrol etmek
+
+**Gereksiz İşlem Önleme:**
+- ❌ **YANLIŞ:** Her dosya editinden sonra tüm test suite'ini çalıştırmak
+- ❌ **YANLIŞ:** Her adımda tüm kontrol scriptlerini çalıştırmak
+- ✅ **DOĞRU:** Sadece gerekli kontrolleri yapmak
+- ✅ **DOĞRU:** Test zamanlaması kurallarına uymak (yukarıda belirtildiği gibi)
+
+**Odak Kaybını Önleme:**
+- ✅ Agent bir göreve başladığında o görevi tamamlamalıdır
+- ✅ Görev tamamlanmadan başka göreve geçmemelidir (acil durumlar hariç)
+- ✅ Görev sırasında tespit edilen diğer konular `todo/master_next.md`'ye eklenmeli, hemen ele alınmamalıdır
+- ✅ Mantıklı checkpoint'lerde durup değerlendirme yapmalıdır
+
+**Mantık Kontrolü:**
+- ✅ Her işlem öncesi "Bu işlem mantıklı mı?" sorusu sorulmalıdır
+- ✅ Gereksiz işlemler yapılmamalıdır
+- ✅ Yapılan işlemlerin sonucu kontrol edilmelidir
+- ✅ Hata durumunda mantıklı çözüm üretilmelidir
+
+**Zaman Yönetimi:**
+- ✅ Küçük görevler için hızlı karar vermeli
+- ✅ Büyük görevler için plan yapmalı
+- ✅ Blokaj durumunda alternatif görev seçmeli
+- ✅ Gereksiz bekleme yapmamalı
+
 ### ÖNEMLİ NOTLAR
 
 - ✅ Agent projeye devam ettiğinde **mutlaka** `todo/START_HERE.md` dosyasını okumalıdır
 - ✅ Agent projenin ne olduğunu anlamak için `project_info_20251208_145614.md` dosyasını referans almalıdır
 - ✅ Agent gelinen noktadan daha ileri gitmek için `master_next.md` dosyasındaki görevleri takip etmelidir
-- ✅ Agent her zaman proaktif çalışmalıdır (eksiklikleri tespit edip tamamlamalı)
+- ✅ Agent her zaman proaktif çalışmalıdır (eksiklikleri tespit edip tamamlamalı) ancak odak kaybetmemelidir
 - ✅ Agent görevleri tamamladıkça todo sistemini güncellemelidir
 - ✅ Detaylı rehber için `todo/PROJECT_CONTINUATION_GUIDE.md` dosyasına bakınız
 

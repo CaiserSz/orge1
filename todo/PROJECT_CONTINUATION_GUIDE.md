@@ -29,36 +29,32 @@ Agent şu adımları otomatik olarak takip edecektir:
 
 ## 📋 Agent'ın İzleyeceği Adımlar
 
-### Adım 1: Durum Tespiti (ZORUNLU)
+### Adım 1: Durum Tespiti (ZORUNLU - Verimli Okuma)
 
-Agent şu dosyaları sırayla okuyacaktır:
+**ÖNEMLİ:** Gereksiz dosya okuma yapma! Sadece gerekli bilgileri oku.
 
-1. **`todo/START_HERE.md`** ⭐ İLK OKUNACAK
+Agent şu dosyaları **sırayla ve verimli** okuyacaktır:
+
+1. **`todo/START_HERE.md`** ⭐ İLK OKUNACAK (Sadece özet - ~2 dakika)
    - Hızlı başlangıç rehberi
-   - Kritik kurallar
+   - Kritik kurallar özeti
    - Okuma sırası
 
-2. **`todo/checkpoint.md`** 📍 Nerede Kaldık?
+2. **`todo/checkpoint.md`** 📍 Nerede Kaldık? (Sadece son checkpoint - ~30 saniye)
    - Son checkpoint bilgisi
    - Son tamamlanan iş
    - Sonraki yapılacaklar
 
-3. **`todo/project_state.md`** 📊 Detaylı Durum
-   - Proje genel durumu
-   - Tamamlanan işler
-   - Devam eden işler
-   - Bekleyen işler
-   - Blokajlar ve riskler
+3. **`todo/master_live.md`** 🔄 Aktif Görevler (Sadece aktif görevler - ~1 dakika)
+   - Şu anda yapılan görevler varsa
+   - Görev detayları ve ilerleme durumu
 
-4. **`todo/master_live.md`** 🔄 Aktif Görevler
-   - Şu anda yapılan görevler
-   - Görev detayları
-   - İlerleme durumu
-
-5. **`todo/master_next.md`** 📋 Bekleyen Görevler
-   - Öncelikli görevler
+4. **`todo/master_next.md`** 📋 Bekleyen Görevler (Sadece öncelikli görevler - ~2 dakika)
+   - En yüksek öncelikli görevler
    - Bağımlılıklar
    - Tahmini süreler
+
+**NOT:** `todo/project_state.md` dosyası sadece detaylı durum gerektiğinde okunmalıdır. Her seferinde okunması gereksiz token harcamasıdır.
 
 ### Adım 2: Görev Seçimi
 
@@ -94,19 +90,19 @@ Agent şu mantıkla görev seçecektir:
 Agent şu kurallara uygun çalışacaktır:
 
 1. **`todo/ai_workflow.md`** dosyasındaki kurallara uyar
-2. **Proaktif çalışır:**
-   - Blokajları çözer
-   - Eksik testleri yazar
-   - Dokümantasyonu günceller
-   - Standartlara uygunluğu kontrol eder
+2. **Proaktif ama odaklı çalışır:**
+   - Blokajları çözer (görev tamamlanamazsa)
+   - Eksik testleri yazar (görev kapsamında)
+   - Dokümantasyonu günceller (görev tamamlandığında)
+   - Standartlara uygunluğu kontrol eder (görev tamamlandığında)
 
 3. **Kritik kurallara uyar:**
-   - Test ve teyit zorunluluğu
-   - Browser test zorunluluğu
-   - External erişim test zorunluluğu
-   - Tespitlerin todo sistemine eklenmesi
-   - Yedekleme ve geri dönüş standartları
-   - Workspace yönetimi standartları
+   - Test zamanlaması kurallarına uyar (her dosya editinden sonra tüm test suite'i ÇALIŞTIRMAZ)
+   - Browser test zorunluluğu (sadece browser özellikleri için)
+   - External erişim test zorunluluğu (sadece external özellikler için)
+   - Tespitlerin todo sistemine eklenmesi (görev sırasında tespit edilenler eklenir, hemen ele alınmaz)
+   - Yedekleme ve geri dönüş standartları (refactoring öncesi)
+   - Workspace yönetimi standartları (commit öncesi kontrol)
 
 ### Adım 4: Tamamlama
 
@@ -129,22 +125,20 @@ Eğer daha fazla görev varsa:
 
 ## 🔍 Agent'ın Kontrol Edeceği Dosyalar
 
-### Zorunlu Okuma (Sırayla)
+### Zorunlu Okuma (Sırayla - Verimli)
 
-1. ✅ `todo/START_HERE.md` - İlk okunacak
-2. ✅ `todo/checkpoint.md` - Nerede kaldık?
-3. ✅ `todo/project_state.md` - Detaylı durum
-4. ✅ `todo/master_live.md` - Aktif görevler
-5. ✅ `todo/master_next.md` - Bekleyen görevler
+1. ✅ `todo/START_HERE.md` - İlk okunacak (özet)
+2. ✅ `todo/checkpoint.md` - Nerede kaldık? (son checkpoint)
+3. ✅ `todo/master_live.md` - Aktif görevler (varsa)
+4. ✅ `todo/master_next.md` - Bekleyen görevler (öncelikli)
 
-### Referans Dosyalar (İhtiyaç Halinde)
+**NOT:** `todo/project_state.md` sadece detaylı durum gerektiğinde okunmalıdır.
 
-- `project_info_20251208_145614.md` - Proje bilgileri
-- `.cursorrules` - Proje kuralları
-- `WORKSPACE_INDEX.md` - Workspace indeksi
-- `CODE_DOCUMENTATION_STANDARDS.md` - Kod standartları
-- `BACKUP_ROLLBACK_STANDARDS.md` - Yedekleme standartları
-- `WORKSPACE_MANAGEMENT_STANDARDS.md` - Workspace yönetimi
+### Referans Dosyalar (Sadece İhtiyaç Halinde)
+
+- `.cursorrules` - Proje kuralları (detaylı kurallar için)
+- `project_info_20251208_145614.md` - Proje bilgileri (proje hakkında bilgi gerektiğinde)
+- Diğer dosyalar sadece spesifik ihtiyaç olduğunda okunmalıdır
 
 ---
 
@@ -186,13 +180,13 @@ Eğer daha fazla görev varsa:
 
 **Agent'ın Yapacağılar:**
 
-1. **Durum Tespiti (Otomatik)**
+1. **Durum Tespiti (Otomatik - Verimli)**
    ```
-   ✅ todo/START_HERE.md okunur
-   ✅ todo/checkpoint.md okunur
-   ✅ todo/project_state.md okunur
-   ✅ todo/master_live.md kontrol edilir
-   ✅ todo/master_next.md kontrol edilir
+   ✅ todo/START_HERE.md okunur (özet)
+   ✅ todo/checkpoint.md okunur (son checkpoint)
+   ✅ todo/master_live.md kontrol edilir (aktif görevler)
+   ✅ todo/master_next.md kontrol edilir (öncelikli görevler)
+   ⚠️ todo/project_state.md sadece detay gerektiğinde okunur
    ```
 
 2. **Durum Özeti (Kullanıcıya Sunulur)**
@@ -237,11 +231,12 @@ Agent:
 
 ## 📝 Notlar
 
-- Agent her zaman `todo/START_HERE.md` dosyasını ilk okumalıdır
-- Agent projenin ne olduğunu anlamak için `project_info_20251208_145614.md` dosyasını referans almalıdır
+- Agent her zaman `todo/START_HERE.md` dosyasını ilk okumalıdır (özet için)
+- Agent projenin ne olduğunu anlamak için `project_info_20251208_145614.md` dosyasını referans almalıdır (sadece proje hakkında bilgi gerektiğinde)
 - Agent gelinen noktadan daha ileri gitmek için `master_next.md` dosyasındaki görevleri takip etmelidir
-- Agent her zaman proaktif çalışmalıdır (eksiklikleri tespit edip tamamlamalı)
+- Agent her zaman proaktif çalışmalıdır ancak odak kaybetmemelidir (eksiklikleri tespit edip `master_next.md`'ye eklemeli, hemen ele almamalı)
 - Agent görevleri tamamladıkça todo sistemini güncellemelidir
+- Agent gereksiz dosya okuma, gereksiz test çalıştırma veya gereksiz işlem yapmamalıdır
 
 ---
 

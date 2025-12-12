@@ -22,14 +22,18 @@ için hazırlanmıştır.
 
 ### 1. Projeye Başlarken (İlk Adımlar)
 
-#### Adım 1: Durum Tespiti
+#### Adım 1: Durum Tespiti (Verimli Okuma)
 ```bash
-# Bu dosyaları oku:
-1. todo/project_state.md      # Projenin mevcut durumu
-2. todo/master_live.md        # Aktif görevler
-3. todo/master_next.md         # Bekleyen görevler
-4. todo/master_done.md         # Tamamlanan görevler
-5. todo/expert_recommendations.md  # Öneriler ve best practices
+# Bu dosyaları SIRAYLA ve VERİMLİ oku:
+1. todo/START_HERE.md         # Özet ve kritik kurallar (İLK OKUNACAK)
+2. todo/checkpoint.md         # Son checkpoint (nerede kaldık?)
+3. todo/master_live.md        # Aktif görevler (varsa)
+4. todo/master_next.md        # Bekleyen görevler (öncelikli)
+
+# Bu dosyalar SADECE İHTİYAÇ HALİNDE okunmalıdır:
+- todo/project_state.md       # Detaylı durum gerektiğinde
+- todo/master_done.md         # Tamamlanan görevler gerektiğinde
+- todo/expert_recommendations.md  # Öneriler gerektiğinde
 ```
 
 #### Adım 2: Durum Analizi
@@ -63,14 +67,16 @@ Bir görevi aktif hale getirmek için:
 3. ✅ Aktif görev sayısı 2-3'ü geçmemeli
 4. ✅ Gerekli kaynaklar mevcut olmalı
 
-### Kural 3: Proaktif Çalışma
+### Kural 3: Proaktif ama Odaklı Çalışma
 AI asistanı şunları yapmalı:
-- ✅ Bekleyen görevleri kontrol et
-- ✅ Blokajları tespit et ve çöz
-- ✅ Eksik dokümantasyonu tamamla
-- ✅ Test coverage'ı artır
-- ✅ Code quality iyileştir
-- ✅ Güvenlik açıklarını tespit et
+- ✅ Bekleyen görevleri kontrol et (görev seçimi için)
+- ✅ Blokajları tespit et ve çöz (görev tamamlanamazsa)
+- ✅ Eksik dokümantasyonu tamamla (görev tamamlandığında)
+- ✅ Test coverage'ı artır (görev kapsamında)
+- ✅ Code quality iyileştir (görev kapsamında)
+- ✅ Güvenlik açıklarını tespit et (görev kapsamında)
+
+**ÖNEMLİ:** Görev sırasında tespit edilen diğer konular `master_next.md`'ye eklenmeli, hemen ele alınmamalıdır. Odak kaybetmemelidir.
 
 ### Kural 4: Checkpoint Sistemi
 Her önemli adımda:
@@ -145,10 +151,10 @@ Her önemli adımda:
 **Durum:** Yeni kod eklendi ama test yok
 
 **Aksiyon:**
-1. Test framework kurulu mu kontrol et
-2. Değilse kurulum yap
-3. Yeni kod için testler yaz
-4. Test coverage'ı kontrol et
+1. İlgili test dosyası var mı kontrol et
+2. Varsa sadece o test dosyasını çalıştır (`pytest tests/test_ilgili_dosya.py`)
+3. Yeni kod için testler yaz (görev kapsamında)
+4. **ÖNEMLİ:** Tüm test suite'ini çalıştırma (sadece görev tamamlandığında)
 
 ### Senaryo 5: Dokümantasyon Eksik
 **Durum:** Yeni özellik eklendi ama dokümante edilmemiş
@@ -163,16 +169,17 @@ Her önemli adımda:
 
 ## 🔍 Durum Kontrol Checklist
 
-Her çalışma oturumunda kontrol et:
+Her çalışma oturumunda kontrol et (Verimli):
 
-- [ ] `project_state.md` okundu mu?
-- [ ] `master_live.md` kontrol edildi mi?
-- [ ] `master_next.md` kontrol edildi mi?
-- [ ] Blokajlar tespit edildi mi?
-- [ ] Öncelikli görevler belirlendi mi?
-- [ ] Gerekli dosyalar güncellendi mi?
-- [ ] Git commit yapıldı mı?
+- [ ] `START_HERE.md` okundu mu? (özet)
+- [ ] `checkpoint.md` okundu mu? (son checkpoint)
+- [ ] `master_live.md` kontrol edildi mi? (aktif görevler)
+- [ ] `master_next.md` kontrol edildi mi? (öncelikli görevler)
+- [ ] Görev seçildi mi ve başlatıldı mı?
+- [ ] Görev tamamlandığında Git commit yapıldı mı?
 - [ ] GitHub'a push edildi mi?
+
+**NOT:** `project_state.md` sadece detaylı durum gerektiğinde okunmalıdır.
 
 ---
 
