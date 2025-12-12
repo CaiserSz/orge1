@@ -100,10 +100,10 @@ En yüksek öncelikli görevi seç ve çalışmaya başla.
 **Detaylı kurallar için `.cursorrules` dosyasına bakınız. Burada sadece özet verilmiştir:**
 
 **Test ve Teyit Zorunluluğu:**
-- Kullanıcıya teslim etmeden önce MUTLAKA test edip teyit et
-- **ÖNEMLİ:** Her dosya editinden sonra SADECE o dosyanın syntax kontrolü yapılmalıdır
-- Tüm test suite'i SADECE görev tamamlandığında, commit öncesi veya teslim öncesi çalıştırılmalıdır
-- Browser testleri, external erişim testleri ve sayfa fonksiyon testleri gerektiğinde yapılmalıdır
+- Detaylı kurallar için [`.cursorrules`](../.cursorrules) dosyasındaki "KRİTİK KURAL: Test ve Teyit Zorunluluğu" bölümüne bakınız
+- **Özet:** Kullanıcıya teslim etmeden önce MUTLAKA test edip teyit et
+- **Özet:** Her dosya editinden sonra SADECE o dosyanın syntax kontrolü yapılmalıdır
+- **Özet:** Tüm test suite'i SADECE görev tamamlandığında, commit öncesi veya teslim öncesi çalıştırılmalıdır
 
 **Verimlilik ve Odak:**
 - Gereksiz dosya okuma yapma

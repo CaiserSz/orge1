@@ -25,11 +25,13 @@ cat todo/project_state.md
 ```
 
 **ÖNEMLİ:** Yeni bir chat oturumunda "projeye devam et" dediğinizde, AI asistanı otomatik olarak:
-1. ✅ Projenin ne olduğunu anlayacak
-2. ✅ Nerede kaldığını tespit edecek
-3. ✅ Bekleyen görevleri görecek
+1. ✅ [`todo/START_HERE.md`](todo/START_HERE.md) dosyasını okuyacak
+2. ✅ [`todo/checkpoint.md`](todo/checkpoint.md) ile nerede kaldığını tespit edecek
+3. ✅ [`todo/master_next.md`](todo/master_next.md) ile bekleyen görevleri görecek
 4. ✅ En yüksek öncelikli görevi seçecek
 5. ✅ Proaktif çalışarak projeyi ilerletecek
+
+**Detaylı bilgiler için:** [`todo/PROJECT_CONTINUATION_GUIDE.md`](todo/PROJECT_CONTINUATION_GUIDE.md) ve [`docs/DOCUMENTATION_STRATEGY.md`](docs/DOCUMENTATION_STRATEGY.md)
 
 ---
 
@@ -61,8 +63,9 @@ cat todo/project_state.md
 - ✅ Log rotation (10MB, 5 yedek dosya)
 - ✅ Thread-safe logging mekanizması
 - ✅ ESP32 mesajları loglanıyor (tx/rx, komutlar, status)
-- ✅ API istekleri loglanıyor (middleware ile otomatik)
-- ✅ 3 ayrı log dosyası: `logs/api.log`, `logs/esp32.log`, `logs/system.log`
+- ✅ API istekleri loglanıyor (middleware ile otomatik, `X-Request-ID` header’ı)
+- ✅ Session snapshot/incident logları (`logs/session.log`, `logs/incident.log`)
+- ✅ 5 ayrı log dosyası: `logs/api.log`, `logs/esp32.log`, `logs/system.log`, `logs/session.log`, `logs/incident.log`
 
 ### Kod Kalitesi İyileştirmeleri
 - ✅ Singleton pattern thread-safety (double-check locking)
@@ -125,104 +128,69 @@ cat todo/project_state.md
 
 ## 🎯 Proje Durumu
 
-**Mevcut Faz:** Faz 1 ✅ (Tamamlandı)
-**Sonraki Faz:** Faz 2 🔄 (API Test ve İyileştirme)
-**Genel İlerleme:** %32
-
-### Tamamlananlar
-- ✅ ESP32-RPi Bridge Modülü
-- ✅ REST API (7 endpoint)
-- ✅ Ngrok Yapılandırması
-- ✅ Git Repository
-- ✅ Todo Sistemi
-- ✅ Proje Dokümantasyonu
-
-### Devam Edenler
-- Şu anda aktif görev yok
-
-### Bekleyenler (Öncelik Sırasına Göre)
-1. Test Altyapısı Kurulumu (Kritik)
-2. Logging Sistemi Kurulumu (Kritik)
-3. API Testleri Yazılması (Yüksek)
-4. Code Quality Tools (Yüksek)
-5. CI/CD Pipeline (Yüksek)
+**Güncel durum için:**
+- **Hızlı Durum:** [`todo/checkpoint.md`](todo/checkpoint.md)
+- **Detaylı Durum:** [`todo/project_state.md`](todo/project_state.md)
+- **Bekleyen Görevler:** [`todo/master_next.md`](todo/master_next.md)
+- **Aktif Görevler:** [`todo/master_live.md`](todo/master_live.md)
 
 ---
 
 ## 🔧 Teknik Detaylar
 
-### Gereksinimler
-- Python 3.13
-- Raspberry Pi (SSH erişimi)
-- ESP32 (USB bağlantılı)
-- Virtual Environment (env/)
-
-### Kurulum
-```bash
-cd /home/basar/charger
-source env/bin/activate
-pip install -r requirements.txt
-```
-
-### API Çalıştırma
-```bash
-cd /home/basar/charger
-source env/bin/activate
-python api/main.py
-# veya
-uvicorn api.main:app --host 0.0.0.0 --port 8000
-```
-
-### API Endpoints
-- **Base URL:** `https://lixhium.ngrok.app`
-- **Docs:** `https://lixhium.ngrok.app/docs`
-- **Form:** `https://lixhium.ngrok.app/form`
-- **Health:** `https://lixhium.ngrok.app/api/health`
-- **Status:** `https://lixhium.ngrok.app/api/status`
-- **Station Info:** `https://lixhium.ngrok.app/api/station/info`
-
-Detaylı API örnekleri için `API_EXAMPLES.md` dosyasına bakınız.
+**Detaylı bilgiler için:**
+- **Kurulum ve Deployment:** [Deployment Kılavuzu](docs/deployment.md)
+- **API Referansı:** [API Referansı](docs/api_reference.md)
+- **API Örnekleri:** [API Örnekleri](docs/api_examples.md)
+- **Sistem Mimarisi:** [Sistem Mimarisi](docs/architecture.md)
 
 ---
 
 ## 📚 Dokümantasyon
 
-### Ana Dokümantasyon
-- **Proje Bilgileri:** `project_info_20251208_145614.md` - Tüm teknik detaylar, protokol bilgileri, önemli notlar
-- **API Örnekleri:** `API_EXAMPLES.md` - Tüm API endpoint'leri için curl örnekleri
+**Dokümantasyon Stratejisi:** [Single Source of Truth & Multi-Expert Stratejisi](docs/DOCUMENTATION_STRATEGY.md)
 
-### Proje Yönetimi
-- **Başlangıç:** `todo/START_HERE.md` - AI asistanları için başlangıç noktası
-- **Checkpoint:** `todo/checkpoint.md` - Projenin mevcut durumu
-- **Detaylı Durum:** `todo/project_state.md` - Detaylı proje durumu
-- **AI Çalışma Akışı:** `todo/ai_workflow.md` - AI asistanları için çalışma kuralları
-- **Uzman Önerileri:** `todo/expert_recommendations.md` - Best practices ve öneriler
+### Ana Dokümantasyon (Single Source of Truth)
 
-### Todo Sistemi
-- **Bekleyen Görevler:** `todo/master_next.md` - Öncelikli görevler
-- **Aktif Görevler:** `todo/master_live.md` - Şu anda çalışılan görevler
-- **Tamamlanan Görevler:** `todo/master_done.md` - Tamamlanan görevler geçmişi
+| Konu | Tek Kaynak | Açıklama |
+|------|------------|----------|
+| **Kurallar** | [`.cursorrules`](.cursorrules) | Tüm proje kuralları ve agent prensipleri |
+| **Proje Bilgileri** | [`project_info_20251208_145614.md`](project_info_20251208_145614.md) | Tüm teknik detaylar, protokol bilgileri |
+| **Başlangıç** | [`todo/START_HERE.md`](todo/START_HERE.md) | AI asistanları için başlangıç noktası |
+| **Sistem Mimarisi** | [`docs/architecture.md`](docs/architecture.md) | Sistem mimarisi ve modül yapısı |
+| **API Referansı** | [`docs/api_reference.md`](docs/api_reference.md) | Tüm API endpoint'leri ve detayları |
+| **Deployment** | [`docs/deployment.md`](docs/deployment.md) | Kurulum ve yapılandırma |
+| **Sorun Giderme** | [`docs/troubleshooting.md`](docs/troubleshooting.md) | Sorun giderme rehberi |
+
+### Referans Dokümantasyon
+
+- **API Örnekleri:** [`docs/api_examples.md`](docs/api_examples.md) - API kullanım örnekleri
+- **Monitoring & Logging:** [`docs/monitoring/LOGGING_GUIDE.md`](docs/monitoring/LOGGING_GUIDE.md) - Logging rehberi
+- **Proje Yönetimi:** [`todo/`](todo/) - Todo sistemi ve proje yönetimi dosyaları
 
 ---
 
 ## 🔗 İletişim Protokolü
 
-- **Baudrate:** 115200
-- **Format:** Binary Hex (`41 [KOMUT] 2C [DEĞER] 10`)
-- **Paket Uzunluğu:** 5 byte
-- **Status Update:** Her 5 saniyede bir
+**Detaylı protokol bilgileri için:** [API Referansı](docs/api_reference.md#esp32-hex-komut-protokolü) dosyasına bakınız.
 
-Detaylar için `project_info_20251208_145614.md` dosyasına bakınız.
+**Özet:**
+- ESP32-RPi iletişimi: Binary Hex Protokolü (`41 [KOMUT] 2C [DEĞER] 10`, 5 byte)
+- Baudrate: 115200
+- Detaylı komut listesi ve protokol yapısı için API Referansı'na bakınız
 
 ---
 
 ## 🚨 Kritik Kurallar
 
-1. Tüm dosya isimleri İngilizce olmalı
-2. Virtual environment (env) kullanılmalı
-3. Her değişiklik sonrası testler çalıştırılmalı
-4. Git commit/push sürekli yapılmalı
-5. Dokümantasyon güncel tutulmalı
+**Tüm kurallar için:** [`.cursorrules`](.cursorrules) dosyasına bakınız.
+
+**Özet:**
+- Tüm dosya isimleri İngilizce olmalı
+- Virtual environment (env) kullanılmalı
+- Test zamanlaması kurallarına uyulmalı (her dosya editinden sonra tüm test suite'i çalıştırılmaz)
+- Git commit/push sürekli yapılmalı
+- Dokümantasyon güncel tutulmalı
 
 ---
 
@@ -232,5 +200,5 @@ Bu proje özel bir projedir.
 
 ---
 
-**Son Güncelleme:** 2025-12-09 18:30:00
+**Son Güncelleme:** 2025-12-12 05:55:00
 

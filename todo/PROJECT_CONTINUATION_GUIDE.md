@@ -97,7 +97,7 @@ Agent şu kurallara uygun çalışacaktır:
    - Standartlara uygunluğu kontrol eder (görev tamamlandığında)
 
 3. **Kritik kurallara uyar:**
-   - Test zamanlaması kurallarına uyar (her dosya editinden sonra tüm test suite'i ÇALIŞTIRMAZ)
+   - Test zamanlaması kurallarına uyar ([`.cursorrules`](../.cursorrules) dosyasına bakınız)
    - Browser test zorunluluğu (sadece browser özellikleri için)
    - External erişim test zorunluluğu (sadece external özellikler için)
    - Tespitlerin todo sistemine eklenmesi (görev sırasında tespit edilenler eklenir, hemen ele alınmaz)

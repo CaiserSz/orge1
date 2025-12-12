@@ -146,14 +146,12 @@ RPi'den ESP32'ye sadece aşağıdaki komutlar gönderilebilir:
 ---
 
 ### ESP32-RPi İletişim Protokolü (2025-12-08 15:43:20)
+
+**Detaylı protokol bilgileri için:** [API Referansı](api_reference.md#esp32-hex-komut-protokolü) dosyasına bakınız.
+
+**Özet:**
 - **Baudrate:** 115200
-- **Protokol Formatı:** Binary Hex Protokolü
-- **Paket Yapısı:** 5 byte - `41 [KOMUT] 2C [DEĞER] 10`
-  - Byte 1: `0x41` (Sabit başlangıç)
-  - Byte 2: `[KOMUT]` (Komut kodu, 1 byte hex)
-  - Byte 3: `0x2C` (Sabit ayırıcı)
-  - Byte 4: `[DEĞER]` (Komut değeri, 1 byte hex)
-  - Byte 5: `0x10` (Sabit bitiş)
+- **Protokol Formatı:** Binary Hex Protokolü (`41 [KOMUT] 2C [DEĞER] 10`, 5 byte)
 - **Önemli:** Sadece belirtilen komutlar RPi'den ESP32'ye gönderilebilir
 
 ### ESP32 Durum Bilgileri (2025-12-08 15:50:36)
@@ -240,13 +238,13 @@ _(Bu bölüm çalışmalar ilerledikçe güncellenecek)_
    - RPi: OCPP, API ve web servisleri, bilgi toplama ve yönetim
 
 3. **İletişim Protokolü:**
-   - Baudrate: 115200
-   - Protokol: Binary Hex (`41 [KOMUT] 2C [DEĞER] 10`, 5 byte)
+   - Detaylı bilgiler için: [API Referansı](api_reference.md#esp32-hex-komut-protokolü)
+   - Özet: Baudrate 115200, Binary Hex protokolü (`41 [KOMUT] 2C [DEĞER] 10`, 5 byte)
    - ESP32'den her 5 saniyede durum bilgisi (`<STAT;...>` formatında)
 
 4. **Komutlar:**
-   - 10 komut tanımlı (Status, Authorization, Akım Set x7, State Machine)
-   - Tüm komutlar dokümante edildi (hex kod, byte array formatları)
+   - Detaylı bilgiler için: [API Referansı](api_reference.md#esp32-hex-komut-protokolü)
+   - Özet: 10 komut tanımlı (Status, Authorization, Akım Set x7, State Machine)
 
 5. **OCPP Desteği:**
    - OCPP 2.0.1 ve OCPP 1.6J desteği planlandı

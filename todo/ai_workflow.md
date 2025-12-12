@@ -154,7 +154,7 @@ Her önemli adımda:
 1. İlgili test dosyası var mı kontrol et
 2. Varsa sadece o test dosyasını çalıştır (`pytest tests/test_ilgili_dosya.py`)
 3. Yeni kod için testler yaz (görev kapsamında)
-4. **ÖNEMLİ:** Tüm test suite'ini çalıştırma (sadece görev tamamlandığında)
+4. **ÖNEMLİ:** Test zamanlaması kurallarına uy ([`.cursorrules`](../.cursorrules) dosyasına bakınız)
 
 ### Senaryo 5: Dokümantasyon Eksik
 **Durum:** Yeni özellik eklendi ama dokümante edilmemiş
