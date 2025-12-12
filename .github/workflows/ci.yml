@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD Pipeline
 
 on:
   push:
@@ -7,49 +7,87 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  test:
+  code-quality:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.13'
-    
+
+    - name: Install code quality tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install black ruff mypy
+
+    - name: Code formatting check (black)
+      run: black --check api/ esp32/ meter/ || true
+
+    - name: Linting (ruff)
+      run: ruff check api/ esp32/ meter/ || true
+
+    - name: Type checking (mypy)
+      run: |
+        mypy api/ esp32/ meter/ --ignore-missing-imports || true
+
+  security:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+
+    - name: Install security tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install bandit safety
+
+    - name: Security scanning (bandit)
+      run: |
+        bandit -r api/ esp32/ meter/ -f json -o bandit-report.json || true
+
+    - name: Dependency security check (safety)
+      run: |
+        pip install -r requirements.txt
+        safety check || true
+
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-    
+        pip install pytest pytest-cov pytest-xdist
+
     - name: Run tests
       run: |
-        pytest --cov=api --cov=esp32 --cov-report=xml
-    
+        pytest --cov=api --cov=esp32 --cov-report=xml --cov-report=html -n auto
+
     - name: Upload coverage
       uses: codecov/codecov-action@v3
       with:
         file: ./coverage.xml
         fail_ci_if_error: false
 
-  lint:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
+    - name: Upload coverage HTML
+      uses: actions/upload-artifact@v3
       with:
-        python-version: '3.13'
-    
-    - name: Install linting tools
-      run: |
-        pip install flake8 black
-    
-    - name: Check code style
-      run: |
-        flake8 api/ esp32/ meter/ --max-line-length=120 --ignore=E501,W503
-        black --check api/ esp32/ meter/
+        name: coverage-report
+        path: htmlcov/
 

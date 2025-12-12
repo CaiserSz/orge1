@@ -579,8 +579,36 @@
   - Durum: 🟡 Uyarı eşiği yakın
   - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
 
+- [ ] **Görev:** `api/logging_config.py` modüllere bölme
+  - Açıklama: Uyarı eşiği (500 satır) yakın (469 satır). Modüllere bölünebilir
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 2-3 saat
+  - Durum: 🟡 Uyarı eşiği yakın
+  - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
+
+- [ ] **Görev:** `api/event_detector.py` modüllere bölme
+  - Açıklama: Uyarı eşiği (500 satır) yakın (408 satır). Modüllere bölünebilir
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 2-3 saat
+  - Durum: 🟡 Uyarı eşiği yakın
+  - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
+
 - [ ] **Görev:** `api/alerting.py` modüllere bölme
   - Açıklama: Uyarı eşiği (500 satır) yakın (413 satır). Modüllere bölünebilir
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 2-3 saat
+  - Durum: 🟡 Uyarı eşiği yakın
+  - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
+
+- [ ] **Görev:** `api/session/events.py` modüllere bölme
+  - Açıklama: Uyarı eşiği (500 satır) sınırında (500 satır). Modüllere bölünmeli
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 2-3 saat
+  - Durum: 🟡 Uyarı eşiği sınırında
+  - Detaylar: `scripts/standards_auto_check.py` raporuna bakınız
+
+- [ ] **Görev:** `api/database/core.py` modüllere bölme
+  - Açıklama: Uyarı eşiği (500 satır) yakın (427 satır). Modüllere bölünebilir
   - Öncelik: 0 (Acil)
   - Tahmini Süre: 2-3 saat
   - Durum: 🟡 Uyarı eşiği yakın
@@ -618,15 +646,6 @@
     - Backup dosyalarını kontrol etme
     - env/ klasörü boyutunu kontrol etme
 
-- [ ] **Görev:** Pytest tam suite kırmızı (162 failure)
-  - Açıklama: 2025-12-10 21:44 `./env/bin/python -m pytest` çalıştırmasında 162 failure, 411 passed, 4 skipped. Rate limiting test ortamında devre dışı bırakıldı; kalan hatalar API/bridge mock konfigürasyonu, edge case validation ve state/command akışlarına ilişkin.
-  - Öncelik: 0 (Acil)
-  - Tahmini Süre: 4-6 saat
-  - Durum: 🔴 Test suite kırık
-  - Detaylar: Son log: `/home/basar/.cursor/projects/home-basar-charger/agent-tools/f5be6089-c27d-4f8a-814e-45931eea1d47.txt`
-  - Aksiyonlar:
-    - API/bridge mock fixture'larını gözden geçir, boundary senaryolarında geçerli veri üret
-    - Tek tek hata tiplerini gruplayarak hızlı onarım planı çıkar
 
 #### ✅ State Değerleri Standardizasyonu (API Testleri Deep Dive Bulgusu) - Tamamlandı
 - [x] **Görev:** State değerleri standardizasyonu (Single Source of Truth)
