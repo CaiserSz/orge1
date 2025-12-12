@@ -105,7 +105,7 @@ için oluşturulmuştur.
 | `project_info_20251208_145614.md` | 1245 | 🔴 Maksimum Aşıldı | Bölümlere ayırılmalı |
 | `MULTI_EXPERT_ANALYSIS.md` | 1115 | ⚠️ Uyarı | Bölümlere ayırılabilir |
 | `DEEPDIVE_ANALYSIS_REPORT.md` | 714 | ✅ İyi | - |
-| `WORKSPACE_INDEX.md` | 658 | ⚠️ Uyarı | Bölümlere ayırılabilir |
+| `docs/workspace_index.md` | 658 | ⚠️ Uyarı | Bölümlere ayırılabilir |
 
 ---
 
@@ -274,7 +274,7 @@ için oluşturulmuştur.
 - `.cursorrules` - Proje kuralları
 - `project_info_20251208_145614.md` - Proje bilgileri
 - `CONTRIBUTING.md` - Katkıda bulunma rehberi
-- `WORKSPACE_INDEX.md` - Workspace indeksi
+- `docs/workspace_index.md` - Workspace indeksi
 - `todo/master_next.md` - Bekleyen görevler
 
 ---

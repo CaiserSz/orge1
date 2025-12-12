@@ -293,7 +293,7 @@ git push origin checkpoint-YYYYMMDD-HHMM
 1. ✅ Refactoring detaylarını dokümante et
 2. ✅ Değişiklikleri `CHANGELOG.md`'ye ekle
 3. ✅ `project_info_20251208_145614.md` güncelle
-4. ✅ `WORKSPACE_INDEX.md` güncelle
+4. ✅ `docs/workspace_index.md` güncelle
 
 ---
 

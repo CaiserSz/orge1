@@ -14,8 +14,8 @@ cat todo/checkpoint.md
 # Aktif görevleri kontrol et
 cat todo/master_live.md
 
-# Bekleyen görevleri kontrol et
-cat todo/master_next.md | grep -A 5 "\[ \]"
+# Bekleyen görevleri hızlı tarama (ilk 20 açık madde)
+grep -n "^- \\[ \\]" todo/master_next.md | head -n 20
 ```
 
 ### 2. Çalışma Akışı
@@ -31,11 +31,18 @@ En yüksek öncelikli görevi seç ve çalışmaya başla.
 
 ## 📋 Okuma Sırası (Önemli!)
 
+### Minimum (Token Verimli)
 1. **`checkpoint.md`** - Nerede kaldık? (30 saniye)
-2. **`project_state.md`** - Detaylı durum (2 dakika)
-3. **`ai_workflow.md`** - Nasıl çalışılır? (5 dakika)
-4. **`master_next.md`** - Ne yapılacak? (2 dakika)
-5. **`expert_recommendations.md`** - Best practices (referans)
+
+### Görev Seçimi Gerekirse
+2. **`master_live.md`** - Aktif görev var mı? (30 saniye)
+3. **`master_next.md`** - En yüksek öncelikli bekleyen işler (2 dakika)
+
+### Sadece Gerekirse (Derinleşme)
+4. **`project_state.md`** - Genel durum, riskler, blokajlar (2 dakika)
+5. **`ai_workflow.md`** - Çalışma prensipleri / test zamanlaması (referans)
+6. **`docs/workspace_index.md`** - Dosya/klasör haritası (referans)
+7. **`docs/ANALYSIS_IGNORE_LIST.md`** - Ertelenmiş konular (tekrar önleme)
 
 ---
 
@@ -58,7 +65,7 @@ En yüksek öncelikli görevi seç ve çalışmaya başla.
 ## 🔍 Durum Kontrol Checklist
 
 - [ ] `checkpoint.md` okundu mu?
-- [ ] `project_state.md` okundu mu?
+- [ ] `project_state.md` okundu mu? (gerekirse)
 - [ ] Aktif görevler kontrol edildi mi?
 - [ ] Bekleyen görevler kontrol edildi mi?
 - [ ] Blokajlar tespit edildi mi?
@@ -66,12 +73,14 @@ En yüksek öncelikli görevi seç ve çalışmaya başla.
 
 ---
 
-## 📊 Proje Özeti
+## 📊 Proje Özeti (Single Source of Truth)
 
-**Mevcut Faz:** Faz 1 ✅ (Tamamlandı)  
-**Sonraki Faz:** Faz 2 🔄 (API Test ve İyileştirme)  
-**Genel İlerleme:** %32  
-**Son Görev:** REST API Implementasyonu ✅
+- **Nerede kaldık?**: `todo/checkpoint.md`
+- **Genel durum & riskler**: `todo/project_state.md`
+- **Aktif işler**: `todo/master_live.md`
+- **Sıradaki işler**: `todo/master_next.md`
+- **Çalışma kuralları**: `.cursorrules` ve `todo/ai_workflow.md`
+- **Dokümantasyon haritası**: `docs/workspace_index.md`
 
 ---
 
@@ -138,7 +147,7 @@ En yüksek öncelikli görevi seç ve çalışmaya başla.
 **"projeye devam et" demeniz yeterlidir!**
 
 Agent otomatik olarak:
-1. ✅ Durum tespiti yapacak (`checkpoint.md`, `project_state.md`)
+1. ✅ Durum tespiti yapacak (`checkpoint.md`; gerekirse `project_state.md`)
 2. ✅ Aktif görevleri kontrol edecek (`master_live.md`)
 3. ✅ Bekleyen görevleri seçecek (`master_next.md`)
 4. ✅ Sorunsuz bir şekilde devam edecek
@@ -157,7 +166,7 @@ Agent otomatik olarak:
 
 ---
 
-**Son Güncelleme:** 2025-12-08 18:35:00
+**Son Güncelleme:** 2025-12-12 23:55:00
 
 **🎯 Şimdi başla: `cat todo/checkpoint.md`**
 

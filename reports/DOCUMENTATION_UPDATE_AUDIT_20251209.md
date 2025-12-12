@@ -1,7 +1,7 @@
 # Dokümantasyon Güncelleme Audit Raporu - 2025-12-09
 
-**Tarih:** 2025-12-09 18:30:00  
-**Auditor:** Multi-Expert Team (Documentation, Project Management, Security, Architecture)  
+**Tarih:** 2025-12-09 18:30:00
+**Auditor:** Multi-Expert Team (Documentation, Project Management, Security, Architecture)
 **Strateji:** Single Source of Truth + Multi-Expert Analysis
 
 ---
@@ -15,7 +15,7 @@ Son yapılan değişiklikler (API Authentication, API Test Sayfası, Security Au
 2. ✅ `todo/checkpoint.md` - Checkpoint güncellemesi (YÜKSEK)
 3. ✅ `todo/project_state.md` - Proje durumu (YÜKSEK)
 4. ✅ `todo/master_done.md` - Tamamlanan görevler (YÜKSEK)
-5. ✅ `WORKSPACE_INDEX.md` - Workspace indeksi (ORTA)
+5. ✅ `docs/workspace_index.md` - Workspace indeksi (ORTA)
 6. ✅ `README.md` - README güncellemesi (ORTA)
 
 ---
@@ -52,7 +52,7 @@ Son yapılan değişiklikler (API Authentication, API Test Sayfası, Security Au
    - ❌ Security Audit görevi eklenmemiş
    - ⚠️ Son güncelleme: 2025-12-09 16:10:00 (güncel değil)
 
-5. **WORKSPACE_INDEX.md**
+5. **docs/workspace_index.md**
    - ❌ `AUDIT_REPORT_20251209.md` dosyası listelenmemiş
    - ❌ `api_test.html` dosyası listelenmemiş
    - ⚠️ Son güncelleme: 2025-12-09 16:15:00 (kısmen güncel)
@@ -150,7 +150,7 @@ Son yapılan değişiklikler (API Authentication, API Test Sayfası, Security Au
 
 ### Öncelik 2: YÜKSEK (Bugün Yapılmalı)
 
-5. **WORKSPACE_INDEX.md**
+5. **docs/workspace_index.md**
    - `AUDIT_REPORT_20251209.md` dosyasını ekle
    - `api_test.html` dosyasını ekle
    - Son güncelleme tarihini güncelle
@@ -173,7 +173,7 @@ Son yapılan değişiklikler (API Authentication, API Test Sayfası, Security Au
 - [ ] todo/checkpoint.md - CP-20251209-004
 - [ ] todo/project_state.md - Tamamlanan görevler
 - [ ] todo/master_done.md - Tamamlanan görevler
-- [ ] WORKSPACE_INDEX.md - Yeni dosyalar
+- [ ] docs/workspace_index.md - Yeni dosyalar
 - [ ] README.md - Yeni özellikler
 
 ---
@@ -186,7 +186,7 @@ Son yapılan değişiklikler (API Authentication, API Test Sayfası, Security Au
 | todo/checkpoint.md | 🔴 KRİTİK | 10 dk | ⏳ Bekliyor |
 | todo/project_state.md | 🔴 KRİTİK | 15 dk | ⏳ Bekliyor |
 | todo/master_done.md | 🔴 KRİTİK | 10 dk | ⏳ Bekliyor |
-| WORKSPACE_INDEX.md | 🟡 YÜKSEK | 10 dk | ⏳ Bekliyor |
+| docs/workspace_index.md | 🟡 YÜKSEK | 10 dk | ⏳ Bekliyor |
 | README.md | 🟡 YÜKSEK | 15 dk | ⏳ Bekliyor |
 
 **Toplam Tahmini Süre:** ~90 dakika
@@ -205,6 +205,6 @@ Son yapılan değişiklikler (API Authentication, API Test Sayfası, Security Au
 
 ---
 
-**Rapor Tarihi:** 2025-12-09 18:30:00  
+**Rapor Tarihi:** 2025-12-09 18:30:00
 **Sonraki Audit:** Güncellemeler tamamlandıktan sonra
 

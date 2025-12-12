@@ -43,7 +43,7 @@
    - `BACKUP_ROLLBACK_STANDARDS.md`
    - `CODE_DOCUMENTATION_STANDARDS.md`
    - `WORKSPACE_MANAGEMENT_STANDARDS.md`
-   - `WORKSPACE_INDEX.md`
+   - `docs/workspace_index.md` (eski adı: `WORKSPACE_INDEX.md`)
 
 3. **Proje durum raporları kök dizinde:**
    - `PROJECT_STATUS_SUMMARY.md`
@@ -102,7 +102,7 @@
    - `GIT_GITHUB_IMPROVEMENT_PLAN.md` → `docs/git_github_improvement_plan.md`
 
 5. **Workspace İndeksi** → `docs/` klasörü
-   - `WORKSPACE_INDEX.md` → `docs/workspace_index.md`
+   - `docs/workspace_index.md` (workspace indeksi)
 
 ---
 
@@ -193,7 +193,7 @@
 
 1. ✅ `project_info_20251208_145614.md` içindeki linkleri güncelle
 2. ✅ `.cursorrules` içindeki referansları güncelle
-3. ✅ `WORKSPACE_INDEX.md` güncelle
+3. ✅ `docs/workspace_index.md` güncelle
 4. ✅ `README.md` güncelle (varsa)
 
 ### Faz 4: Doğrulama

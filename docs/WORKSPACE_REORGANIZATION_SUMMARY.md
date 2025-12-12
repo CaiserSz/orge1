@@ -70,7 +70,7 @@ Workspace'in standartlara uygun hale getirilmesi ve dosya organizasyonunun iyile
 ### `.cursorrules`
 - Standart dokümantasyon referansları güncellendi
 - `docs/standards/` klasörüne yönlendirmeler eklendi
-- `WORKSPACE_INDEX.md` → `docs/workspace_index.md` güncellendi
+  - Workspace indeksi artık `docs/workspace_index.md` (tek kaynak) olarak güncellendi
 
 ### `docs/workspace_index.md`
 - Klasör yapısı güncellendi

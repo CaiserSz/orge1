@@ -170,7 +170,7 @@ find logs/ -name "*.log.*" -mtime +30  # 30 günden eski
 - [ ] Dosya sayısı sınırları kontrol edildi mi?
 - [ ] Workspace boyutu kontrol edildi mi?
 - [ ] Arşivleme ihtiyacı değerlendirildi mi?
-- [ ] `WORKSPACE_INDEX.md` güncellendi mi?
+- [ ] `docs/workspace_index.md` güncellendi mi?
 
 ---
 
@@ -239,7 +239,7 @@ git commit -m "chore: Archive old files"
 
 #### Arşivleme Sonrası
 - [ ] Dosyalar arşiv klasörüne taşındı mı?
-- [ ] `WORKSPACE_INDEX.md` güncellendi mi?
+- [ ] `docs/workspace_index.md` güncellendi mi?
 - [ ] Git commit yapıldı mı?
 - [ ] Arşiv içeriği dokümante edildi mi?
 
@@ -329,7 +329,7 @@ git commit -m "chore: Archive old files"
 1. ✅ Geçici dosyalar temizlendi mi?
 2. ✅ Yedek dosyalar temizlendi mi?
 3. ✅ Cache dosyaları temizlendi mi?
-4. ✅ `WORKSPACE_INDEX.md` güncellendi mi?
+4. ✅ `docs/workspace_index.md` güncellendi mi?
 
 #### Haftalık Kontrol
 1. ✅ Workspace metrikleri kontrol et
@@ -341,7 +341,7 @@ git commit -m "chore: Archive old files"
 #### Aylık Kontrol
 1. ✅ Arşivleme ihtiyacı değerlendir
 2. ✅ Eski dosyaları arşivle
-3. ✅ `WORKSPACE_INDEX.md` güncelle
+3. ✅ `docs/workspace_index.md` güncelle
 4. ✅ Workspace organizasyonu gözden geçir
 
 ---
@@ -362,7 +362,7 @@ git commit -m "chore: Archive old files"
    - **Aksiyon:** Düzenli temizlik script'i oluştur
    - **Öncelik:** Orta
 
-3. **WORKSPACE_INDEX.md Güncelleme**
+3. **docs/workspace_index.md Güncelleme**
    - 🟡 **Durum:** Yeni dosyalar eklenmiş olabilir
    - **Aksiyon:** Yeni dosyaları ekle
    - **Öncelik:** Orta
@@ -428,14 +428,14 @@ echo "Temporary files: $(find . -name "*.tmp" -o -name "*.bak" | wc -l)"
 # 1. Dosyayı oluştur
 touch NEW_FEATURE.md
 
-# 2. WORKSPACE_INDEX.md'ye ekle
+# 2. docs/workspace_index.md'ye ekle
 # - Dosya açıklaması
 # - Amaç
 # - İçerik
 # - Oluşturulma tarihi
 
 # 3. Git commit
-git add NEW_FEATURE.md WORKSPACE_INDEX.md
+git add NEW_FEATURE.md docs/workspace_index.md
 git commit -m "docs: Add new feature documentation"
 ```
 
@@ -451,7 +451,7 @@ git commit -m "docs: Add new feature documentation"
 # - Git'te varsa: Sil (git rm)
 # - Git'te yoksa: Direkt sil
 
-# 3. WORKSPACE_INDEX.md'den çıkar
+# 3. docs/workspace_index.md'den çıkar
 
 # 4. Git commit
 git add .
@@ -470,7 +470,7 @@ git commit -m "chore: Remove unused file"
 # 3. Metrikleri kontrol et
 ./scripts/workspace_metrics.sh
 
-# 4. WORKSPACE_INDEX.md güncelle
+# 4. docs/workspace_index.md güncelle
 
 # 5. Git commit
 git add .
@@ -482,7 +482,7 @@ git commit -m "chore: Workspace cleanup"
 ## 🔗 İlgili Dokümantasyon
 
 - `.gitignore` - Git ignore kuralları
-- `WORKSPACE_INDEX.md` - Workspace indeksi
+- `docs/workspace_index.md` - Workspace indeksi
 - `CODE_DOCUMENTATION_STANDARDS.md` - Kod standartları
 - `BACKUP_ROLLBACK_STANDARDS.md` - Yedekleme standartları
 - `.cursorrules` - Proje kuralları

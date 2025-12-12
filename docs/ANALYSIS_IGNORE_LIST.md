@@ -83,7 +83,7 @@ Bu dosya, gelecekteki analizlerde ignore edilecek konuları listeler. Bu konular
 1. **Bu konular analiz edilmeyecek**
 2. **Bu konular raporlanmayacak**
 3. **Bu konular önerilerde yer almayacak**
-4. **Bu konular todo sistemine eklenmeyecek**
+4. **Bu konular için yeni/tekrar todo açılmayacak** (master_next'de zaten varsa tekrar ekleme)
 
 ### Exception Durumları
 

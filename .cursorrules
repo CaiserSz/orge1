@@ -382,36 +382,27 @@ Sistemde birşey yapılması gerektiğinde erişilemez veya SSH gerekli gibi var
 
 **"projeye devam et" demeniz yeterlidir!** Agent otomatik olarak şu adımları izleyecektir:
 
-### 1. İlk Adım - Durum Tespiti (ZORUNLU)
+### 1. İlk Adım - Durum Tespiti (ZORUNLU / Minimum Token)
 
-Agent şu dosyaları **sırayla** okumalıdır:
+Agent önce şu dosyaları **sırayla** okumalıdır:
 
 1. **`/home/basar/charger/todo/START_HERE.md`** ⭐ İLK OKUNACAK
    - Hızlı başlangıç rehberi
-   - Kritik kurallar
-   - Okuma sırası
+   - Kritik kurallar (özet)
+   - Token verimli okuma sırası
 
 2. **`/home/basar/charger/todo/checkpoint.md`** 📍 Nerede Kaldık?
-   - Son checkpoint bilgisi (CP-20251209-005)
+   - Son checkpoint bilgisi
    - Son tamamlanan iş
    - Sonraki yapılacaklar
 
-3. **`/home/basar/charger/todo/project_state.md`** 📊 Detaylı Durum
-   - Proje genel durumu (8.5/10)
-   - Tamamlanan işler
-   - Devam eden işler
-   - Bekleyen işler
-   - Blokajlar ve riskler
+### 1b. Durum Tespiti (Gerekirse - Koşullu)
 
-4. **`/home/basar/charger/todo/master_live.md`** 🔄 Aktif Görevler
-   - Şu anda yapılan görevler
-   - Görev detayları
-   - İlerleme durumu
+Durum tespiti sonrası **görev seçimi** veya **genel resim** gerekiyorsa:
 
-5. **`/home/basar/charger/todo/master_next.md`** 📋 Bekleyen Görevler
-   - Öncelikli görevler (Öncelik 0-8)
-   - Bağımlılıklar
-   - Tahmini süreler
+- **`/home/basar/charger/todo/master_live.md`** 🔄 Aktif Görevler (çakışma kontrolü)
+- **`/home/basar/charger/todo/master_next.md`** 📋 Bekleyen Görevler (öncelik seçimi)
+- **`/home/basar/charger/todo/project_state.md`** 📊 Detaylı Durum (risk/blokaj/sağlık)
 
 ### 2. İkinci Adım - Görev Seçimi
 
@@ -490,9 +481,12 @@ Agent şu dosyaları **sırayla** okumalıdır:
 **Gereksiz Dosya Okuma Önleme:**
 - ❌ **YANLIŞ:** Her seferinde tüm dokümantasyonu okumak
 - ✅ **DOĞRU:** Sadece gerekli dosyaları okumak
-- ✅ **DOĞRU:** Durum tespiti için sadece `todo/START_HERE.md` ve `todo/checkpoint.md` okunmalıdır
+- ✅ **DOĞRU:** Durum tespiti için önce `todo/START_HERE.md` ve `todo/checkpoint.md` okunmalıdır
+- ✅ **DOĞRU:** Görev seçimi gerekiyorsa `todo/master_live.md` + `todo/master_next.md` okunur
+- ✅ **DOĞRU:** `todo/project_state.md` sadece genel resim/risk/blokaj gerektiğinde okunur
 - ✅ **DOĞRU:** Detaylı bilgi gerektiğinde spesifik dosyalar okunmalıdır
 - ✅ **DOĞRU:** Aynı bilgiyi tekrar okumamak için önce mevcut bilgiyi kontrol etmek
+- ✅ **DOĞRU:** Ertelenmiş/istenmeyen başlıklar için `docs/ANALYSIS_IGNORE_LIST.md` kontrol edilerek tekrar öneri üretilmez (user istemedikçe)
 
 **Gereksiz İşlem Önleme:**
 - ❌ **YANLIŞ:** Her dosya editinden sonra tüm test suite'ini çalıştırmak
