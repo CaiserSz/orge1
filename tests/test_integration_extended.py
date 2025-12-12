@@ -7,13 +7,12 @@ Description: Genişletilmiş integration testleri - gerçek senaryolar
 """
 
 import sys
-from unittest.mock import patch
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from api.event_detector import ESP32State
-
 
 # conftest.py'deki standart fixture'ları kullan
 # mock_esp32_bridge, client, test_headers fixture'ları conftest.py'den gelir
@@ -40,9 +39,9 @@ class TestCompleteChargingWorkflow:
         )
         assert response.status_code == 200
 
-        # 3. State değiş: CABLE_DETECT
+        # 3. State değiş: EV_CONNECTED (charge_start için gerekli)
         mock_esp32_bridge.get_status.return_value = {
-            "STATE": ESP32State.CABLE_DETECT.value,
+            "STATE": ESP32State.EV_CONNECTED.value,
             "MAX": 16,
         }
 
@@ -121,7 +120,8 @@ class TestCompleteChargingWorkflow:
         """Şarj workflow - hata kurtarma"""
         # 1. Şarj başlatma denemesi - başarısız komut
         mock_esp32_bridge.get_status.return_value = {
-            "STATE": ESP32State.IDLE.value,
+            # Charge start yalnızca EV_CONNECTED state'inde geçerli
+            "STATE": ESP32State.EV_CONNECTED.value,
             "MAX": 16,
         }
         mock_esp32_bridge.send_authorization.return_value = False
@@ -232,9 +232,11 @@ class TestStateTransitionScenarios:
                 response = client.post(
                     "/api/charge/start", json={}, headers={"X-API-Key": "test-api-key"}
                 )
-                # State IDLE-READY arası ise başarılı olmalı
-                if from_state < ESP32State.CHARGING.value:
+                # Yeni business rule: charge_start yalnızca EV_CONNECTED state'inde geçerli
+                if from_state == ESP32State.EV_CONNECTED.value:
                     assert response.status_code == 200
+                else:
+                    assert response.status_code == 400
             elif (
                 from_state == ESP32State.CHARGING.value
                 and to_state == ESP32State.STOPPED.value
@@ -299,7 +301,9 @@ class TestAPIResponseConsistency:
         assert response.status_code == 404
 
         # 401 hatası (API key yok)
-        response = client.post("/api/charge/start", json={})
+        # Not: conftest.py'deki client fixture varsayılan X-API-Key header'ı ekliyor.
+        # Bu testte gerçek "missing api key" senaryosu için header'ı boş override ediyoruz.
+        response = client.post("/api/charge/start", json={}, headers={"X-API-Key": ""})
         assert response.status_code == 401
 
         # 422 hatası (validation error) - API key ile
@@ -324,12 +328,12 @@ class TestStationInfoWorkflow:
         }
 
         # 1. Station info kaydet
-        with patch("api.main.save_station_info", return_value=True):
+        with patch("api.routers.station.save_station_info", return_value=True):
             response = client.post("/api/station/info", json=test_data)
             assert response.status_code == 200
 
         # 2. Station info al
-        with patch("api.main.get_station_info", return_value=test_data):
+        with patch("api.routers.station.get_station_info", return_value=test_data):
             response = client.get("/api/station/info")
             assert response.status_code == 200
             data = response.json()
@@ -339,7 +343,7 @@ class TestStationInfoWorkflow:
     def test_station_info_not_found_flow(self, client):
         """Station info bulunamadığında workflow"""
         # Station info yok
-        with patch("api.main.get_station_info", return_value=None):
+        with patch("api.routers.station.get_station_info", return_value=None):
             response = client.get("/api/station/info")
             assert response.status_code == 404
             assert "bulunamadı" in response.json()["detail"]

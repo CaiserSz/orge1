@@ -1,12 +1,16 @@
 """
 Rate Limiting Module
 Created: 2025-12-10 13:00:00
-Last Modified: 2025-12-10 13:00:00
-Version: 1.0.0
-Description: Rate limiting implementation using slowapi for DDoS and brute force protection
+Last Modified: 2025-12-11 23:40:00
+Version: 1.1.0
+Description: Rate limiting implementation using slowapi for DDoS and brute force protection.
+
+Not: Test ortamında `config.RATE_LIMIT_ENABLED == False` ise decorator'lar
+no-op olarak çalışır; production'da rate limiting tam aktiftir.
 """
 
-from typing import Optional
+from functools import wraps
+from typing import Any, Awaitable, Callable, Optional, TypeVar, Union
 
 from fastapi import Request
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -15,6 +19,8 @@ from slowapi.util import get_remote_address
 
 from api.config import config
 from api.logging_config import system_logger
+
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 def get_client_identifier(request: Request) -> str:
@@ -44,22 +50,14 @@ def get_client_identifier(request: Request) -> str:
     return get_remote_address(request)
 
 
-class _DummyLimiter:
-    """Rate limit devre dışı iken decorator'ları no-op yapar."""
-
-    @staticmethod
-    def limit(_limit: Optional[str] = None):
-        def decorator(func):
-            return func
-
-        return decorator
-
-
 def _build_limiter() -> Limiter:
-    if not config.RATE_LIMIT_ENABLED:
-        system_logger.info("Rate limiting devre dışı (RATE_LIMIT_ENABLED=false)")
-        return _DummyLimiter()  # type: ignore[return-value]
+    """
+    Limiter instance oluştur.
 
+    Not: `config.RATE_LIMIT_ENABLED` bu seviyede dikkate alınmaz; enable/disable
+    mantığı decorator'lar içinde kontrol edilir ki test ortamında sonradan
+    değişiklik yapılabilsin.
+    """
     return Limiter(
         key_func=get_client_identifier,
         default_limits=["100/minute"],  # Varsayılan limit: 100 istek/dakika
@@ -156,6 +154,32 @@ def setup_rate_limiting(app):
     )
 
 
+def _wrap_with_optional_limit(
+    func: F, limit_value: str
+) -> Union[F, Callable[..., Awaitable[Any]]]:
+    """
+    Rate limiting'i config.RATE_LIMIT_ENABLED'e göre opsiyonel uygula.
+
+    - ENABLED False ise: Orijinal fonksiyon döner (rate limiting yok)
+    - ENABLED True ise: slowapi limiter.wrap edilmiş async wrapper döner
+    """
+
+    # Eğer rate limiting kapalıysa, fonksiyonu olduğu gibi döndür
+    if not config.RATE_LIMIT_ENABLED:
+        return func
+
+    # Normal durumda limiter.limit decorator'ını uygula
+    limited_func = limiter.limit(limit_value)(func)
+
+    # slowapi hem sync hem async fonksiyonları destekliyor; bizim endpoint'ler
+    # async olduğundan burada async wrapper kullanmak yeterli.
+    @wraps(func)
+    async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
+        return await limited_func(*args, **kwargs)  # type: ignore[misc]
+
+    return async_wrapper
+
+
 # Rate limit decorator'ları (kolay kullanım için)
 def ip_rate_limit(limit: Optional[str] = None):
     """
@@ -167,9 +191,12 @@ def ip_rate_limit(limit: Optional[str] = None):
     Returns:
         Decorator function
     """
-    if limit is None:
-        limit = get_ip_rate_limit()
-    return limiter.limit(limit)
+
+    def decorator(func: F) -> F:
+        effective_limit = limit or get_ip_rate_limit()
+        return _wrap_with_optional_limit(func, effective_limit)  # type: ignore[return-value]
+
+    return decorator
 
 
 def api_key_rate_limit(limit: Optional[str] = None):
@@ -182,9 +209,12 @@ def api_key_rate_limit(limit: Optional[str] = None):
     Returns:
         Decorator function
     """
-    if limit is None:
-        limit = get_api_key_rate_limit()
-    return limiter.limit(limit)
+
+    def decorator(func: F) -> F:
+        effective_limit = limit or get_api_key_rate_limit()
+        return _wrap_with_optional_limit(func, effective_limit)  # type: ignore[return-value]
+
+    return decorator
 
 
 def charge_rate_limit(limit: Optional[str] = None):
@@ -197,9 +227,12 @@ def charge_rate_limit(limit: Optional[str] = None):
     Returns:
         Decorator function
     """
-    if limit is None:
-        limit = get_charge_rate_limit()
-    return limiter.limit(limit)
+
+    def decorator(func: F) -> F:
+        effective_limit = limit or get_charge_rate_limit()
+        return _wrap_with_optional_limit(func, effective_limit)  # type: ignore[return-value]
+
+    return decorator
 
 
 def status_rate_limit(limit: Optional[str] = None):
@@ -212,6 +245,9 @@ def status_rate_limit(limit: Optional[str] = None):
     Returns:
         Decorator function
     """
-    if limit is None:
-        limit = get_status_rate_limit()
-    return limiter.limit(limit)
+
+    def decorator(func: F) -> F:
+        effective_limit = limit or get_status_rate_limit()
+        return _wrap_with_optional_limit(func, effective_limit)  # type: ignore[return-value]
+
+    return decorator

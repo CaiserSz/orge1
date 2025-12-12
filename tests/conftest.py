@@ -1,8 +1,8 @@
 """
 Pytest Configuration and Shared Fixtures
 Created: 2025-12-10 10:50:00
-Last Modified: 2025-12-10 23:05:00
-Version: 1.0.1
+Last Modified: 2025-12-11 20:05:00
+Version: 1.0.4
 Description: Standart pytest fixture'ları ve konfigürasyonu
 """
 
@@ -11,6 +11,12 @@ from unittest.mock import Mock, patch
 
 import pytest
 from fastapi.testclient import TestClient
+
+# Test modunda rate limiting'i konfigürasyon seviyesinde devre dışı bırak
+os.environ.setdefault("PYTEST_DISABLE_RATE_LIMIT", "1")
+from api import config as config_module
+
+config_module.config.load()
 
 from api.event_detector import ESP32State
 from api.main import app
@@ -71,22 +77,41 @@ def mock_esp32_bridge():
 
 
 @pytest.fixture(autouse=True)
-def override_bridge_dependencies(mock_esp32_bridge):
+def override_bridge_dependencies(mock_esp32_bridge, request):
     """
     Tüm testlerde varsayılan olarak ESP32 bridge dependency'lerini mock'lar.
 
     - FastAPI dependency_overrides ile `get_bridge` dependency'si mocklanır.
-    - `esp32.bridge.get_esp32_bridge` ve `api.main.get_esp32_bridge` patch edilir
+    - `esp32.bridge.get_esp32_bridge`, `api.routers.dependencies.get_esp32_bridge`
+      ve `api.main.get_esp32_bridge` patch edilir
       ki doğrudan bu fonksiyonları kullanan kod da mock bridge ile çalışsın.
     - Test içinde özel bir bridge senaryosu gerekiyorsa, ilgili test
       `app.dependency_overrides[dependencies.get_bridge]` üzerinden kendi
       override'ını verebilir (ve test sonunda geri almalıdır).
     """
+    # ESP32Bridge'in kendi unit testlerinde gerçek `connect()` davranışını
+    # (serial mock'ları ile) doğrulamak istiyoruz; burada `connect()` no-op
+    # patch'i bu testleri bozuyor. Bu yüzden ilgili test dosyalarında
+    # global override'ı devre dışı bırak.
+    test_path = str(getattr(request, "fspath", ""))
+    if (
+        test_path.endswith("tests/test_bridge.py")
+        or "/tests/esp32/" in test_path
+        or test_path.endswith("tests/esp32/test_bridge_additional_edge_cases.py")
+    ):
+        # Önceki testlerden kalmış override varsa temizle
+        app.dependency_overrides.pop(dependencies.get_bridge, None)
+        yield
+        app.dependency_overrides.pop(dependencies.get_bridge, None)
+        return
+
     # Singleton'ı temizle ve connect'i no-op yap
     esp32_bridge_module._esp32_bridge_instance = None
     with patch.object(ESP32Bridge, "connect", return_value=True):
         with patch(
             "esp32.bridge.get_esp32_bridge", return_value=mock_esp32_bridge
+        ), patch(
+            "api.routers.dependencies.get_esp32_bridge", return_value=mock_esp32_bridge
         ), patch("api.main.get_esp32_bridge", return_value=mock_esp32_bridge):
             # FastAPI dependency override: tüm router'larda mock bridge kullan
             app.dependency_overrides[dependencies.get_bridge] = (
@@ -115,20 +140,28 @@ def client(mock_esp32_bridge):
 
     # Standart mock yöntemi: esp32 bridge getter'ını ve event detector'ı patch et
     with patch("esp32.bridge.get_esp32_bridge", return_value=mock_esp32_bridge):
-        # Event detector için de mock bridge gerekli
-        with patch("api.event_detector.get_event_detector") as mock_get_event_detector:
-            # Mock event detector oluştur
-            mock_event_detector = Mock()
-            mock_event_detector.is_monitoring = True
-            mock_event_detector._monitor_thread = Mock()
-            mock_event_detector._monitor_thread.is_alive = Mock(return_value=True)
-            mock_get_event_detector.return_value = mock_event_detector
-            # Tüm isteklerde varsayılan olarak geçerli API key header'ı gönder
-            client = TestClient(
-                app,
-                headers={"X-API-Key": os.environ.get("SECRET_API_KEY", "test-api-key")},
-            )
-            yield client
+        with patch(
+            "api.routers.dependencies.get_esp32_bridge", return_value=mock_esp32_bridge
+        ):
+            # Event detector için de mock bridge gerekli
+            with patch(
+                "api.event_detector.get_event_detector"
+            ) as mock_get_event_detector:
+                # Mock event detector oluştur
+                mock_event_detector = Mock()
+                mock_event_detector.is_monitoring = True
+                mock_event_detector._monitor_thread = Mock()
+                mock_event_detector._monitor_thread.is_alive = Mock(return_value=True)
+                mock_get_event_detector.return_value = mock_event_detector
+                # Tüm isteklerde varsayılan olarak geçerli API key header'ı gönder
+                client = TestClient(
+                    app,
+                    headers={
+                        "X-API-Key": os.environ.get("SECRET_API_KEY", "test-api-key")
+                    },
+                    raise_server_exceptions=False,
+                )
+                yield client
 
 
 @pytest.fixture

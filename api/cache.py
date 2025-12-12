@@ -8,10 +8,10 @@ Description: API response caching için modül - In-memory cache ve Redis deste�
 
 import hashlib
 import json
+import os
 import time
 from functools import wraps
 from typing import Any, Callable, Optional
-import os
 
 from fastapi import Request
 from starlette.responses import JSONResponse
@@ -228,7 +228,12 @@ def cache_response(
         @wraps(func)
         async def wrapper(*args, **kwargs):
             # Test ortamında cache'i bypass et
-            if os.getenv("PYTEST_CURRENT_TEST") is not None:
+            # Not: Bazı testler cache davranışını özellikle doğrulamak isteyebilir.
+            # Bu durumda `PYTEST_ENABLE_CACHE=1` ile bypass devre dışı bırakılabilir.
+            if (
+                os.getenv("PYTEST_CURRENT_TEST") is not None
+                and os.getenv("PYTEST_ENABLE_CACHE") != "1"
+            ):
                 return await func(*args, **kwargs)
             # Request objesini bul
             request: Optional[Request] = None

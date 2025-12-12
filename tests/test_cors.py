@@ -1,8 +1,8 @@
 """
 CORS Policy Tests
 Created: 2025-12-10 13:10:00
-Last Modified: 2025-12-10 13:10:00
-Version: 1.0.0
+Last Modified: 2025-12-11 19:58:00
+Version: 1.0.1
 Description: CORS policy functionality tests
 """
 
@@ -15,7 +15,7 @@ from api.main import app
 @pytest.fixture
 def client():
     """Test client fixture"""
-    return TestClient(app)
+    return TestClient(app, raise_server_exceptions=False)
 
 
 def test_cors_preflight_request(client):

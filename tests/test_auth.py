@@ -1,23 +1,25 @@
 """
 API Authentication Tests
 Created: 2025-12-09 17:20:00
-Last Modified: 2025-12-09 17:20:00
-Version: 1.0.0
+Last Modified: 2025-12-11 20:00:00
+Version: 1.0.3
 Description: API authentication testleri
 """
 
-import pytest
 import os
 import sys
 from pathlib import Path
 from unittest.mock import Mock, patch
+
+import pytest
 from fastapi.testclient import TestClient
 
 # Proje root'unu path'e ekle
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from api.auth import get_secret_api_key, verify_api_key
 from api.main import app
-from api.auth import verify_api_key, get_secret_api_key
+from api.routers import dependencies
 
 
 class TestAuthentication:
@@ -115,7 +117,7 @@ class TestAPIAuthentication:
         from api import config as config_module
         os.environ["SECRET_API_KEY"] = "test-api-key"
         config_module.config.load()  # Config'i yeniden yükle
-        return TestClient(app)
+        return TestClient(app, raise_server_exceptions=False)
 
     def test_charge_start_without_api_key(self, client):
         """API key olmadan şarj başlatma reddediliyor mu?"""
@@ -136,14 +138,18 @@ class TestAPIAuthentication:
         # Mock ESP32 bridge
         mock_bridge = Mock()
         mock_bridge.is_connected = True
-        mock_bridge.get_status.return_value = {"STATE": 1}
+        # Charge start yalnızca EV_CONNECTED (3) durumunda kabul edilir
+        mock_bridge.get_status.return_value = {"STATE": 3}
         mock_bridge.send_authorization.return_value = True
 
-        with patch("api.main.get_esp32_bridge", return_value=mock_bridge):
+        app.dependency_overrides[dependencies.get_bridge] = lambda: mock_bridge
+        try:
             response = client.post(
                 "/api/charge/start", json={}, headers={"X-API-Key": "test-api-key"}
             )
             assert response.status_code == 200
+        finally:
+            app.dependency_overrides.pop(dependencies.get_bridge, None)
 
     def test_charge_stop_without_api_key(self, client):
         """API key olmadan şarj durdurma reddediliyor mu?"""
@@ -162,7 +168,9 @@ class TestAPIAuthentication:
         mock_bridge.is_connected = True
         mock_bridge.get_status.return_value = {"STATE": 1}
 
-        with patch("api.main.get_esp32_bridge", return_value=mock_bridge):
+        with patch(
+            "api.routers.dependencies.get_esp32_bridge", return_value=mock_bridge
+        ):
             response = client.get("/api/status")
             # Status endpoint authentication gerektirmiyor, 200 veya 503 olabilir
             assert response.status_code in [200, 503]

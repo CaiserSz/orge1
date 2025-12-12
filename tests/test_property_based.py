@@ -1,24 +1,26 @@
 """
 Property-Based Tests using Hypothesis
 Created: 2025-12-10 00:00:00
-Last Modified: 2025-12-10 00:00:00
-Version: 1.0.0
+Last Modified: 2025-12-11 20:00:00
+Version: 1.0.2
 Description: Hypothesis kullanarak property-based testler
 """
 
-import pytest
 import sys
-from unittest.mock import patch
 from pathlib import Path
+from unittest.mock import patch
+
+import pytest
 from fastapi.testclient import TestClient
-from hypothesis import given, strategies as st, assume, settings, HealthCheck
+from hypothesis import HealthCheck, assume, given, settings
+from hypothesis import strategies as st
+
 from tests.conftest import test_headers
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from api.main import app
 from api.event_detector import ESP32State
-
+from api.main import app
 
 # conftest.py'deki standart fixture'ları kullan
 # mock_esp32_bridge, client, test_headers fixture'ları conftest.py'den gelir
@@ -31,8 +33,10 @@ def client(mock_esp32_bridge):
 
     os.environ["SECRET_API_KEY"] = "test-api-key"
 
-    with patch("api.main.get_esp32_bridge", return_value=mock_esp32_bridge):
-        yield TestClient(app)
+    with patch(
+        "api.routers.dependencies.get_esp32_bridge", return_value=mock_esp32_bridge
+    ):
+        yield TestClient(app, raise_server_exceptions=False)
 
 
 class TestPropertyBasedCurrentSetting:
@@ -162,7 +166,9 @@ class TestPropertyBasedStateTransitions:
         from_state=st.integers(min_value=1, max_value=4),
         to_state=st.integers(min_value=5, max_value=8),
     )
-    @settings(max_examples=20)
+    @settings(
+        max_examples=20, suppress_health_check=[HealthCheck.function_scoped_fixture]
+    )
     def test_start_charge_invalid_states(
         self, client, mock_esp32_bridge, from_state, to_state
     ):
@@ -201,10 +207,12 @@ class TestPropertyBasedAPIResponses:
     """Property-based API response testleri"""
 
     @given(
-        path=st.text(
-            min_size=1,
-            max_size=100,
-            alphabet=st.characters(whitelist_categories=("Lu", "Ll", "Nd", "Pc")),
+        path=st.sampled_from(
+            [
+                "/api/health",
+                "/api/status",
+                "/api/current/available",
+            ]
         )
     )
     @settings(
@@ -212,15 +220,6 @@ class TestPropertyBasedAPIResponses:
     )
     def test_api_response_structure(self, client, mock_esp32_bridge, path):
         """Tüm API response'ları tutarlı yapıda olmalı"""
-        # Sadece geçerli endpoint'leri test et
-        valid_endpoints = [
-            "/api/health",
-            "/api/status",
-            "/api/current/available",
-        ]
-
-        assume(path in valid_endpoints)
-
         response = client.get(path)
 
         if response.status_code == 200:

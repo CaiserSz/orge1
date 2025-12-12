@@ -7,8 +7,8 @@ Description: ESP32 Bridge ek edge case testleri
 """
 
 import sys
-from unittest.mock import Mock, patch
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -92,11 +92,14 @@ class TestESP32BridgeAdditionalEdgeCases:
         """Get status sync - timeout edge case'leri"""
         bridge = ESP32Bridge()
         bridge.is_connected = True
+        # Donanım olmadan test edebilmek için serial_connection'ı mock'la
+        bridge.serial_connection = Mock()
+        bridge.serial_connection.is_open = True
 
         # Status varsa hemen döner (get_status çağrılır ve status döner)
         bridge.last_status = {"STATE": 1}
-        # get_status'u mock'la ki last_status'u döndürsün
-        def mock_get_status():
+        # get_status'u mock'la ki last_status'u döndürsün (parametreleri yok say)
+        def mock_get_status(max_age_seconds=10.0):
             return bridge.last_status
 
         bridge.get_status = mock_get_status
@@ -109,7 +112,7 @@ class TestESP32BridgeAdditionalEdgeCases:
         # Status yoksa timeout sonrası None döner
         bridge.last_status = None
 
-        def mock_get_status_none():
+        def mock_get_status_none(max_age_seconds=10.0):
             return None
 
         bridge.get_status = mock_get_status_none

@@ -1,11 +1,12 @@
 """
 Test Router
 Created: 2025-12-10
-Last Modified: 2025-12-10 02:20:00
-Version: 1.0.0
+Last Modified: 2025-12-12 01:08:00
+Version: 1.0.1
 Description: Test endpoints
 """
 
+import os
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import HTMLResponse, FileResponse
@@ -20,8 +21,17 @@ async def get_test_api_key():
     """
     Test sayfası için API key'i döndürür
 
-    NOT: Bu endpoint test sayfası için gereklidir. Ngrok üzerinden erişim için aktif tutulmalıdır.
+    NOT:
+    - Bu endpoint test sayfası için gereklidir.
+    - Production ortamında güvenlik nedeniyle kapalıdır (404 döndürür).
     """
+    # Production ortamında test endpoint'ini kapat
+    if os.getenv("ENVIRONMENT", "").lower() == "production":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Not found",
+        )
+
     # Test sayfası için API key gerekli - Ngrok üzerinden erişim için aktif
     try:
         api_key = config.get_secret_api_key()

@@ -8,12 +8,13 @@ Komutların doğru byte array'lerle gönderildiğini kontrol eder (gerçek ESP32
 """
 
 import json
-from unittest.mock import Mock
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
 from api.event_detector import ESP32State
+from api.exceptions import InvalidStateError
 from api.models import ChargeStartRequest, ChargeStopRequest, CurrentSetRequest
 from api.services.charge_service import ChargeService
 from api.services.current_service import CurrentService
@@ -95,7 +96,7 @@ class TestChargeStartDryRun:
             mock_bridge.send_authorization.reset_mock()
 
             request_body = ChargeStartRequest()
-            with pytest.raises(ValueError, match="Şarj başlatılamaz"):
+            with pytest.raises(InvalidStateError, match="Şarj başlatılamaz"):
                 charge_service.start_charge(request_body)
 
             # Verify command was NOT sent
@@ -128,7 +129,7 @@ class TestChargeStartDryRun:
         ]
 
         request_body = ChargeStartRequest()
-        with pytest.raises(ValueError, match="State değişti"):
+        with pytest.raises(InvalidStateError, match="State değişti"):
             charge_service.start_charge(request_body)
 
         # Verify command was NOT sent
@@ -295,7 +296,7 @@ class TestCurrentSetDryRun:
         }
 
         request_body = CurrentSetRequest(amperage=16)
-        with pytest.raises(ValueError, match="Akım ayarlanamaz"):
+        with pytest.raises(InvalidStateError, match="Akım ayarlanamaz"):
             current_service.set_current(request_body)
 
         # Verify command was NOT sent
@@ -309,7 +310,7 @@ class TestCurrentSetDryRun:
         }
 
         request_body = CurrentSetRequest(amperage=16)
-        with pytest.raises(ValueError, match="Akım ayarlanamaz"):
+        with pytest.raises(InvalidStateError, match="Akım ayarlanamaz"):
             current_service.set_current(request_body)
 
         mock_bridge.send_current_set.assert_not_called()

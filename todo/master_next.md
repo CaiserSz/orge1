@@ -912,24 +912,31 @@ CREATE TABLE sessions (
 ### Workspace Temizliği ve Optimizasyonu
 
 - [ ] **Görev:** Workspace temizliği
-  - Açıklama: Workspace boyutu 129.61 MB (Limit: 100 MB). env/ (90 MB) ve logs/ (19 MB) normal ama temizlik yapılabilir. Eski log dosyaları arşivlenebilir.
+  - Açıklama: Workspace boyutu (env/logs hariç) ~12.85 MB; env/ ~90 MB, logs/ ~0 MB. CI/repoda env genelde git dışı olsa da cihazda disk kullanımını izlemek için periyodik temizlik/optimizasyon planlanmalı.
   - Öncelik: 8
   - Tahmini Süre: 30 dakika
   - Durum: 📋 Bekliyor
   - Detaylar: `scripts/workspace_auto_check.py` raporuna bakınız
 
-- [ ] **Görev:** Eski log dosyalarını arşivleme
-  - Açıklama: 30+ günlük log dosyaları arşivlenebilir. Log klasörü şu anda 19 MB.
+- [x] **Görev:** Eski log dosyalarını arşivleme / temizlik
+  - Açıklama: Log klasörü temizlendi (şu anda ~0 MB). İleride log rotation/retention politikası uygulanmalı.
   - Öncelik: 8
   - Tahmini Süre: 15 dakika
-  - Durum: 📋 Bekliyor
+  - Durum: ✅ Tamamlandı (2025-12-12 03:28)
 
-- [ ] **Görev:** Code quality tools kurulumu
-  - Açıklama: Black ve ruff modülleri kurulabilir (formatting ve linting için). Şu anda modüller yok ama kritik değil.
+- [x] **Görev:** Code quality tools kurulumu
+  - Açıklama: Black ve ruff (formatting/linting) kontrolleri çalışır durumda.
   - Öncelik: 8
   - Tahmini Süre: 15 dakika
-  - Durum: 📋 Bekliyor
+  - Durum: ✅ Tamamlandı (2025-12-12 03:24)
   - Detaylar: `scripts/code_quality_auto_check.py` raporuna bakınız
+
+- [ ] **Görev:** Uyarı eşiğine yakın dosyaları refactor planı
+  - Açıklama: `scripts/standards_auto_check.py` uyarıları için modül/test dosyaları (limit 500 satıra yakın) sadeleştirilmeli veya modüllere ayrılmalı.
+  - Öncelik: 8
+  - Tahmini Süre: 2-4 saat
+  - Durum: 📋 Bekliyor
+  - Detaylar: Uyarı listesi: `api/cache.py`, `api/alerting.py`, `api/database/core.py`, `api/routers/status.py`, `tests/test_session_manager.py`, `tests/test_event_detector.py`, `tests/test_command_dry_run.py`, `tests/test_protocol.py`
 
 ### Database İyileştirmeleri
 

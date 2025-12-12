@@ -80,6 +80,13 @@ data/*.db-journal
 data/*.db-wal
 data/*.db-shm
 
+# API runtime data (SQLite, caches, etc.)
+api/data/
+api/data/*.db
+api/data/*.db-journal
+api/data/*.db-wal
+api/data/*.db-shm
+
 # Temporary files
 tmp/
 temp/

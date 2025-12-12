@@ -1,8 +1,8 @@
 """
 ESP32-RPi Bridge Module
 Created: 2025-12-08
-Last Modified: 2025-12-08
-Version: 1.0.0
+Last Modified: 2025-12-12 02:33:00
+Version: 1.0.1
 Description: ESP32 ile USB seri port üzerinden iletişim modülü
 """
 
@@ -1083,11 +1083,16 @@ def get_esp32_bridge() -> ESP32Bridge:
     """
     global _esp32_bridge_instance
 
-    # Pytest ortamında gerçek seri bağlantı açma
+    # Pytest ortamında gerçek seri bağlantı açma (ama singleton semantiğini koru)
     if os.getenv("PYTEST_CURRENT_TEST") is not None:
-        mock_bridge = ESP32Bridge(port="/dev/null", baudrate=BAUDRATE)
-        mock_bridge.is_connected = True
-        return mock_bridge
+        if _esp32_bridge_instance is not None:
+            return _esp32_bridge_instance
+        with _bridge_lock:
+            if _esp32_bridge_instance is None:
+                instance = ESP32Bridge(port="/dev/null", baudrate=BAUDRATE)
+                instance.is_connected = True
+                _esp32_bridge_instance = instance
+        return _esp32_bridge_instance
 
     # İlk kontrol (lock almadan - performans için)
     if _esp32_bridge_instance is not None:

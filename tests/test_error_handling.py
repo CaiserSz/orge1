@@ -7,15 +7,14 @@ Description: Hata yönetimi, edge case'ler ve exception handling testleri
 """
 
 import sys
-from unittest.mock import Mock
 from pathlib import Path
+from unittest.mock import Mock
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from api.event_detector import ESP32State
 from api.main import app
 from api.routers import dependencies
-
 
 # conftest.py'deki standart fixture'ları kullan
 # mock_esp32_bridge, client, test_headers fixture'ları conftest.py'den gelir
@@ -274,12 +273,11 @@ class TestStateTransitions:
             response = client.post(
                 "/api/charge/start", json={"id_tag": "TEST"}, headers=test_headers
             )
-            if state_value >= ESP32State.CHARGING.value:
-                # Geçersiz state için 400, ancak rate limit devreye girerse 429 da olabilir
-                assert response.status_code in [400, 429]
-            else:
-                # Geçerli state için 200, ancak rate limit devreye girerse 429 da kabul edilebilir
+            # Yeni business rule: charge_start yalnızca EV_CONNECTED state'inde geçerli
+            if state_value == ESP32State.EV_CONNECTED.value:
                 assert response.status_code in [200, 429]
+            else:
+                assert response.status_code in [400, 429]
 
 
 class TestSerialCommunication:
@@ -287,6 +285,10 @@ class TestSerialCommunication:
 
     def test_serial_write_exception(self, client, mock_esp32_bridge, test_headers):
         """Serial write exception durumu"""
+        # Charge start state validation'ı geçebilmek için EV_CONNECTED state'i gerekli
+        mock_esp32_bridge.get_status.return_value = {
+            "STATE": ESP32State.EV_CONNECTED.value
+        }
         mock_esp32_bridge.send_authorization.side_effect = Exception(
             "Serial write failed"
         )

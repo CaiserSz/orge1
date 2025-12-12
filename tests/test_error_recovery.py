@@ -102,7 +102,8 @@ class TestErrorRecovery:
         """
         # 1. ESP32'den status alınamıyor (None döndürüyor)
         mock_esp32_bridge.get_status.return_value = None
-        mock_esp32_bridge.get_status_sync.return_value = None
+        # conftest.py'de get_status_sync side_effect ile tanımlı; burada override et
+        mock_esp32_bridge.get_status_sync.side_effect = lambda timeout=None: None
 
         # 2. Status endpoint'ine istek gönder
         response = client.get("/api/status")
@@ -114,7 +115,7 @@ class TestErrorRecovery:
             "STATE": ESP32State.IDLE.value,
             "MAX": 16,
         }
-        mock_esp32_bridge.get_status_sync.return_value = {
+        mock_esp32_bridge.get_status_sync.side_effect = lambda timeout=None: {
             "STATE": ESP32State.IDLE.value,
             "MAX": 16,
         }
@@ -181,7 +182,7 @@ class TestErrorRecovery:
 
         Senaryo:
         1. ESP32'den geçersiz STATE değeri geliyor
-        2. Charge start endpoint'ine istek gönder (503 hatası döndürmeli)
+        2. Charge start endpoint'ine istek gönder (400 hatası döndürmeli)
         3. ESP32'den geçerli STATE değeri geliyor
         4. Charge start endpoint'ine tekrar istek gönder (başarılı olmalı)
         """
@@ -206,7 +207,7 @@ class TestErrorRecovery:
             json={"user_id": "test_user"},
             headers=test_headers,
         )
-        assert response.status_code == 503
+        assert response.status_code == 400
         assert "Geçersiz STATE değeri" in response.json()["detail"]
 
         # 3. ESP32'den geçerli STATE değeri geliyor

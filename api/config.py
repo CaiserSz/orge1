@@ -93,6 +93,10 @@ class Config:
         if os.getenv("PYTEST_CURRENT_TEST") is not None:
             cls.RATE_LIMIT_ENABLED = False
 
+        # Ek test modu bayrağı: PYTEST_DISABLE_RATE_LIMIT=1|true ise her durumda kapat
+        if os.getenv("PYTEST_DISABLE_RATE_LIMIT", "").lower() in ("1", "true", "yes"):
+            cls.RATE_LIMIT_ENABLED = False
+
         # Database Configuration
         cls.DATABASE_PATH = os.getenv("DATABASE_PATH")
 

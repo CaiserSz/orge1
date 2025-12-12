@@ -1,26 +1,23 @@
 """
 API Events and Models Tests
 Created: 2025-12-10 01:40:00
-Last Modified: 2025-12-10 01:40:00
-Version: 1.0.0
+Last Modified: 2025-12-11 19:52:00
+Version: 1.0.1
 Description: API startup/shutdown events, logging middleware, and model tests
 """
 
-import pytest
 import sys
 import time
-from unittest.mock import Mock, patch
 from pathlib import Path
+from unittest.mock import Mock, patch
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from api.main import app, startup_event, shutdown_event, APILoggingMiddleware
-from api.models import (
-    APIResponse,
-    ChargeStartRequest,
-    ChargeStopRequest,
-    CurrentSetRequest,
-)
+from api.main import APILoggingMiddleware, app, shutdown_event, startup_event
+from api.models import (APIResponse, ChargeStartRequest, ChargeStopRequest,
+                        CurrentSetRequest)
 
 
 class TestStartupShutdownEvents:
@@ -31,7 +28,9 @@ class TestStartupShutdownEvents:
         mock_bridge = Mock()
         mock_bridge.is_connected = True
 
-        with patch("api.main.get_esp32_bridge", return_value=mock_bridge):
+        with patch("esp32.bridge.get_esp32_bridge", return_value=mock_bridge), patch(
+            "api.main.get_esp32_bridge", return_value=mock_bridge
+        ):
             with patch("api.main.get_event_detector") as mock_get_detector:
                 mock_detector = Mock()
                 mock_get_detector.return_value = mock_detector
@@ -49,7 +48,9 @@ class TestStartupShutdownEvents:
         mock_bridge = Mock()
         mock_bridge.is_connected = False
 
-        with patch("api.main.get_esp32_bridge", return_value=mock_bridge):
+        with patch("esp32.bridge.get_esp32_bridge", return_value=mock_bridge), patch(
+            "api.main.get_esp32_bridge", return_value=mock_bridge
+        ):
             with patch("api.main.get_event_detector") as mock_get_detector:
                 mock_detector = Mock()
                 mock_get_detector.return_value = mock_detector
@@ -64,7 +65,9 @@ class TestStartupShutdownEvents:
 
     def test_startup_event_exception(self):
         """Startup event - exception handling"""
-        with patch("api.main.get_esp32_bridge", side_effect=Exception("Startup error")):
+        with patch(
+            "esp32.bridge.get_esp32_bridge", side_effect=Exception("Startup error")
+        ), patch("api.main.get_esp32_bridge", side_effect=Exception("Startup error")):
             # Exception yakalanmalı ve uygulama çalışmaya devam etmeli
             import asyncio
 
@@ -77,8 +80,12 @@ class TestStartupShutdownEvents:
         """Shutdown event - başarılı"""
         mock_bridge = Mock()
         mock_bridge.is_connected = True
+        # disconnect çağrısını takip edebilmek için explicit Mock tanımla
+        mock_bridge.disconnect = Mock()
 
-        with patch("api.main.get_esp32_bridge", return_value=mock_bridge):
+        with patch("esp32.bridge.get_esp32_bridge", return_value=mock_bridge), patch(
+            "api.main.get_esp32_bridge", return_value=mock_bridge
+        ):
             with patch("api.main.get_event_detector") as mock_get_detector:
                 mock_detector = Mock()
                 mock_get_detector.return_value = mock_detector
@@ -95,7 +102,9 @@ class TestStartupShutdownEvents:
 
     def test_shutdown_event_bridge_none(self):
         """Shutdown event - bridge None"""
-        with patch("api.main.get_esp32_bridge", return_value=None):
+        with patch("esp32.bridge.get_esp32_bridge", return_value=None), patch(
+            "api.main.get_esp32_bridge", return_value=None
+        ):
             with patch("api.main.get_event_detector") as mock_get_detector:
                 mock_detector = Mock()
                 mock_get_detector.return_value = mock_detector
@@ -111,6 +120,8 @@ class TestStartupShutdownEvents:
     def test_shutdown_event_exception(self):
         """Shutdown event - exception handling"""
         with patch(
+            "esp32.bridge.get_esp32_bridge", side_effect=Exception("Shutdown error")
+        ), patch(
             "api.main.get_esp32_bridge", side_effect=Exception("Shutdown error")
         ):
             # Exception yakalanmalı ve uygulama çalışmaya devam etmeli

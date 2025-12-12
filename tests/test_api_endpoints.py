@@ -6,10 +6,11 @@ Version: 1.0.0
 Description: API endpoint'leri için unit testler - Mock ESP32 bridge ile
 """
 
-import pytest
 import sys
-from unittest.mock import Mock, MagicMock, patch, AsyncMock
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
+import pytest
 
 # Proje root'unu path'e ekle
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -89,7 +90,7 @@ class TestAPIEndpoints:
         assert "8A" in data['message']
         mock_esp32_bridge.send_current_set.assert_called_once_with(8)
 
-    def test_set_current_16A(self, client, mock_esp32_bridge):
+    def test_set_current_16A(self, client, mock_esp32_bridge, test_headers):
         """Set current 16A endpoint çalışıyor mu?"""
         response = client.post(
             "/api/maxcurrent",
@@ -102,7 +103,7 @@ class TestAPIEndpoints:
         assert "16A" in data['message']
         mock_esp32_bridge.send_current_set.assert_called_once_with(16)
 
-    def test_set_current_24A(self, client, mock_esp32_bridge):
+    def test_set_current_24A(self, client, mock_esp32_bridge, test_headers):
         """Set current 24A endpoint çalışıyor mu?"""
         response = client.post(
             "/api/maxcurrent",
@@ -115,7 +116,7 @@ class TestAPIEndpoints:
         assert "24A" in data['message']
         mock_esp32_bridge.send_current_set.assert_called_once_with(24)
 
-    def test_set_current_32A(self, client, mock_esp32_bridge):
+    def test_set_current_32A(self, client, mock_esp32_bridge, test_headers):
         """Set current 32A endpoint çalışıyor mu?"""
         response = client.post(
             "/api/maxcurrent",
@@ -144,7 +145,9 @@ class TestAPIEndpoints:
         )
         assert response.status_code == 422  # Validation error
 
-    def test_start_charge_when_already_charging(self, client, mock_esp32_bridge):
+    def test_start_charge_when_already_charging(
+        self, client, mock_esp32_bridge, test_headers
+    ):
         """Aktif şarj varken tekrar başlatma denemesi reddedilmeli"""
         mock_esp32_bridge.get_status.return_value = {
             'STATE': ESP32State.CHARGING.value,  # CHARGING
@@ -161,7 +164,7 @@ class TestAPIEndpoints:
         assert response.status_code == 400
         assert "zaten aktif" in response.json()['detail'].lower()
 
-    def test_set_current_when_charging(self, client, mock_esp32_bridge):
+    def test_set_current_when_charging(self, client, mock_esp32_bridge, test_headers):
         """Şarj aktifken akım değiştirme denemesi reddedilmeli"""
         mock_esp32_bridge.get_status.return_value = {
             'STATE': ESP32State.CHARGING.value,  # CHARGING

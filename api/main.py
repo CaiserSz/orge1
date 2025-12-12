@@ -32,31 +32,24 @@ except ImportError:
                     key, value = line.split("=", 1)
                     os.environ[key.strip()] = value.strip()
 
-# Merkezi configuration'ı yükle
-from api.config import config
-
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
+# Merkezi configuration'ı yükle
+from api.config import config
 from api.event_detector import get_event_detector
 from api.exceptions import APIException
 from api.logging_config import log_api_request, system_logger
 from api.rate_limiting import setup_rate_limiting
-from api.session import get_session_manager
 
 # Router'ları import et
-from api.routers import (
-    charge,
-    current,
-    meter,
-    station,
-    status as status_router,
-    test,
-    sessions,
-)
+from api.routers import charge, current, meter, sessions, station
+from api.routers import status as status_router
+from api.routers import test
+from api.session import get_session_manager
 from esp32.bridge import get_esp32_bridge
 
 # FastAPI uygulaması
@@ -100,10 +93,7 @@ class APILoggingMiddleware(BaseHTTPMiddleware):
 
         # Metrics'i güncelle
         try:
-            from api.metrics import (
-                http_requests_total,
-                http_request_duration_seconds,
-            )
+            from api.metrics import http_request_duration_seconds, http_requests_total
 
             # Request counter
             endpoint = request.url.path
@@ -208,8 +198,9 @@ async def startup_event():
         system_logger.info("Session manager başlatıldı ve event detector'a kaydedildi")
 
         # Alert manager'ı başlat ve periyodik değerlendirme başlat
-        from api.alerting import get_alert_manager
         import asyncio
+
+        from api.alerting import get_alert_manager
 
         alert_manager = get_alert_manager()
         system_logger.info(
@@ -278,16 +269,19 @@ async def shutdown_event():
         try:
             bridge = get_esp32_bridge()
             if bridge:
-                if bridge.is_connected:
-                    # Monitor thread'inin bitmesini bekle
-                    if bridge._monitor_thread and bridge._monitor_thread.is_alive():
-                        bridge._monitor_running = False
-                        bridge._monitor_thread.join(timeout=3.0)
-                        if bridge._monitor_thread.is_alive():
+                if getattr(bridge, "is_connected", False):
+                    # Monitor thread'inin bitmesini bekle (varsa)
+                    monitor_thread = getattr(bridge, "_monitor_thread", None)
+                    if monitor_thread and monitor_thread.is_alive():
+                        setattr(bridge, "_monitor_running", False)
+                        monitor_thread.join(timeout=3.0)
+                        if monitor_thread.is_alive():
                             system_logger.warning("ESP32 bridge monitor thread timeout")
 
-                    bridge.disconnect()
-                    system_logger.info("ESP32 bridge kapatıldı")
+                    # Bağlantıyı kapat
+                    if hasattr(bridge, "disconnect"):
+                        bridge.disconnect()
+                        system_logger.info("ESP32 bridge kapatıldı")
                 else:
                     system_logger.info("ESP32 bridge zaten bağlantısız")
         except Exception as e:

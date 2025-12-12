@@ -13,7 +13,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from api.event_detector import ESP32State
 
-
 # conftest.py'deki standart fixture'ları kullan
 # mock_esp32_bridge, client, test_headers fixture'ları conftest.py'den gelir
 
@@ -103,7 +102,12 @@ class TestRealWorldScenarios:
             assert response.status_code == 200
 
             # Şarj başlat
-            mock_esp32_bridge.get_status.return_value = {"STATE": 2}
+            # Charge start yalnızca EV_CONNECTED (3) state'inde geçerli.
+            # Ayrıca charge_start içinde iki kez get_status çağrısı var (ilk + final kontrol).
+            mock_esp32_bridge.get_status.side_effect = None
+            mock_esp32_bridge.get_status.return_value = {
+                "STATE": ESP32State.EV_CONNECTED.value
+            }
             response = client.post("/api/charge/start", json={"id_tag": "TEST"})
             assert response.status_code == 200
 

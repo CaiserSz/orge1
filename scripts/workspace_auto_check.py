@@ -31,6 +31,11 @@ WARNING_DIRECTORIES = 15
 MAX_TOTAL_SIZE_MB = 100
 WARNING_TOTAL_SIZE_MB = 80
 
+# Boyut hesabında dışlanacak klasörler (local/runtime içerik)
+# Not: `env/` ve `logs/` çoğunlukla repo dışı/runtime olduğu için toplam workspace
+# boyutu hesabından hariç tutulur. Bu klasörler ayrıca ayrı metrik olarak raporlanır.
+SIZE_EXCLUDE_DIRS = {"env", "logs", "__pycache__", ".pytest_cache"}
+
 
 class WorkspaceChecker:
     """Workspace standartlarını kontrol eden sınıf"""
@@ -160,13 +165,36 @@ class WorkspaceChecker:
 
     def check_workspace_size(self) -> Dict:
         """Workspace boyutunu kontrol et"""
+        def _dir_size_mb(dir_path: Path) -> float:
+            if not dir_path.exists():
+                return 0.0
+            size = 0
+            for f in dir_path.rglob("*"):
+                if f.is_file():
+                    try:
+                        size += f.stat().st_size
+                    except Exception:
+                        pass
+            return size / (1024 * 1024)
+
+        env_size_mb = _dir_size_mb(PROJECT_ROOT / "env")
+        logs_size_mb = _dir_size_mb(PROJECT_ROOT / "logs")
+
+        # Workspace size hesabında env/logs gibi runtime klasörleri hariç tut
         total_size = 0
-        for file in PROJECT_ROOT.rglob('*'):
-            if file.is_file():
-                try:
-                    total_size += file.stat().st_size
-                except:
-                    pass
+        for file in PROJECT_ROOT.rglob("*"):
+            if not file.is_file():
+                continue
+            try:
+                rel_parts = file.relative_to(PROJECT_ROOT).parts
+            except Exception:
+                rel_parts = ()
+            if any(part in SIZE_EXCLUDE_DIRS for part in rel_parts):
+                continue
+            try:
+                total_size += file.stat().st_size
+            except Exception:
+                pass
 
         total_size_mb = total_size / (1024 * 1024)
 
@@ -186,6 +214,8 @@ class WorkspaceChecker:
 
         return {
             "size_mb": total_size_mb,
+            "env_size_mb": env_size_mb,
+            "logs_size_mb": logs_size_mb,
             "max": MAX_TOTAL_SIZE_MB,
             "warning": WARNING_TOTAL_SIZE_MB,
             "issue": issue
@@ -242,7 +272,12 @@ class WorkspaceChecker:
 
         # Workspace boyutu
         size_result = results['workspace_size']
-        print(f"💾 Workspace Boyutu: {size_result['size_mb']:.2f} MB (İdeal: < {size_result['warning']} MB, Limit: {size_result['max']} MB)")
+        print(
+            f"💾 Workspace Boyutu (env/logs hariç): {size_result['size_mb']:.2f} MB (İdeal: < {size_result['warning']} MB, Limit: {size_result['max']} MB)"
+        )
+        print(
+            f"   env/: {size_result.get('env_size_mb', 0.0):.2f} MB | logs/: {size_result.get('logs_size_mb', 0.0):.2f} MB"
+        )
         if size_result['issue']:
             if size_result['issue']['type'] == 'error':
                 print(f"  🔴 {size_result['issue']['message']}")

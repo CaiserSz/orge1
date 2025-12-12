@@ -8,8 +8,8 @@ Description: Event Detector callback, state name, and singleton tests
 
 import sys
 import threading
-from unittest.mock import Mock
 from pathlib import Path
+from unittest.mock import Mock
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -148,7 +148,8 @@ class TestEventDetectorGetStateName:
         detector = EventDetector(bridge_getter)
 
         name = detector._get_state_name(0)
-        assert name == "UNKNOWN_0"
+        # Firmware mapping: 0 -> HARDFAULT_END
+        assert name == "HARDFAULT_END"
 
     def test_get_state_name_negative(self):
         """Get state name - negatif state"""

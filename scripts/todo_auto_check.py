@@ -13,9 +13,9 @@ Kullanım:
 """
 
 import sys
-from pathlib import Path
 from datetime import datetime
-from typing import List, Dict
+from pathlib import Path
+from typing import Dict, List
 
 # Proje kök dizini
 PROJECT_ROOT = Path(__file__).parent.parent
