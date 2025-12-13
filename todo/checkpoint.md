@@ -1,8 +1,8 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-12 22:35:00
-**Version:** 1.6.0
+**Son Güncelleme:** 2025-12-13 03:20:00
+**Version:** 1.7.0
 
 ---
 
@@ -14,8 +14,15 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251213-028
-**Tarih:** 2025-12-13 02:45:00
+**Checkpoint ID:** CP-20251213-029
+**Tarih:** 2025-12-13 03:20:00
+**Durum:** ✅ Mobil şarj API paketi hazır
+- `/api/mobile/charging/current` endpoint’i cihaz durumu + aktif session + trend + alert verisini tek payload’da sunuyor.
+- `/api/mobile/charging/sessions` liste endpoint’i tarih aralığı/status filtreleri ve maliyet hesaplamasıyla mobil geçmiş ekranını besliyor.
+- `/api/mobile/charging/sessions/{session_id}` detay endpoint’i enerji, süre, maliyet ve snapshot verilerini döndürüyor.
+- İstasyon formundaki `price_per_kwh` bilgisi maliyet bloğuna otomatik olarak çekiliyor; `tests/test_mobile_api.py` altında üç adet yeni entegrasyon testi eklendi.
+
+### Önceki Checkpoint: CP-20251213-028 (2025-12-13 02:45:00)
 **Durum:** ✅ Env boyutu ve standart refactor paketi tamamlandı
 - env/ klasörü 102MB → 76.7MB (pyc/__pycache__ temizliği, `workspace_auto_check.py` doğrulandı).
 - `scripts/standards_auto_check.py` üzerindeki tüm uyarılar kapatıldı.
@@ -109,6 +116,22 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 **Durum:** ✅ Logging Sistemi ve Kritik Düzeltmeler Tamamlandı
 
 ### Son Tamamlanan İş
+- **Görev:** Mobil şarj API ve test paketi
+- **Durum:** ✅ Tamamlandı
+- **Tarih:** 2025-12-13 03:20:00
+- **Detaylar:**
+  - ✅ `/api/mobile/charging/current` endpoint’i cihaz + meter + session verilerini birleştiriyor; `price_per_kwh` üzerinden maliyet bloğu hesaplanıyor.
+  - ✅ `/api/mobile/charging/sessions` liste endpoint’i tarih/status filtreli veri döndürüyor.
+  - ✅ `/api/mobile/charging/sessions/{session_id}` detay endpoint’i enerji, güç ve snapshot bilgilerini yayıyor.
+  - ✅ `tests/test_mobile_api.py` altında canlı durum, detay ve tarih filtresi senaryoları için üç yeni test eklendi.
+- **Test Sonucu:**
+  - `./env/bin/pytest tests/test_mobile_api.py` → ✅ 3 test geçti.
+  - Tam suite `./env/bin/pytest` → ✅ tamamı geçti.
+- **Beklenen İyileştirmeler:**
+  - Mobil API verileri gelecekte OCPP `MeterValues`/`TransactionEvent` formatlarına haritalanarak CSMS senaryolarına da açılabilir.
+  - `/api/mobile/charging/current` cevap boyutu büyürse incremental alan seçimi için query parametre desteği eklenebilir.
+
+### Önceki Tamamlanan İş
 - **Görev:** API & test standart refactor + env temizliği
 - **Durum:** ✅ Tamamlandı
 - **Tarih:** 2025-12-13 02:45:00

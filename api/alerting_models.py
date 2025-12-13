@@ -1,8 +1,8 @@
 """
 Alerting Data Models
 Created: 2025-12-13 02:05:00
-Last Modified: 2025-12-13 02:05:00
-Version: 1.0.0
+Last Modified: 2025-12-13 18:00:00
+Version: 1.0.1
 Description: AlertSeverity, Alert ve AlertRule tanımları.
 """
 
@@ -73,4 +73,3 @@ class AlertRule:
                 f"Alert rule '{self.name}' evaluation error: {exc}", exc_info=True
             )
             return None
-

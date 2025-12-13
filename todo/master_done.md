@@ -1,7 +1,7 @@
 # Tamamlanan Görevler
 
 **Oluşturulma Tarihi:** 2025-12-08 18:20:00
-**Son Güncelleme:** 2025-12-12 22:35:00
+**Son Güncelleme:** 2025-12-13 03:20:00
 
 ---
 
@@ -48,6 +48,18 @@
   - `tests/test_command_dry_run.py` → Protokol kontrolleri `tests/test_command_protocol.py` dosyasına taşındı (388 satır).
   - `tests/test_protocol.py` → Kural ve edge case senaryoları `tests/test_protocol_rules.py` dosyasına taşındı (319 satır).
 - **Doğrulama:** İlgili tüm pytest dosyaları ayrı ayrı çalıştırıldı; `scripts/standards_auto_check.py` sonuçları temiz.
+
+#### ✅ Mobil Şarj API ve Testleri (03:20:00)
+- **Görev:** Mobil uygulama için şarj durumu ve geçmiş oturum endpoint'leri sağlamak
+- **Açıklama:** Mobil ekip, tek çağrıda cihaz durumu, aktif oturum ve maliyet bilgisini alabilecekleri bir API talep etti. `/form` üzerinden verilen 1 kWh fiyat bilgisi de maliyet hesaplamalarına dahil edildi.
+- **İmplementasyon:**
+  - `/api/mobile/charging/current` → cihaz bilgisi, ölçümler, aktif session özeti, trend ve aktif alert’leri tek payload’da döndürüyor.
+  - `/api/mobile/charging/sessions` → tarih aralığı, kullanıcı ve status filtresiyle geçmiş oturumları listeliyor.
+  - `/api/mobile/charging/sessions/{session_id}` → tamamlanmış oturumlar için detaylı rapor, maliyet hesabı ve snapshot listesi üretiyor.
+  - Meter okuması, session manager ve alert manager verileri tek servis içinde birleştirildi; station formundaki `price_per_kwh` değeri otomatik çekiliyor.
+  - Yeni `tests/test_mobile_api.py` paketi ile canlı durum, detay ve tarih filtresi senaryoları için üç adet entegrasyon testi eklendi.
+- **Dosyalar:** `api/routers/mobile.py`, `api/main.py`, `tests/test_mobile_api.py`, `project_info_20251208_145614.md`
+- **Testler:** `./env/bin/pytest tests/test_mobile_api.py` ve tam suite (`./env/bin/pytest`)
 
 ### 2025-12-12
 

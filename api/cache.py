@@ -231,5 +231,3 @@ class CacheInvalidator:
         CacheInvalidator.invalidate_status()
         CacheInvalidator.invalidate_session()
         invalidate_cache("*")
-
-

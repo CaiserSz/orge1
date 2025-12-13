@@ -78,7 +78,9 @@ class MemoryCacheBackend(CacheBackend):
     def cleanup_expired(self) -> None:
         current_time = time.time()
         expired_keys = [
-            key for key, entry in self._cache.items() if current_time > entry["expires_at"]
+            key
+            for key, entry in self._cache.items()
+            if current_time > entry["expires_at"]
         ]
         for key in expired_keys:
             del self._cache[key]
@@ -202,4 +204,3 @@ def get_cache_stats() -> dict[str, Any]:
             return {"backend": "redis", "error": str(exc)}
 
     return {"backend": "unknown"}
-

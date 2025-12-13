@@ -8,7 +8,6 @@ Description: Structured logging + context propagation for AC Charger API
 
 import contextvars
 import logging
-import sys
 import threading
 from typing import Any, Dict, Optional
 
@@ -84,9 +83,7 @@ def bind_session_context(
 
 # Ana logger'lar
 api_logger = setup_logger("api", API_LOG_FILE, context_getter=get_logging_context)
-esp32_logger = setup_logger(
-    "esp32", ESP32_LOG_FILE, context_getter=get_logging_context
-)
+esp32_logger = setup_logger("esp32", ESP32_LOG_FILE, context_getter=get_logging_context)
 system_logger = setup_logger(
     "system", SYSTEM_LOG_FILE, context_getter=get_logging_context
 )

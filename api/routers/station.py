@@ -1,8 +1,8 @@
 """
 Station Information Router
 Created: 2025-12-10
-Last Modified: 2025-12-10 16:00:00
-Version: 1.1.0
+Last Modified: 2025-12-13 13:10:00
+Version: 1.1.1
 Description: Station information endpoints
 """
 
@@ -208,6 +208,7 @@ async def get_station_status(
                 "longitude": station_info.get("longitude"),
                 "max_power_kw": station_info.get("max_power_kw"),
                 "max_current_amp": station_info.get("max_current_amp"),
+                "price_per_kwh": station_info.get("price_per_kwh"),
                 "connector_type": station_info.get("connector_type"),
                 "description": station_info.get("description"),
             },

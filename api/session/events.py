@@ -1,17 +1,17 @@
 """
 Session Events Module
 Created: 2025-12-10 20:40:00
-Last Modified: 2025-12-13 02:12:00
-Version: 1.1.0
+Last Modified: 2025-12-13 18:00:00
+Version: 1.1.1
 Description: Session event handling metodları - Event operations mixin
 """
 
 import os
 import sys
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
-from api.event_detector import ESP32State, EventType
+from api.event_detector import EventType
 from api.logging_config import system_logger
 from api.session.events_lifecycle import SessionLifecycleMixin
 
@@ -122,4 +122,3 @@ class SessionEventMixin(SessionLifecycleMixin):
             system_logger.error(
                 f"Session manager event handling error: {e}", exc_info=True
             )
-

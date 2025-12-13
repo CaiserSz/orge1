@@ -1,8 +1,8 @@
 # API Referansı - AC Charger
 
 **Oluşturulma Tarihi:** 2025-12-09 22:35:00
-**Son Güncelleme:** 2025-12-09 22:35:00
-**Version:** 1.0.0
+**Son Güncelleme:** 2025-12-13 13:15:00
+**Version:** 1.0.1
 
 ---
 
@@ -55,6 +55,27 @@
 7. **GET /api/current/available** - Kullanılabilir akım aralığı
    - ESP32'de ayarlanabilir akım aralığını döndürür
    - Response: `{"range": "6-32 amper", "min": 6, "max": 32, "note": "6-32 aralığında herhangi bir tam sayı değer kullanılabilir"}`
+
+8. **GET /api/station/info** - İstasyon bilgilerini al (1 saat cache)
+   - Form üzerinden girilen istasyon bilgilerini döndürür
+   - Response `data` alanı örnek:
+     - `station_id` (str, zorunlu)
+     - `name` (str, zorunlu)
+     - `location` (str, opsiyonel)
+     - `address` (str, opsiyonel)
+     - `max_current_amp` (int, opsiyonel)
+     - `max_power_kw` (float, opsiyonel)
+     - `connector_type` (str, opsiyonel)
+     - `latitude` (float, opsiyonel)
+     - `longitude` (float, opsiyonel)
+     - `status` (str: active/inactive/maintenance, opsiyonel)
+     - `description` (str, opsiyonel)
+     - `price_per_kwh` (float, opsiyonel) — 1 kWh fiyatı (₺)
+     - `created_at` / `updated_at` (ISO string, sistem tarafından)
+
+9. **POST /api/station/info** - İstasyon bilgilerini kaydet
+   - Request body: yukarıdaki alanlar (form ile uyumlu)
+   - Not: `price_per_kwh` alanı string gelse bile float'a normalize edilir.
 
 **ESP32 Bridge Modülü:**
 - **Dosya:** `esp32/bridge.py`

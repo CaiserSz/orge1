@@ -1,8 +1,8 @@
 """
 API Main Endpoints Comprehensive Tests
 Created: 2025-12-09 23:50:00
-Last Modified: 2025-12-11 20:00:00
-Version: 1.0.2
+Last Modified: 2025-12-13 13:12:00
+Version: 1.0.3
 Description: api/main.py için kapsamlı endpoint testleri
 """
 
@@ -99,6 +99,7 @@ class TestStationInfoEndpoints:
             "station_id": "TEST-001",
             "name": "Test Station",
             "location": "Test Location",
+            "price_per_kwh": 7.5,
         }
 
         with patch("api.routers.station.get_station_info", return_value=test_data):
@@ -107,10 +108,11 @@ class TestStationInfoEndpoints:
             data = response.json()
             assert data["success"] is True
             assert data["data"]["station_id"] == "TEST-001"
+            assert data["data"]["price_per_kwh"] == 7.5
 
     def test_save_station_info_success(self, client):
         """Save station info - başarılı"""
-        test_data = {"station_id": "TEST-001", "name": "Test Station"}
+        test_data = {"station_id": "TEST-001", "name": "Test Station", "price_per_kwh": 7.5}
 
         with patch("api.routers.station.save_station_info", return_value=True):
             response = client.post("/api/station/info", json=test_data)
@@ -118,6 +120,7 @@ class TestStationInfoEndpoints:
             data = response.json()
             assert data["success"] is True
             assert data["message"] == "İstasyon bilgileri kaydedildi"
+            assert data["data"]["price_per_kwh"] == 7.5
 
     def test_save_station_info_failure(self, client):
         """Save station info - başarısız"""

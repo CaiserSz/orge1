@@ -52,7 +52,7 @@ from api.logging_config import (
 from api.rate_limiting import setup_rate_limiting
 
 # Router'ları import et
-from api.routers import charge, current, meter, sessions, station
+from api.routers import charge, current, meter, mobile, sessions, station
 from api.routers import status as status_router
 from api.routers import test
 from api.session import get_session_manager
@@ -73,6 +73,7 @@ app.include_router(status_router.router)
 app.include_router(current.router)
 app.include_router(meter.router)
 app.include_router(station.router)
+app.include_router(mobile.router)
 app.include_router(test.router)
 app.include_router(sessions.router)
 

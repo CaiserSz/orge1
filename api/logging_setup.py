@@ -1,8 +1,8 @@
 """
 Logging Setup Helpers
 Created: 2025-12-13 01:50:00
-Last Modified: 2025-12-13 01:50:00
-Version: 1.0.0
+Last Modified: 2025-12-13 18:05:00
+Version: 1.0.1
 Description: Logger oluşturma ve JSON formatter yardımcıları.
 """
 
@@ -136,4 +136,3 @@ def setup_logger(
     logger.addHandler(console_handler)
 
     return logger
-

@@ -1,8 +1,8 @@
 """
 Session Lifecycle Helpers
 Created: 2025-12-13 02:12:00
-Last Modified: 2025-12-13 02:12:00
-Version: 1.0.0
+Last Modified: 2025-12-13 18:02:00
+Version: 1.0.1
 Description: Session başlatma, sonlandırma ve fault yönetimi mixin'i.
 """
 
@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from api.event_detector import ESP32State, EventType
 from api.logging_config import log_event, log_incident, system_logger
@@ -231,4 +231,3 @@ class SessionLifecycleMixin(SessionEventLoggingMixin):
                     session_id=self.current_session.session_id,
                     event_data=event_data,
                 )
-

@@ -1,13 +1,13 @@
 """
 Station Information Storage (Simple)
 Created: 2025-12-08
-Last Modified: 2025-12-08
-Version: 1.0.0
-Description: Şarj istasyonu bilgilerini saklama (basit versiyon)
+Last Modified: 2025-12-13 13:10
+Version: 1.1.0
+Description: Şarj istasyonu bilgilerini JSON olarak saklama (station_info.json)
 """
 
 import json
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 from datetime import datetime
 from pathlib import Path
 import logging
@@ -17,6 +17,53 @@ DATA_FILE = Path(__file__).parent.parent / "data" / "station_info.json"
 
 # Logger setup
 logger = logging.getLogger(__name__)
+
+_FLOAT_FIELDS = {"max_power_kw", "latitude", "longitude", "price_per_kwh"}
+_INT_FIELDS = {"max_current_amp"}
+
+
+def _coerce_non_negative_float(value: Any) -> Optional[float]:
+    """Best-effort float parse; negatif değerleri reddeder."""
+    if isinstance(value, str):
+        s = value.strip()
+        # 4,05 gibi virgüllü girişleri kabul et
+        if "," in s and "." not in s:
+            s = s.replace(",", ".")
+        value = s
+    try:
+        fval = float(value)
+    except (TypeError, ValueError):
+        return None
+    if fval < 0:
+        return None
+    return fval
+
+
+def _coerce_non_negative_int(value: Any) -> Optional[int]:
+    """Best-effort int parse; negatif değerleri reddeder."""
+    fval = _coerce_non_negative_float(value)
+    if fval is None:
+        return None
+    return int(round(fval))
+
+
+def normalize_station_info(station_data: Dict[str, Any]) -> None:
+    """
+    Station info alanlarını normalize et (in-place).
+
+    - Numeric alanlar (float/int) parse edilir.
+    - Parse edilemeyen veya negatif değerler None yapılır (alan korunur).
+    """
+    for key in list(station_data.keys()):
+        if station_data.get(key) is None:
+            continue
+
+        if key in _FLOAT_FIELDS:
+            parsed = _coerce_non_negative_float(station_data.get(key))
+            station_data[key] = parsed
+        elif key in _INT_FIELDS:
+            parsed = _coerce_non_negative_int(station_data.get(key))
+            station_data[key] = parsed
 
 
 def ensure_data_dir() -> None:
@@ -32,6 +79,7 @@ def save_station_info(station_data: Dict) -> bool:
     """İstasyon bilgilerini kaydet"""
     try:
         ensure_data_dir()
+        normalize_station_info(station_data)
         station_data["updated_at"] = datetime.now().isoformat()
         if "created_at" not in station_data:
             station_data["created_at"] = datetime.now().isoformat()

@@ -279,6 +279,60 @@
             font-weight: 700;
         }
 
+        .mobile-bar {
+            background: #0f1c24;
+            color: #c8e6c9;
+            padding: 10px 14px;
+            border-bottom: 1px solid #1d2b33;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .mobile-bar .mobile-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 6px 10px;
+            min-width: 160px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9em;
+        }
+
+        .mobile-label {
+            color: #90caf9;
+            font-weight: 600;
+            font-size: 0.85em;
+        }
+
+        .mobile-value {
+            font-weight: 700;
+            font-size: 0.95em;
+            color: #ffffff;
+        }
+
+        .mobile-last-update {
+            margin-left: auto;
+            color: #9fb3c8;
+            font-size: 0.85em;
+            white-space: nowrap;
+        }
+
+        .mobile-bar.mobile-available {
+            background: linear-gradient(90deg, #0f2d23, #0b1b15);
+        }
+
+        .mobile-bar.mobile-busy {
+            background: linear-gradient(90deg, #2d1b0f, #1b1008);
+        }
+
+        .mobile-bar.mobile-fault {
+            background: linear-gradient(90deg, #2d0f0f, #1b0808);
+        }
+
         .bar-action-btn {
             margin-left: 15px;
             padding: 8px 20px;
@@ -898,6 +952,38 @@
             </div>
         </div>
 
+        <div class="mobile-bar" id="mobileBar">
+            <div class="mobile-item">
+                <span class="mobile-label">Availability:</span>
+                <span class="mobile-value" id="mobileAvailability">-</span>
+            </div>
+            <div class="mobile-item">
+                <span class="mobile-label">Session:</span>
+                <span class="mobile-value" id="mobileSessionSummary">-</span>
+            </div>
+            <div class="mobile-item">
+                <span class="mobile-label">Power:</span>
+                <span class="mobile-value" id="mobileRealtimePower">-</span>
+            </div>
+            <div class="mobile-item">
+                <span class="mobile-label">Energy:</span>
+                <span class="mobile-value" id="mobileEnergyDelivered">-</span>
+            </div>
+            <div class="mobile-item">
+                <span class="mobile-label">Cost:</span>
+                <span class="mobile-value" id="mobileCostEstimate">-</span>
+            </div>
+            <div class="mobile-item">
+                <span class="mobile-label">Trend:</span>
+                <span class="mobile-value" id="mobileTrendEnergy">-</span>
+            </div>
+            <div class="mobile-item">
+                <span class="mobile-label">Alerts:</span>
+                <span class="mobile-value" id="mobileAlertCount">-</span>
+            </div>
+            <div class="mobile-last-update" id="mobileSnapshotUpdate">Mobile snapshot: -</div>
+        </div>
+
         <!-- ESP32 Real-Time Status Bar -->
         <div class="status-bar" id="statusBar">
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
@@ -1259,6 +1345,97 @@
                     <div class="response-section" id="response-/api/sessions/users/{user_id}/sessions"></div>
                 </div>
             </div>
+
+            <!-- Mobile Experience -->
+            <div class="endpoint-group">
+                <h2>Mobile Experience API</h2>
+                <p style="color: #888; font-size: 0.9em; margin-bottom: 15px;">
+                    Mobil uygulamanın kullandığı birleşik endpoint'ler. Şarj durumu, trend verileri ve alert listeleri tek noktadan çekilebilir.
+                </p>
+
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/api/mobile/charging/current</span>
+                    </div>
+                    <div class="endpoint-description">
+                        Aktif cihaz, session, ölçümler ve alert verilerini tek payload içinde döndürür.
+                    </div>
+                    <div class="curl-preview">
+                        <label>💻 cURL Command (Editable):</label>
+                        <textarea id="curl-/api/mobile/charging/current"></textarea>
+                    </div>
+                    <button class="btn" onclick="testEndpoint('GET', '/api/mobile/charging/current', null, false, event, 'response-/api/mobile/charging/current')">Test</button>
+                    <div class="response-section" id="response-/api/mobile/charging/current"></div>
+                </div>
+
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/api/mobile/charging/sessions</span>
+                    </div>
+                    <div class="endpoint-description">
+                        Geçmiş şarj oturumlarını limit, tarih, kullanıcı ve durum filtresi ile döndürür.
+                    </div>
+                    <div class="request-body">
+                        <label>Query Parameters:</label>
+                        <div class="request-body" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px;">
+                            <div>
+                                <small>Limit</small>
+                                <input type="number" id="mobileSessionsLimit" value="20" min="1" max="200" oninput="updateMobileSessionsCurl()">
+                            </div>
+                            <div>
+                                <small>Status</small>
+                                <select id="mobileSessionsStatus" onchange="updateMobileSessionsCurl()">
+                                    <option value="">All</option>
+                                    <option value="ACTIVE">ACTIVE</option>
+                                    <option value="COMPLETED">COMPLETED</option>
+                                    <option value="CANCELLED">CANCELLED</option>
+                                    <option value="FAULTED">FAULTED</option>
+                                </select>
+                            </div>
+                            <div>
+                                <small>User ID</small>
+                                <input type="text" id="mobileSessionsUserId" placeholder="user-id" oninput="updateMobileSessionsCurl()">
+                            </div>
+                            <div>
+                                <small>From (UTC)</small>
+                                <input type="datetime-local" id="mobileSessionsFrom" oninput="updateMobileSessionsCurl()">
+                            </div>
+                            <div>
+                                <small>To (UTC)</small>
+                                <input type="datetime-local" id="mobileSessionsTo" oninput="updateMobileSessionsCurl()">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="curl-preview">
+                        <label>💻 cURL Command (Editable):</label>
+                        <textarea id="curl-/api/mobile/charging/sessions"></textarea>
+                    </div>
+                    <button class="btn" onclick="testMobileSessionsList(event)">Test</button>
+                    <div class="response-section" id="response-/api/mobile/charging/sessions"></div>
+                </div>
+
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/api/mobile/charging/sessions/{session_id}</span>
+                    </div>
+                    <div class="endpoint-description">
+                        Belirli bir oturum için enerji, güç ve maliyet özetlerini döndürür.
+                    </div>
+                    <div class="request-body">
+                        <label>Session ID:</label>
+                        <input type="text" id="param-/api/mobile/charging/sessions/{session_id}" placeholder="session-uuid" value="" oninput="updateCurlPreviewForPathParam('GET', '/api/mobile/charging/sessions/{session_id}', 'param-/api/mobile/charging/sessions/{session_id}', 'curl-/api/mobile/charging/sessions/{session_id}')">
+                    </div>
+                    <div class="curl-preview">
+                        <label>💻 cURL Command (Editable):</label>
+                        <textarea id="curl-/api/mobile/charging/sessions/{session_id}"></textarea>
+                    </div>
+                    <button class="btn" onclick="testEndpointWithPathParam('GET', '/api/mobile/charging/sessions/{session_id}', 'param-/api/mobile/charging/sessions/{session_id}')">Test</button>
+                    <div class="response-section" id="response-/api/mobile/charging/sessions/{session_id}"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1286,6 +1463,7 @@
         let lastMeterEnergyKwh = null;
         let sessionEnergyBaselineKwh = null;
         let currentSessionId = null;
+        let mobileSnapshotInterval = null;
 
         // STATE açıklamaları
         const STATE_MEANINGS = {
@@ -1382,10 +1560,14 @@
             updateCurlPreviewForPathParam('GET', '/api/sessions/users/{user_id}/sessions', 'param-/api/sessions/users/{user_id}/sessions', 'curl-/api/sessions/users/{user_id}/sessions');
             updateCurlPreview('GET', '/api/meter/status', null, 'curl-/api/meter/status');
             updateCurlPreview('GET', '/api/meter/reading', null, 'curl-/api/meter/reading');
+            updateCurlPreview('GET', '/api/mobile/charging/current', null, 'curl-/api/mobile/charging/current');
+            updateCurlPreviewForPathParam('GET', '/api/mobile/charging/sessions/{session_id}', 'param-/api/mobile/charging/sessions/{session_id}', 'curl-/api/mobile/charging/sessions/{session_id}');
+            updateMobileSessionsCurl();
 
             // Start ESP32 status polling
             startStatusPolling();
             startSessionPolling();
+            startMobileSnapshotPolling();
         });
 
         // Load default values for input fields
@@ -1401,7 +1583,8 @@
                         // Set User ID in all user_id input fields
                         const userIdInputs = [
                             'param-/api/sessions/users/{user_id}/current',
-                            'param-/api/sessions/users/{user_id}/sessions'
+                            'param-/api/sessions/users/{user_id}/sessions',
+                            'mobileSessionsUserId'
                         ];
 
                         userIdInputs.forEach(inputId => {
@@ -1470,6 +1653,12 @@
                             sessionIdInput.value = session.session_id;
                             // Trigger oninput event to update curl preview
                             sessionIdInput.dispatchEvent(new Event('input'));
+                        }
+
+                        const mobileSessionInput = document.getElementById('param-/api/mobile/charging/sessions/{session_id}');
+                        if (mobileSessionInput && !mobileSessionInput.value) {
+                            mobileSessionInput.value = session.session_id;
+                            mobileSessionInput.dispatchEvent(new Event('input'));
                         }
                     }
                 }
@@ -1739,7 +1928,7 @@
                 if (networkSignal !== null) {
                     updateMetric('networkValue', networkDisplay, 'metricNetwork', networkSignal, 0, 50, 70);
                 } else {
-                document.getElementById('metricNetwork').className = 'metric-item metric-normal';
+                    document.getElementById('metricNetwork').className = 'metric-item metric-normal';
                 }
             } else {
                 document.getElementById('networkValue').textContent = 'N/A';
@@ -2081,11 +2270,11 @@
                     const meta = s.metadata || {};
                     const userId = meta.user_id || '-';
                     const startEnergy =
-                        meta.start_energy_kwh !== null && meta.start_energy_kwh !== undefined
-                            ? meta.start_energy_kwh
-                            : (meta.start_energy !== null && meta.start_energy !== undefined
-                                ? meta.start_energy
-                                : null);
+                        meta.start_energy_kwh !== null && meta.start_energy_kwh !== undefined ?
+                        meta.start_energy_kwh :
+                        (meta.start_energy !== null && meta.start_energy !== undefined ?
+                            meta.start_energy :
+                            null);
                     const durationSec = s.duration_seconds || (startTime ? Math.max(0, (Date.now() - new Date(startTime).getTime()) / 1000) : 0);
 
                     // Show only if ACTIVE; otherwise clear
@@ -2109,11 +2298,11 @@
                     const durationText = formatDuration(durationSec);
                     const powerKw = lastMeterData.power_kw !== undefined ? lastMeterData.power_kw : null;
                     const currentEnergy =
-                        lastMeterEnergyKwh !== null && lastMeterEnergyKwh !== undefined
-                            ? lastMeterEnergyKwh
-                            : (lastMeterData.energy_kwh !== null && lastMeterData.energy_kwh !== undefined
-                                ? lastMeterData.energy_kwh
-                                : null);
+                        lastMeterEnergyKwh !== null && lastMeterEnergyKwh !== undefined ?
+                        lastMeterEnergyKwh :
+                        (lastMeterData.energy_kwh !== null && lastMeterData.energy_kwh !== undefined ?
+                            lastMeterData.energy_kwh :
+                            null);
                     if (sessionEnergyBaselineKwh === null && startEnergy !== null) {
                         sessionEnergyBaselineKwh = startEnergy;
                     }
@@ -2140,6 +2329,110 @@
             }
         }
 
+        async function startMobileSnapshotPolling() {
+            await updateMobileSnapshot();
+            if (mobileSnapshotInterval) {
+                clearInterval(mobileSnapshotInterval);
+            }
+            mobileSnapshotInterval = setInterval(updateMobileSnapshot, 7000);
+        }
+
+        async function updateMobileSnapshot() {
+            const bar = document.getElementById('mobileBar');
+            if (!bar) return;
+            try {
+                const apiKey = cachedApiKey || await getApiKey();
+                const headers = apiKey ? {
+                    'X-API-Key': apiKey
+                } : {};
+                const response = await fetch(`${API_BASE_URL}/api/mobile/charging/current`, {
+                    headers
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const result = await response.json();
+                if (!result.success || !result.data) throw new Error('Invalid response');
+
+                const data = result.data;
+                const device = data.device || {};
+                const session = data.session || null;
+                const measurements = data.measurements || {};
+                const trend = data.trend || {};
+                const alerts = Array.isArray(data.alerts) ? data.alerts : [];
+
+                let availabilityText = 'Offline';
+                let stateClass = 'fault';
+
+                if (device && device.connected) {
+                    availabilityText = 'Connected';
+                    stateClass = 'available';
+                }
+                if (session && session.status) {
+                    const status = session.status.toUpperCase();
+                    availabilityText = status;
+                    if (status.includes('CHARG')) {
+                        stateClass = 'busy';
+                    }
+                }
+                if (device && device.available === false) {
+                    stateClass = 'fault';
+                    availabilityText = 'Unavailable';
+                }
+
+                setMobileBarState(stateClass);
+                setMobileValue('mobileAvailability', availabilityText);
+
+                const sessionSummary = session && session.session_id ?
+                    `${session.status || 'UNKNOWN'} • ${session.session_id}` :
+                    'No active session';
+                setMobileValue('mobileSessionSummary', sessionSummary);
+
+                const realtimePower =
+                    (measurements.power_kw && measurements.power_kw.total !== undefined) ? measurements.power_kw.total :
+                    (typeof data.realtime_power_kw === 'number' ? data.realtime_power_kw :
+                        (session ? session.power_kw_current : null));
+                setMobileValue('mobileRealtimePower', formatNumberWithUnit(realtimePower, 'kW', 2));
+
+                const energyDelivered = session && session.energy_kwh !== undefined ?
+                    session.energy_kwh :
+                    (measurements.energy_kwh && measurements.energy_kwh.import !== undefined ?
+                        measurements.energy_kwh.import : null);
+                setMobileValue('mobileEnergyDelivered', formatNumberWithUnit(energyDelivered, 'kWh', 3));
+
+                const cost = session && session.cost ? session.cost : null;
+                const currency = (cost && cost.currency) || (device && device.currency) || 'TRY';
+                let costText = '-';
+                if (cost) {
+                    if (cost.estimated_total !== null && cost.estimated_total !== undefined) {
+                        costText = formatCurrencyDisplay(cost.estimated_total, currency);
+                    } else if (cost.per_kwh !== null && cost.per_kwh !== undefined) {
+                        costText = `${formatCurrencyDisplay(cost.per_kwh, currency)} /kWh`;
+                    }
+                }
+                setMobileValue('mobileCostEstimate', costText);
+
+                let trendText = '-';
+                if (trend && (trend.energy_kwh_today !== undefined || trend.sessions_today !== undefined)) {
+                    const energyToday = trend.energy_kwh_today !== undefined ? `${Number(trend.energy_kwh_today).toFixed(2)} kWh` : null;
+                    const sessionsToday = trend.sessions_today !== undefined ? `${trend.sessions_today} session` : null;
+                    trendText = [energyToday, sessionsToday].filter(Boolean).join(' | ') || '-';
+                }
+                setMobileValue('mobileTrendEnergy', trendText);
+
+                setMobileValue('mobileAlertCount', `${alerts.length} active`);
+                setMobileValue('mobileSnapshotUpdate', `Mobile snapshot: ${formatDateLabel(data.timestamp)}`);
+            } catch (error) {
+                console.error('Mobile snapshot error:', error);
+                setMobileSnapshotOffline();
+            }
+        }
+
+        function setMobileSnapshotOffline() {
+            setMobileBarState('fault');
+            ['mobileAvailability', 'mobileSessionSummary', 'mobileRealtimePower', 'mobileEnergyDelivered', 'mobileCostEstimate', 'mobileTrendEnergy', 'mobileAlertCount']
+            .forEach(id => setMobileValue(id, '-'));
+            setMobileValue('mobileSnapshotUpdate', 'Mobile snapshot: connection error');
+        }
+
         function formatDuration(seconds) {
             if (!seconds || seconds < 1) return '0 s';
             const hrs = Math.floor(seconds / 3600);
@@ -2150,6 +2443,55 @@
             if (mins) parts.push(`${mins} min`);
             if (secs || parts.length === 0) parts.push(`${secs} s`);
             return parts.join(' ');
+        }
+
+        function setMobileBarState(state) {
+            const bar = document.getElementById('mobileBar');
+            if (!bar) return;
+            bar.classList.remove('mobile-available', 'mobile-busy', 'mobile-fault');
+            if (state === 'busy') {
+                bar.classList.add('mobile-busy');
+            } else if (state === 'fault') {
+                bar.classList.add('mobile-fault');
+            } else {
+                bar.classList.add('mobile-available');
+            }
+        }
+
+        function setMobileValue(elementId, value) {
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.textContent = value;
+            }
+        }
+
+        function formatNumberWithUnit(value, unit = '', digits = 2) {
+            if (value === null || value === undefined || isNaN(Number(value))) return '-';
+            const formatted = Number(value).toFixed(digits);
+            return unit ? `${formatted} ${unit}` : formatted;
+        }
+
+        function formatCurrencyDisplay(value, currency = 'TRY') {
+            if (value === null || value === undefined || isNaN(Number(value))) return '-';
+            try {
+                return new Intl.NumberFormat('tr-TR', {
+                    style: 'currency',
+                    currency
+                }).format(Number(value));
+            } catch (error) {
+                return `${Number(value).toFixed(2)} ${currency}`;
+            }
+        }
+
+        function formatDateLabel(value) {
+            if (!value) return '-';
+            try {
+                const date = new Date(value);
+                if (isNaN(date.getTime())) return value;
+                return date.toLocaleString('tr-TR');
+            } catch (error) {
+                return value;
+            }
         }
 
         // Sayfa kapatılırken polling'i durdur
@@ -2165,6 +2507,9 @@
             }
             if (sessionUpdateInterval) {
                 clearInterval(sessionUpdateInterval);
+            }
+            if (mobileSnapshotInterval) {
+                clearInterval(mobileSnapshotInterval);
             }
         });
 
@@ -2234,8 +2579,8 @@
             curlElement.value = curlCommand;
         }
 
-        async function testEndpoint(method, path, bodyElementId, isNumber = false, event = null) {
-            const responseSection = document.getElementById(`response-${path}`);
+        async function testEndpoint(method, path, bodyElementId, isNumber = false, event = null, responseOverrideId = null) {
+            const responseSection = document.getElementById(responseOverrideId || `response-${path}`);
             // Button'u bul - önce event'ten, sonra ID'den, sonra onclick handler'dan
             let button = null;
             if (event && event.target) {
@@ -2555,6 +2900,57 @@
                 button.disabled = false;
                 button.innerHTML = originalText;
             }
+        }
+
+        function buildMobileSessionsPath() {
+            const params = new URLSearchParams();
+            const limitInput = document.getElementById('mobileSessionsLimit');
+            const statusSelect = document.getElementById('mobileSessionsStatus');
+            const userInput = document.getElementById('mobileSessionsUserId');
+            const fromInput = document.getElementById('mobileSessionsFrom');
+            const toInput = document.getElementById('mobileSessionsTo');
+
+            if (limitInput && limitInput.value) {
+                params.set('limit', limitInput.value);
+            }
+            if (statusSelect && statusSelect.value) {
+                params.set('status', statusSelect.value);
+            }
+            if (userInput && userInput.value.trim()) {
+                params.set('user_id', userInput.value.trim());
+            }
+            if (fromInput && fromInput.value) {
+                params.set('from', formatDateInputValue(fromInput.value));
+            }
+            if (toInput && toInput.value) {
+                params.set('to', formatDateInputValue(toInput.value));
+            }
+
+            const query = params.toString();
+            return `/api/mobile/charging/sessions${query ? `?${query}` : ''}`;
+        }
+
+        function formatDateInputValue(value) {
+            if (!value) return '';
+            try {
+                const date = new Date(value);
+                if (isNaN(date.getTime())) {
+                    return value;
+                }
+                return date.toISOString();
+            } catch (error) {
+                return value;
+            }
+        }
+
+        function updateMobileSessionsCurl() {
+            const path = buildMobileSessionsPath();
+            updateCurlPreview('GET', path, null, 'curl-/api/mobile/charging/sessions');
+        }
+
+        async function testMobileSessionsList(event) {
+            const path = buildMobileSessionsPath();
+            await testEndpoint('GET', path, null, false, event, 'response-/api/mobile/charging/sessions');
         }
 
         async function displayResponse(section, data) {

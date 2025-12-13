@@ -1,41 +1,60 @@
 <!DOCTYPE html>
+<!--
+Station Information Form
+Created: 2025-12-10 00:00
+Last Modified: 2025-12-13 13:05
+Description: Şarj istasyonu bilgilerinin (station info) girilmesi ve /api/station/info endpoint'ine kaydedilmesi
+-->
 <html lang="tr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Şarj İstasyonu Bilgileri</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
+
         .container {
             max-width: 600px;
             margin: 0 auto;
             background: white;
             border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
             padding: 40px;
         }
+
         h1 {
             color: #333;
             margin-bottom: 30px;
             text-align: center;
             font-size: 2em;
         }
+
         .form-group {
             margin-bottom: 20px;
         }
+
         label {
             display: block;
             margin-bottom: 8px;
             color: #555;
             font-weight: 500;
         }
-        input, select, textarea {
+
+        input,
+        select,
+        textarea {
             width: 100%;
             padding: 12px;
             border: 2px solid #e0e0e0;
@@ -43,22 +62,31 @@
             font-size: 14px;
             transition: border-color 0.3s;
         }
-        input:focus, select:focus, textarea:focus {
+
+        input:focus,
+        select:focus,
+        textarea:focus {
             outline: none;
             border-color: #667eea;
         }
+
         textarea {
             resize: vertical;
             min-height: 80px;
         }
+
         .row {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
         }
+
         @media (max-width: 600px) {
-            .row { grid-template-columns: 1fr; }
+            .row {
+                grid-template-columns: 1fr;
+            }
         }
+
         button {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -72,24 +100,29 @@
             margin-top: 10px;
             transition: transform 0.2s, box-shadow 0.2s;
         }
+
         button:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
+
         button:active {
             transform: translateY(0);
         }
+
         .message {
             padding: 12px;
             border-radius: 6px;
             margin-bottom: 20px;
             display: none;
         }
+
         .message.success {
             background: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
         }
+
         .message.error {
             background: #f8d7da;
             color: #721c24;
@@ -97,52 +130,47 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>🔌 Şarj İstasyonu Bilgileri</h1>
-        
+
         <div id="message" class="message"></div>
-        
+
         <form id="stationForm">
             <div class="form-group">
                 <label for="station_id">İstasyon ID *</label>
-                <input type="text" id="station_id" name="station_id" required 
-                       placeholder="örn: STATION-001">
+                <input type="text" id="station_id" name="station_id" required placeholder="örn: STATION-001">
             </div>
-            
+
             <div class="form-group">
                 <label for="name">İstasyon Adı *</label>
-                <input type="text" id="name" name="name" required 
-                       placeholder="örn: Merkez Şarj İstasyonu">
+                <input type="text" id="name" name="name" required placeholder="örn: Merkez Şarj İstasyonu">
             </div>
-            
+
             <div class="row">
                 <div class="form-group">
                     <label for="location">Konum</label>
-                    <input type="text" id="location" name="location" 
-                           placeholder="örn: İstanbul">
+                    <input type="text" id="location" name="location" placeholder="örn: İstanbul">
                 </div>
-                
+
                 <div class="form-group">
                     <label for="max_current_amp">Maksimum Akım (A)</label>
-                    <input type="number" id="max_current_amp" name="max_current_amp" 
-                           min="6" max="32" placeholder="6-32">
+                    <input type="number" id="max_current_amp" name="max_current_amp" min="6" max="32" placeholder="6-32">
                 </div>
             </div>
-            
+
             <div class="form-group">
                 <label for="address">Adres</label>
-                <textarea id="address" name="address" 
-                          placeholder="Tam adres bilgisi"></textarea>
+                <textarea id="address" name="address" placeholder="Tam adres bilgisi"></textarea>
             </div>
-            
+
             <div class="row">
                 <div class="form-group">
                     <label for="max_power_kw">Maksimum Güç (kW)</label>
-                    <input type="number" id="max_power_kw" name="max_power_kw" 
-                           step="0.1" min="0" placeholder="örn: 22.0">
+                    <input type="number" id="max_power_kw" name="max_power_kw" step="0.1" min="0" placeholder="örn: 22.0">
                 </div>
-                
+
                 <div class="form-group">
                     <label for="connector_type">Bağlantı Tipi</label>
                     <select id="connector_type" name="connector_type">
@@ -155,21 +183,24 @@
                     </select>
                 </div>
             </div>
-            
+
+            <div class="form-group">
+                <label for="price_per_kwh">1 kWh Fiyatı (₺)</label>
+                <input type="number" id="price_per_kwh" name="price_per_kwh" step="0.01" min="0" placeholder="örn: 7.50">
+            </div>
+
             <div class="row">
                 <div class="form-group">
                     <label for="latitude">Enlem</label>
-                    <input type="number" id="latitude" name="latitude" 
-                           step="0.000001" placeholder="41.0082">
+                    <input type="number" id="latitude" name="latitude" step="0.000001" placeholder="41.0082">
                 </div>
-                
+
                 <div class="form-group">
                     <label for="longitude">Boylam</label>
-                    <input type="number" id="longitude" name="longitude" 
-                           step="0.000001" placeholder="28.9784">
+                    <input type="number" id="longitude" name="longitude" step="0.000001" placeholder="28.9784">
                 </div>
             </div>
-            
+
             <div class="form-group">
                 <label for="status">Durum</label>
                 <select id="status" name="status">
@@ -178,20 +209,19 @@
                     <option value="maintenance">Bakımda</option>
                 </select>
             </div>
-            
+
             <div class="form-group">
                 <label for="description">Açıklama</label>
-                <textarea id="description" name="description" 
-                          placeholder="İstasyon hakkında ek bilgiler"></textarea>
+                <textarea id="description" name="description" placeholder="İstasyon hakkında ek bilgiler"></textarea>
             </div>
-            
+
             <button type="submit">💾 Kaydet</button>
         </form>
     </div>
-    
+
     <script>
         const API_BASE = window.location.origin;
-        
+
         function showMessage(text, type = 'success') {
             const msgEl = document.getElementById('message');
             msgEl.textContent = text;
@@ -201,44 +231,78 @@
                 msgEl.style.display = 'none';
             }, 5000);
         }
-        
+
+        function parseNumericInput(rawValue, fieldLabel, example) {
+            if (rawValue === null || rawValue === undefined) return null;
+            const s = String(rawValue).trim();
+            if (!s) return null;
+
+            // Kullanıcı virgül ile girerse (4,05) onu noktaya çevirerek kabul et.
+            // type="number" bazı browser'larda virgülü engelleyebilir ama paste ile gelebilir.
+            const normalized = s.includes(',') && !s.includes('.') ? s.replace(',', '.') : s;
+            const num = Number(normalized);
+
+            if (!Number.isFinite(num)) {
+                const exampleText = example ? ` Örnek: ${example}` : '';
+                showMessage(`${fieldLabel} alanı sayısal olmalı.${exampleText}`, 'error');
+                return NaN;
+            }
+            return num;
+        }
+
         document.getElementById('stationForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const formData = new FormData(e.target);
             const data = {};
-            
+
             formData.forEach((value, key) => {
                 if (value) {
                     // Sayısal alanları dönüştür
                     if (['max_power_kw', 'max_current_amp', 'latitude', 'longitude'].includes(key)) {
-                        data[key] = parseFloat(value) || parseInt(value);
+                        const n = parseNumericInput(value, key, '12.34');
+                        if (Number.isNaN(n)) {
+                            throw new Error('Invalid numeric input');
+                        }
+                        data[key] = n;
+                    } else if (key === 'price_per_kwh') {
+                        const n = parseNumericInput(value, '1 kWh Fiyatı (₺)', '4.05');
+                        if (Number.isNaN(n)) {
+                            throw new Error('Invalid numeric input');
+                        }
+                        data[key] = n;
                     } else {
                         data[key] = value;
                     }
                 }
             });
-            
+
             // API'ye kaydet
             try {
                 const response = await fetch(`${API_BASE}/api/station/info`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify(data)
                 });
-                
+
                 const result = await response.json();
-                
+
                 if (result.success) {
                     showMessage('İstasyon bilgileri kaydedildi!', 'success');
                 } else {
                     showMessage(result.message || 'Kayıt işlemi başarısız', 'error');
                 }
             } catch (error) {
+                // Numeric parse hatasında zaten showMessage basıldı.
+                if (error && error.message === 'Invalid numeric input') {
+                    return;
+                }
                 showMessage('Kayıt işlemi başarısız: ' + error.message, 'error');
             }
         });
-        
+
         // Sayfa yüklendiğinde kayıtlı veriyi API'den yükle
         window.addEventListener('DOMContentLoaded', async () => {
             try {
@@ -261,5 +325,5 @@
         });
     </script>
 </body>
-</html>
 
+</html>

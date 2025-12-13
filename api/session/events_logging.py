@@ -95,7 +95,9 @@ class SessionEventLoggingMixin:
                 title="Session event persistence failed",
                 severity="error",
                 description=str(exc),
-                session_id=self.current_session.session_id if self.current_session else None,
+                session_id=(
+                    self.current_session.session_id if self.current_session else None
+                ),
                 event_type=event_type.value,
             )
             if self.current_session:
@@ -106,4 +108,3 @@ class SessionEventLoggingMixin:
                     event_data=event_data,
                     error=str(exc),
                 )
-

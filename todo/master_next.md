@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-12 23:05:00
+**Son Güncelleme:** 2025-12-13 03:20:00
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -171,6 +171,30 @@
   - Durum: ✅ Tamamlandı
 
 ### Öncelik 1: Code Quality İyileştirmeleri (Code Quality Expert - Codebase Deep Dive Bulgusu)
+
+### Öncelik 2: Mobil Deneyim İyileştirmeleri
+
+#### 🔄 Mobile API → OCPP/CSMS Map (03:20:00) - Yeni
+- [ ] **Görev:** Mobile API response'unu OCPP `MeterValues` / `TransactionEvent` şemasına haritalamak
+  - Açıklama: `/api/mobile/charging/*` JSON’ları şu anda proje içi alan isimleriyle hazırlanıyor. CSMS entegrasyonuna hazırlık için `measurements` ve `session` alanlarının OCPP sözlüğüyle birebir eşleştirilmesi gerekiyor (ör. `energy.import.register`, `measurand=Power.Active.Import`, `context=Transaction.Begin/End`).
+  - Öncelik: 2 (Yüksek)
+  - Tahmini Süre: 3-4 saat
+  - Durum: 📋 Bekliyor
+  - Detaylar:
+    - Response şemasına `ocpp_mappings` bloğu eklenebilir veya alan isimleri doğrudan standartlaştırılabilir.
+    - İleride CSMS'ye forward edilecek event'ler için payload normalization gerekecek.
+    - `Docs/api_reference.md` ve `project_info` içinde yeni sözlük güncellenmeli.
+
+#### ⚙️ Mobile API Selective Payload / Query Options (03:20:00) - Yeni
+- [ ] **Görev:** `/api/mobile/charging/current` için alan seçimi (include/exclude) ve hafifletilmiş mod eklemek
+  - Açıklama: Şu an tüm veriler tek payload’da dönüyor (~kilobyte seviyesinde). Mobil ekip sadece belirli bloklara ihtiyaç duyduğunda gereksiz veri transferi oluşuyor.
+  - Öncelik: 2 (Yüksek)
+  - Tahmini Süre: 2 saat
+  - Durum: 📋 Bekliyor
+  - Detaylar:
+    - `?include=alerts,trend` veya `?lite=true` gibi parametrelerle ölçüm, alert veya trend blokları isteğe bağlı döndürülebilir.
+    - Genişleyen payload için caching stratejisi ve rate limiting gözden geçirilmeli.
+    - Swagger/Docs güncellenerek mobil geliştiricilere yeni parametreler anlatılmalı.
 
 #### ✅ Code Duplication Azaltma - Tamamlandı (16:00:00)
 - [x] **Görev:** Code duplication azaltma

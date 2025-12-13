@@ -261,9 +261,10 @@ Tüm analiz, audit ve değerlendirme raporları bu klasörde toplanmıştır.
 - **Ne:** İstasyon bilgileri yönetim modülü
 - **Amaç:** Statik istasyon bilgilerinin yüklenmesi ve kaydedilmesi
 - **İçerik:**
-  - `load_station_info()` - JSON'dan istasyon bilgilerini yükle
-  - `save_station_info()` - İstasyon bilgilerini JSON'a kaydet
-  - `get_station_info()` - İstasyon bilgilerini döndür
+  - `ensure_data_dir()` - Veri dizinini hazırlar
+  - `normalize_station_info()` - Station info alanlarını normalize eder (örn. `price_per_kwh`)
+  - `save_station_info()` - İstasyon bilgilerini JSON'a kaydeder
+  - `get_station_info()` - İstasyon bilgilerini döndürür
 - **Ne Zaman:** 2025-12-08'de oluşturuldu
 - **İlgili Dosyalar:** `data/station_info.json`, `api/main.py` (`/api/station/info` endpoint)
 

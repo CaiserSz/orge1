@@ -1,8 +1,8 @@
 """
 Station Info Module Tests
 Created: 2025-12-09 23:15:00
-Last Modified: 2025-12-09 23:15:00
-Version: 1.0.0
+Last Modified: 2025-12-13 13:12:00
+Version: 1.1.0
 Description: Station info modülü için unit testler
 """
 
@@ -167,4 +167,38 @@ class TestStationInfo:
             assert retrieved_data["max_current"] == original_data["max_current"]
             assert "updated_at" in retrieved_data
             assert "created_at" in retrieved_data
+
+    def test_save_station_info_normalizes_price_per_kwh(self):
+        """price_per_kwh string gelirse float'a normalize edilmeli"""
+        with patch('api.station_info.DATA_FILE', self.temp_file):
+            station_data = {
+                "station_id": "TEST-001",
+                "name": "Test Station",
+                "price_per_kwh": "7.50",
+            }
+
+            result = save_station_info(station_data)
+            assert result is True
+
+            with open(self.temp_file, 'r', encoding='utf-8') as f:
+                saved_data = json.load(f)
+
+            assert saved_data["price_per_kwh"] == 7.5
+
+    def test_save_station_info_normalizes_price_per_kwh_comma(self):
+        """price_per_kwh virgüllü string (4,05) gelirse float'a normalize edilmeli"""
+        with patch('api.station_info.DATA_FILE', self.temp_file):
+            station_data = {
+                "station_id": "TEST-001",
+                "name": "Test Station",
+                "price_per_kwh": "4,05",
+            }
+
+            result = save_station_info(station_data)
+            assert result is True
+
+            with open(self.temp_file, 'r', encoding='utf-8') as f:
+                saved_data = json.load(f)
+
+            assert saved_data["price_per_kwh"] == 4.05
 

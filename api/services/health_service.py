@@ -285,4 +285,3 @@ def build_health_response(
         health_data["metrics_error"] = str(exc)
 
     return APIResponse(success=True, message="System health check", data=health_data)
-

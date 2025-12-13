@@ -5,11 +5,12 @@
   "max_current_amp": 16,
   "address": "Abdurrahmangazi, Osman Paşa Cd. 18b, 34887 Sancaktepe/İstanbul",
   "max_power_kw": 22,
+  "price_per_kwh": 4.05,
   "connector_type": "Type2",
   "latitude": 40.9902,
   "longitude": 29.23227,
   "status": "active",
   "description": "Binaya giriş bariyerlidir. Güvenliğe arj için geldiğinizi söylemeniz yeterli. Altkatt solda ilk kapının yanında 22kw şarj istasyonu.",
-  "updated_at": "2025-12-09T18:43:32.803050",
+  "updated_at": "2025-12-13T18:48:47.486426",
   "created_at": "2025-12-09T18:43:32.803114"
 }

@@ -26,6 +26,7 @@ router = APIRouter(prefix="/api", tags=["Status"])
 async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
     return build_health_response(bridge, get_bridge)
 
+
 @router.get("/status")
 @status_rate_limit()  # Status endpoint'leri için rate limit (30/dakika)
 @cache_response(

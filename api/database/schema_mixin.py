@@ -216,4 +216,3 @@ class DatabaseSchemaMixin:
                 system_logger.debug(f"Database statistics: {stats}")
         except Exception as exc:
             system_logger.warning(f"Database optimization failed: {exc}")
-
