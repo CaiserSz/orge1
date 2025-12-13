@@ -1,8 +1,8 @@
 """
 Mobile Charging Router
 Created: 2025-12-13 03:15:00
-Last Modified: 2025-12-13 19:00:00
-Version: 1.2.0
+Last Modified: 2025-12-13 21:45:00
+Version: 1.2.1
 Description: Mobile uygulamalar için şarj durumu ve geçmiş oturum API'leri.
 """
 
@@ -17,22 +17,15 @@ from api.cache import cache_response
 from api.logging_config import system_logger
 from api.meter import get_meter
 from api.models import APIResponse
+from api.services.mobile_meter import (build_device_block, build_measurements,
+                                       build_trend_block, collect_alerts,
+                                       collect_meter_snapshot)
+from api.services.mobile_sessions import (build_session_block,
+                                          filter_sessions_by_date, now_iso,
+                                          parse_datetime,
+                                          serialize_session_detail,
+                                          serialize_session_summary)
 from api.session import SessionStatus, get_session_manager
-from api.services.mobile_meter import (
-    build_device_block,
-    build_measurements,
-    build_trend_block,
-    collect_alerts,
-    collect_meter_snapshot,
-)
-from api.services.mobile_sessions import (
-    build_session_block,
-    filter_sessions_by_date,
-    now_iso,
-    parse_datetime,
-    serialize_session_detail,
-    serialize_session_summary,
-)
 from api.station_info import get_station_info
 
 router = APIRouter(prefix="/api/mobile", tags=["Mobile"])
@@ -111,6 +104,8 @@ async def list_mobile_sessions(
     """Mobil uygulama için geçmiş şarj oturumlarını döndür."""
     try:
         session_manager = get_session_manager()
+        meter_snapshot = collect_meter_snapshot(get_meter)
+        measurements = build_measurements(meter_snapshot.get("reading"))
 
         status_enum = None
         if status_filter:
@@ -139,7 +134,17 @@ async def list_mobile_sessions(
         window = filtered[offset : offset + limit]
 
         price_per_kwh = (get_station_info() or {}).get("price_per_kwh")
-        items = [serialize_session_summary(s, price_per_kwh) for s in window]
+        live_energy_import_kwh = (
+            (measurements or {}).get("energy_kwh", {}).get("import")
+            if measurements
+            else None
+        )
+        items = [
+            serialize_session_summary(
+                s, price_per_kwh, live_energy_import_kwh=live_energy_import_kwh
+            )
+            for s in window
+        ]
 
         return APIResponse(
             success=True,
@@ -178,7 +183,11 @@ async def get_mobile_session_detail(session_id: str) -> APIResponse:
             )
 
         station_info = get_station_info() or {}
-        detail = serialize_session_detail(session, station_info)
+        meter_snapshot = collect_meter_snapshot(get_meter)
+        measurements = build_measurements(meter_snapshot.get("reading"))
+        detail = serialize_session_detail(
+            session, station_info, measurements=measurements
+        )
         return APIResponse(success=True, message="Oturum detayları alındı", data=detail)
     except HTTPException:
         raise

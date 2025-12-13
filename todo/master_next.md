@@ -37,6 +37,18 @@
   - Tahmini Süre: 1-2 saat
   - Durum: 💡 Bulgu / İnceleme
 
+- [ ] **Görev:** Acrel ADL400 enerji register anlamları (energy_total vs energy_import/export) doğrulaması
+  - Açıklama: `/api/meter/reading` içinde `energy_kwh`, `energy_import_kwh`, `energy_export_kwh` alanlarının hangi sayaç register’larından geldiği ve “import”/“total” semantiğinin doğru olduğu sahada teyit edilmeli. Export değeri sabit görünebiliyor (ör. 0.3 kWh) — bu hata olmayabilir, ama register map üzerinden doğrulanmalı.
+  - Öncelik: 2 (Orta)
+  - Tahmini Süre: 1-2 saat
+  - Durum: 💡 İnceleme
+
+- [ ] **Görev:** `/api/current/available` endpoint’ini kaldırma/deprecate kararı
+  - Açıklama: Endpoint şu an statik aralık döndürüyor (6-32). Kullanım yoksa kaldırılabilir; kullanılacaksa station/meter/ESP32 config’e göre dinamik hale getirilebilir.
+  - Öncelik: 3 (Orta/Düşük)
+  - Tahmini Süre: 0.5-1 saat
+  - Durum: 💡 İyileştirme fırsatı
+
 ### Faz 1: Temel Altyapı (Kritik) - Devam Ediyor
 
 #### ✅ ESP32-RPi Bridge Modülü

@@ -1,8 +1,8 @@
 """
 Mobile Meter/Alert Helpers
 Created: 2025-12-13 18:50:00
-Last Modified: 2025-12-13 18:50:00
-Version: 1.0.0
+Last Modified: 2025-12-13 21:45:00
+Version: 1.0.1
 Description: Mobil endpoint'ler için meter snapshot, measurements, trend ve alert yardımcıları.
 """
 
@@ -118,11 +118,11 @@ def build_measurements(reading: Optional[Dict[str, Any]]) -> Optional[Dict[str, 
     else:
         power_total = reading.get("power_kw")
 
-    energy_import = (
-        totals.get("energy_kwh")
-        if isinstance(totals, dict)
-        else reading.get("energy_kwh")
-    )
+    # import/export ayrımı olan meter'larda import register'ını tercih et
+    if isinstance(totals, dict):
+        energy_import = totals.get("energy_import_kwh") or totals.get("energy_kwh")
+    else:
+        energy_import = reading.get("energy_kwh")
 
     return {
         "voltage_v": _phase_or_total(voltage_phase, reading.get("voltage_v")),
