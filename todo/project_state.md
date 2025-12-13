@@ -1,8 +1,8 @@
 # Proje Durumu ve İlerleme Takibi
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-13 03:20:00
-**Version:** 1.7.0
+**Son Güncelleme:** 2025-12-13 23:15:00
+**Version:** 1.8.0
 
 ---
 
@@ -11,7 +11,7 @@
 **Mevcut Faz:** Faz 6 - Logging ve Session Yönetimi (Tamamlandı ✅)
 **Sonraki Faz:** Faz 7 - Production Deployment ve Mobil Uygulama Entegrasyonu
 **Proje Sağlığı:** ✅ Mükemmel (Skor: 9.6/10)
-**Son Aktif Çalışma:** Mobil şarj API + test paketi (Tamamlandı - 2025-12-13 03:20:00)
+**Son Aktif Çalışma:** Mobile API doğruluk + ghost session cleanup + /test cost düzeltmesi (Tamamlandı - 2025-12-13 23:15:00)
 **İstasyon Durumu:** ✅ Production-Ready (2025-12-10 15:40:00)
 **Checkpoint Tag:** v1.0.0-test-complete
 
@@ -138,6 +138,11 @@
   - `./env/bin/python -m pytest` çalıştırıldı (159 failure, 414 passed, 4 skipped) — ağırlıklı rate limiting ve mock/konfigürasyon kaynaklı hatalar; takip gerekiyor
 
 ### 2025-12-13
+- **23:15:00** - Mobile API doğruluk iyileştirmeleri + ghost session cleanup + /test cost düzeltmesi
+  - ✅ Mobile aktif session için enerji/maliyet/duration hesapları iyileştirildi; import enerji register’ı (energy_import_kwh) önceliklendirildi.
+  - ✅ Ghost ACTIVE session: ESP32 `IDLE` + `CABLE=0` iken otomatik `CANCELLED` (mobile + sessions current endpoint’leri).
+  - ✅ `/test` sayfasında “Cost” artık toplam maliyeti gösteriyor (fallback: `energy * per_kwh`).
+  - ✅ Tam test suite çalıştırıldı: `./env/bin/pytest` → 545 passed, 4 skipped; kalite script’leri → başarılı.
 - **03:20:00** - Mobil şarj API + test paketi
   - `/api/mobile/charging/current`, `/api/mobile/charging/sessions`, `/api/mobile/charging/sessions/{session_id}` endpoint'leri eklendi; station formundaki `price_per_kwh` bilgisiyle maliyet blokları hesaplanıyor.
   - `api/main.py` router include güncellendi, `master_next` içine mobil deneyim iyileştirmeleri için yeni görevler açıldı.

@@ -1,8 +1,8 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-13 03:20:00
-**Version:** 1.7.0
+**Son Güncelleme:** 2025-12-13 23:15:00
+**Version:** 1.8.0
 
 ---
 
@@ -14,8 +14,24 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251213-029
-**Tarih:** 2025-12-13 03:20:00
+**Checkpoint ID:** CP-20251213-030
+**Tarih:** 2025-12-13 23:15:00
+**Durum:** ✅ Mobile API doğruluk + ghost session cleanup + /test cost düzeltmesi
+- Mobile aktif session iyileştirmeleri:
+  - Negatif `duration_minutes` düzeltildi (naive local timestamp → UTC dönüşümü).
+  - `session.energy_kwh` ve `cost` alanları için live hesap/normalize iyileştirmeleri.
+  - Mobile measurements energy kaynağı: import için `energy_import_kwh` register’ı öncelikli.
+- Ghost ACTIVE session önleme:
+  - ESP32 `IDLE` + `CABLE=0` iken ACTIVE kalan session otomatik `CANCELLED` edilir (`/api/sessions/current`, `/api/mobile/charging/current`).
+- `/test` sayfası:
+  - Mobile bar “Cost” artık toplam maliyeti gösterir (gerekirse `energy * per_kwh` fallback).
+- İstasyon default:
+  - `max_current_amp` standart 32A olarak güncellendi; charge stop sonrası MAX akım otomatik 32A’ye resetlenir.
+- Test Sonucu:
+  - `./env/bin/pytest` → ✅ 545 passed, 4 skipped
+  - `scripts/todo_auto_check.py`, `workspace_auto_check.py`, `code_quality_auto_check.py` → ✅ başarılı
+
+### Önceki Checkpoint: CP-20251213-029 (2025-12-13 03:20:00)
 **Durum:** ✅ Mobil şarj API paketi hazır
 - `/api/mobile/charging/current` endpoint’i cihaz durumu + aktif session + trend + alert verisini tek payload’da sunuyor.
 - `/api/mobile/charging/sessions` liste endpoint’i tarih aralığı/status filtreleri ve maliyet hesaplamasıyla mobil geçmiş ekranını besliyor.
