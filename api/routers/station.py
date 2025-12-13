@@ -157,9 +157,7 @@ async def get_station_status(
                             if reading and getattr(reading, "is_valid", False):
                                 meter_power_kw = getattr(reading, "power_kw", None)
                                 if isinstance(meter_power_kw, (int, float)):
-                                    realtime_power_kw = round(
-                                        float(meter_power_kw), 3
-                                    )
+                                    realtime_power_kw = round(float(meter_power_kw), 3)
                     except Exception:
                         pass
 
