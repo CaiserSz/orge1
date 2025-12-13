@@ -1,4 +1,11 @@
 <!DOCTYPE html>
+<!--
+API Test Page (/test)
+Created: 2025-12-09 17:32:47 +0300
+Last Modified: 2025-12-13 22:55:48 +0300
+Version: 1.4.0
+Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/test etme sayfası.
+-->
 <html lang="tr">
 
 <head>
@@ -2456,10 +2463,22 @@
                 const currency = (cost && cost.currency) || (device && device.currency) || 'TRY';
                 let costText = '-';
                 if (cost) {
-                    if (cost.estimated_total !== null && cost.estimated_total !== undefined) {
-                        costText = formatCurrencyDisplay(cost.estimated_total, currency);
-                    } else if (cost.per_kwh !== null && cost.per_kwh !== undefined) {
-                        costText = `${formatCurrencyDisplay(cost.per_kwh, currency)} /kWh`;
+                    const perKwh = isValidNumber(cost.per_kwh) ? Number(cost.per_kwh) : null;
+                    const total = isValidNumber(cost.total) ? Number(cost.total) : null;
+                    const estimatedTotal = isValidNumber(cost.estimated_total) ? Number(cost.estimated_total) : null;
+                    let effectiveTotal = total !== null ? total : estimatedTotal;
+
+                    // Backend "estimated_total" göndermese bile: energy * per_kwh üzerinden live hesapla
+                    if (effectiveTotal === null && isValidNumber(energyDelivered) && perKwh !== null) {
+                        effectiveTotal = Number(energyDelivered) * perKwh;
+                    }
+
+                    if (effectiveTotal !== null) {
+                        const perKwhText = perKwh !== null ? ` (${formatCurrencyDisplay(perKwh, currency)}/kWh)` : '';
+                        costText = `${formatCurrencyDisplay(effectiveTotal, currency)}${perKwhText}`;
+                    } else if (perKwh !== null) {
+                        // Son çare: sadece birim fiyatı göster
+                        costText = `${formatCurrencyDisplay(perKwh, currency)} /kWh`;
                     }
                 }
                 setMobileValue('mobileCostEstimate', costText);
