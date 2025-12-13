@@ -1672,8 +1672,8 @@
             // İlk güncelleme
             await updateESP32Status();
 
-            // Her 3 saniyede bir güncelle (ESP32 5 saniyede bir gönderiyor)
-            statusUpdateInterval = setInterval(updateESP32Status, 3000);
+            // Her 10 saniyede bir güncelle (rate limit + stabilite için daha güvenli)
+            statusUpdateInterval = setInterval(updateESP32Status, 10000);
 
             // Sistem metriklerini güncelle (her 5 saniyede bir)
             systemMetricsInterval = setInterval(updateSystemMetrics, 5000);
@@ -1686,6 +1686,14 @@
         async function updateESP32Status() {
             try {
                 const response = await fetch(`${API_BASE_URL}/api/status`);
+                // Rate limit (HTTP 429) durumunda verileri temizleme; sadece uyarı göster
+                if (response.status === 429) {
+                    statusErrorCount++;
+                    document.getElementById('statusDot').classList.add('offline');
+                    document.getElementById('lastUpdate').textContent =
+                        `Rate limit (HTTP 429) - values retained (${statusErrorCount})`;
+                    return;
+                }
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
                 }
@@ -1703,16 +1711,10 @@
                 console.error('Status update error:', error);
                 statusErrorCount++;
 
-                // İlk hata: offline göster ama verileri koru
+                // Hata: offline göster ama verileri koru (data cleared YOK)
                 document.getElementById('statusDot').classList.add('offline');
-
-                // 3 ardışık hata sonrası verileri temizle (UX iyileştirmesi)
-                if (statusErrorCount >= 3) {
-                    clearStatusBar();
-                    document.getElementById('lastUpdate').textContent = 'Connection error - data cleared';
-                } else {
-                    document.getElementById('lastUpdate').textContent = `Connection error (${statusErrorCount}/3)`;
-                }
+                document.getElementById('lastUpdate').textContent =
+                    `Connection error - values retained (${statusErrorCount})`;
             }
         }
 
@@ -2159,12 +2161,32 @@
                         formatMeterNumber(current, 2),
                         'meterCurrent'
                     );
-                    const powerDir = powerKw < -0.001 ? 'export' : 'import';
-                    const powerDisplay = `${formatMeterNumber(Math.abs(powerKw), 3)} (${powerDir})`;
+                    // 3-faz toplam gücü hesapla (API toplamı bazı kurulumlarda tek-faz gibi gelebiliyor)
+                    const computedTotalPowerKw = (() => {
+                        const v = phaseValuesRaw.voltage_v || {};
+                        const i = phaseValuesRaw.current_a || {};
+                        const pfSafe = powerFactor !== null && powerFactor !== undefined && !isNaN(Number(powerFactor)) ?
+                            Number(powerFactor) :
+                            1;
+
+                        const hasAllVI = ['l1', 'l2', 'l3'].every(
+                            k => typeof v[k] === 'number' && typeof i[k] === 'number'
+                        );
+                        if (!hasAllVI) {
+                            return totals.power_kw;
+                        }
+
+                        const sumKw = (v.l1 * i.l1 + v.l2 * i.l2 + v.l3 * i.l3) / 1000;
+                        const sign = powerKw < -0.001 ? -1 : 1;
+                        return sign * Math.abs(sumKw * pfSafe);
+                    })();
+
+                    const powerDir = computedTotalPowerKw < -0.001 ? 'export' : 'import';
+                    const powerDisplay = `${formatMeterNumber(Math.abs(computedTotalPowerKw), 3)} (${powerDir})`;
 
                     updateMeterItem(
                         'meterPowerValue',
-                        powerKw,
+                        computedTotalPowerKw,
                         powerDisplay,
                         'meterPower'
                     );
@@ -2202,7 +2224,7 @@
                     document.getElementById('meterPhasePower').textContent =
                         `L1: ${fmt(phaseValues.power_kw.l1, 3)}, L2: ${fmt(phaseValues.power_kw.l2, 3)}, L3: ${fmt(phaseValues.power_kw.l3, 3)}`;
 
-                    const totalPower = totals.power_kw;
+                    const totalPower = computedTotalPowerKw;
                     const totalEnergy = totals.energy_kwh;
                     const totalDir = totalPower !== null && totalPower !== undefined && totalPower < -0.001 ? 'export' : 'import';
                     document.getElementById('meterTotals').textContent =
@@ -2210,13 +2232,13 @@
 
                     // Meter enerji baseline'ını güncelle
                     lastMeterEnergyKwh = energyKwh;
-                    lastMeterData.power_kw = powerKw;
+                    lastMeterData.power_kw = computedTotalPowerKw;
                     lastMeterData.energy_kwh = energyKwh;
                     lastMeterData.total_power_dir = totalDir;
 
                     // Güç yönü uyarısı (STATE=CHARGING ve export ise)
                     const isCharging = window.lastStatusState === 5;
-                    const isExport = powerKw < -0.1;
+                    const isExport = computedTotalPowerKw < -0.1;
                     setMetricState('meterPower', isExport && isCharging ? 'warning' : 'normal');
                     setMetricState('meterEnergy', 'normal');
 
@@ -2386,16 +2408,48 @@
                     'No active session';
                 setMobileValue('mobileSessionSummary', sessionSummary);
 
+                const isValidNumber = (val) =>
+                    val !== null && val !== undefined && !isNaN(Number(val));
+
+                // Mobile payload'daki total power bazı kurulumlarda tek-faz gibi gelebiliyor.
+                // Bu yüzden mümkünse 3-faz V/I üzerinden total power'ı türet.
+                const derivedMobileTotalPowerKw = (() => {
+                    const v = measurements.voltage_v || {};
+                    const i = measurements.current_a || {};
+
+                    const hasAllVI = ['L1', 'L2', 'L3'].every(
+                        k => isValidNumber(v[k]) && isValidNumber(i[k])
+                    );
+                    if (hasAllVI) {
+                        return (Number(v.L1) * Number(i.L1) + Number(v.L2) * Number(i.L2) + Number(v.L3) * Number(i.L3)) / 1000;
+                    }
+
+                    const p = measurements.power_kw || {};
+                    if (isValidNumber(p.L1) || isValidNumber(p.L2) || isValidNumber(p.L3)) {
+                        const l1 = isValidNumber(p.L1) ? Number(p.L1) : 0;
+                        const l2 = isValidNumber(p.L2) ? Number(p.L2) : 0;
+                        const l3 = isValidNumber(p.L3) ? Number(p.L3) : (isValidNumber(p.total) ? Number(p.total) : 0);
+                        const sum = l1 + l2 + l3;
+                        return sum > 0 ? sum : null;
+                    }
+
+                    return null;
+                })();
+
                 const realtimePower =
-                    (measurements.power_kw && measurements.power_kw.total !== undefined) ? measurements.power_kw.total :
+                    isValidNumber(derivedMobileTotalPowerKw) ? derivedMobileTotalPowerKw :
+                    (measurements.power_kw && isValidNumber(measurements.power_kw.total)) ? measurements.power_kw.total :
                     (typeof data.realtime_power_kw === 'number' ? data.realtime_power_kw :
-                        (session ? session.power_kw_current : null));
+                        (session && isValidNumber(session.power_kw_current) ? session.power_kw_current : null));
                 setMobileValue('mobileRealtimePower', formatNumberWithUnit(realtimePower, 'kW', 2));
 
-                const energyDelivered = session && session.energy_kwh !== undefined ?
+                // session.energy_kwh null gelebiliyor; null ise measurements.energy_kwh.import'a fallback yap
+                const energyDelivered =
+                    (session && isValidNumber(session.energy_kwh)) ?
                     session.energy_kwh :
-                    (measurements.energy_kwh && measurements.energy_kwh.import !== undefined ?
-                        measurements.energy_kwh.import : null);
+                    (measurements.energy_kwh && isValidNumber(measurements.energy_kwh.import)) ?
+                    measurements.energy_kwh.import :
+                    null;
                 setMobileValue('mobileEnergyDelivered', formatNumberWithUnit(energyDelivered, 'kWh', 3));
 
                 const cost = session && session.cost ? session.cost : null;
