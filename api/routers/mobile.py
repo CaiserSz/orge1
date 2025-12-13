@@ -20,14 +20,21 @@ from api.logging_config import system_logger
 from api.meter import get_meter
 from api.models import APIResponse
 from api.routers.dependencies import get_bridge
-from api.services.mobile_meter import (build_device_block, build_measurements,
-                                       build_trend_block, collect_alerts,
-                                       collect_meter_snapshot)
-from api.services.mobile_sessions import (build_session_block,
-                                          filter_sessions_by_date, now_iso,
-                                          parse_datetime,
-                                          serialize_session_detail,
-                                          serialize_session_summary)
+from api.services.mobile_meter import (
+    build_device_block,
+    build_measurements,
+    build_trend_block,
+    collect_alerts,
+    collect_meter_snapshot,
+)
+from api.services.mobile_sessions import (
+    build_session_block,
+    filter_sessions_by_date,
+    now_iso,
+    parse_datetime,
+    serialize_session_detail,
+    serialize_session_summary,
+)
 from api.session import SessionStatus, get_session_manager
 from api.station_info import get_station_info
 from esp32.bridge import ESP32Bridge
@@ -81,7 +88,8 @@ async def get_mobile_charging_state(
                         with session_manager.sessions_lock:
                             if (
                                 session_manager.current_session
-                                and session_manager.current_session.session_id == session_id
+                                and session_manager.current_session.session_id
+                                == session_id
                             ):
                                 session_manager.current_session = None
                     except Exception:

@@ -64,7 +64,8 @@ async def get_current_session(bridge: ESP32Bridge = Depends(get_bridge)):
                         with session_manager.sessions_lock:
                             if (
                                 session_manager.current_session
-                                and session_manager.current_session.session_id == session_id
+                                and session_manager.current_session.session_id
+                                == session_id
                             ):
                                 session_manager.current_session = None
                     except Exception:

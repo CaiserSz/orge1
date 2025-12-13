@@ -70,7 +70,9 @@ class SessionLifecycleMixin(SessionEventLoggingMixin):
             if self.meter:
                 try:
                     # Başlangıçta meter bağlantısı düşmüşse tekrar bağlanmayı dene
-                    if hasattr(self.meter, "is_connected") and hasattr(self.meter, "connect"):
+                    if hasattr(self.meter, "is_connected") and hasattr(
+                        self.meter, "connect"
+                    ):
                         try:
                             if not self.meter.is_connected():
                                 self.meter.connect()
