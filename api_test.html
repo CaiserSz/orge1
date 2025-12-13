@@ -1940,6 +1940,17 @@
                         },
                     };
 
+                    const swapPhaseOrder = (phaseObj = {}) => ({
+                        l1: safe(phaseObj.l3, phaseObj.l1),
+                        l2: safe(phaseObj.l2, phaseObj.l2),
+                        l3: safe(phaseObj.l1, phaseObj.l3),
+                    });
+
+                    phaseValues.voltage_v = swapPhaseOrder(phaseValues.voltage_v);
+                    phaseValues.current_a = swapPhaseOrder(phaseValues.current_a);
+                    phaseValues.power_w = swapPhaseOrder(phaseValues.power_w);
+                    phaseValues.power_kw = swapPhaseOrder(phaseValues.power_kw);
+
                     const totals = {
                         power_kw: safe(totalsRaw.power_kw, powerKw),
                         energy_kwh: safe(totalsRaw.energy_kwh, energyKwh),
