@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-13 03:20:00
+**Son Güncelleme:** 2025-12-13 23:00:09
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -48,6 +48,13 @@
   - Öncelik: 3 (Orta/Düşük)
   - Tahmini Süre: 0.5-1 saat
   - Durum: 💡 İyileştirme fırsatı
+
+- [ ] **Görev:** `api/database/session_queries.py` refactor (satır sayısı uyarı eşiği yakın)
+  - Açıklama: `scripts/standards_auto_check.py` raporuna göre dosya 404 satır (Limit: 500). Uyarı eşiği yaklaştığı için mixin’leri daha küçük modüllere bölmek planlanmalı.
+  - Öncelik: 2 (Orta)
+  - Tahmini Süre: 1-2 saat
+  - Durum: 🟡 Uyarı eşiği yakın
+  - Detaylar: Standart kontrol raporu (2025-12-13 22:59)
 
 ### Faz 1: Temel Altyapı (Kritik) - Devam Ediyor
 
