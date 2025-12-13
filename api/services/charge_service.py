@@ -16,8 +16,11 @@ from api.cache import CacheInvalidator
 from api.logging_config import system_logger
 from api.models import ChargeStartRequest, ChargeStopRequest
 from api.services.base_service import BaseService
-from api.state_validation import (check_state_changed,
-                                  check_state_for_charge_start, validate_state)
+from api.state_validation import (
+    check_state_changed,
+    check_state_for_charge_start,
+    validate_state,
+)
 
 
 class ChargeService(BaseService):
