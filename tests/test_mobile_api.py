@@ -179,4 +179,3 @@ def test_mobile_session_list_filters_by_date(client):
     # Sadece bugünkü oturum beklenir
     assert len(sessions) == 1
     assert sessions[0]["session_id"] == "sess-001"
-

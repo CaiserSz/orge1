@@ -112,7 +112,11 @@ class TestStationInfoEndpoints:
 
     def test_save_station_info_success(self, client):
         """Save station info - başarılı"""
-        test_data = {"station_id": "TEST-001", "name": "Test Station", "price_per_kwh": 7.5}
+        test_data = {
+            "station_id": "TEST-001",
+            "name": "Test Station",
+            "price_per_kwh": 7.5,
+        }
 
         with patch("api.routers.station.save_station_info", return_value=True):
             response = client.post("/api/station/info", json=test_data)
