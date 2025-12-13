@@ -1,21 +1,23 @@
 """
 Status Router
 Created: 2025-12-10
-Last Modified: 2025-12-13 02:25:00
-Version: 1.1.0
+Last Modified: 2025-12-13 23:25:00
+Version: 1.2.0
 Description: Status and health check endpoints
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from api.cache import cache_response
-from api.event_detector import get_event_detector
+from api.cache import CacheInvalidator
+from api.event_detector import ESP32State, get_event_detector
 from api.metrics import get_metrics_response, update_all_metrics
 from api.models import APIResponse
 from api.rate_limiting import status_rate_limit
 from api.routers.dependencies import get_bridge
 from api.services.health_service import build_health_response
 from api.services.status_service import StatusService
+from api.station_info import get_station_info
 from esp32.bridge import ESP32Bridge
 
 router = APIRouter(prefix="/api", tags=["Status"])
@@ -70,6 +72,29 @@ async def get_status(request: Request, bridge: ESP32Bridge = Depends(get_bridge)
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
             detail="ESP32'den durum bilgisi alınamadı (timeout veya stale data)",
         )
+
+    # IDLE + kablo yokken MAX değeri standart (station_info.max_current_amp, varsayılan 32A) olmalı.
+    # Şarj bitip kablo çıkarıldıktan sonra kullanıcı ayarı (örn. 16A) otomatik resetlenir.
+    try:
+        state = status_data.get("STATE")
+        cable = status_data.get("CABLE")
+        current_max = status_data.get("MAX")
+        station_info = get_station_info() or {}
+        desired_max = int(station_info.get("max_current_amp") or 32)
+        desired_max = max(6, min(32, desired_max))
+
+        if (
+            state == ESP32State.IDLE.value
+            and cable == 0
+            and current_max is not None
+            and int(current_max) != desired_max
+        ):
+            if bridge.send_current_set(desired_max):
+                status_data["MAX"] = desired_max
+                CacheInvalidator.invalidate_status()
+    except Exception:
+        # Non-critical; status read akışını bozma
+        pass
 
     return APIResponse(
         success=True, message="Status retrieved successfully", data=status_data
