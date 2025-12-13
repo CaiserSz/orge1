@@ -1,8 +1,8 @@
 """
 Acrel ADL400/T317 Modbus Meter Implementation
 Created: 2025-12-12 18:54:25
-Last Modified: 2025-12-12 21:03:17
-Version: 1.0.0
+Last Modified: 2025-12-13 20:47:00
+Version: 1.0.1
 Description: Acrel three-phase meter (ADL400/T317) Modbus RTU reader
 """
 
@@ -147,7 +147,11 @@ class AcrelModbusMeter(MeterInterface):
                 ib = self._read_float(0x080E)
                 ic = self._read_float(0x0810)
 
-                p_total = self._read_float(0x0818)  # kW
+                # Power registers (kW) - saha testinde 0x0818'in L3 olabildiği görüldü.
+                # Total power'ı mümkünse faz toplamı veya V/I türetimi ile normalize ediyoruz.
+                p_l1 = self._read_float(0x0814)
+                p_l2 = self._read_float(0x0816)
+                p_0818 = self._read_float(0x0818)
                 pf_total = self._read_float(0x0832)
                 freq = self._read_float(0x0834)
 
@@ -155,6 +159,41 @@ class AcrelModbusMeter(MeterInterface):
                 e_total = self._read_uint32_scaled(0x0842, 0.1)
                 e_fwd = self._read_uint32_scaled(0x084C, 0.1)
                 e_rev = self._read_uint32_scaled(0x0856, 0.1)
+
+                # Total power decide
+                pf_safe = float(pf_total) if pf_total is not None else 1.0
+                p_vi = None
+                if all(v is not None for v in (va, vb, vc, ia, ib, ic)):
+                    try:
+                        p_vi = ((va * ia) + (vb * ib) + (vc * ic)) / 1000.0
+                        p_vi = p_vi * pf_safe
+                    except Exception:
+                        p_vi = None
+
+                p_sum = (
+                    (p_l1 or 0.0) + (p_l2 or 0.0) + (p_0818 or 0.0)
+                    if any(v is not None for v in (p_l1, p_l2, p_0818))
+                    else None
+                )
+
+                p_total = None
+                p_l3 = None
+                if p_vi is not None and p_0818 is not None and p_sum is not None:
+                    # V/I türetimine daha yakın olanı seç
+                    err_reg = abs(p_0818 - p_vi)
+                    err_sum = abs(p_sum - p_vi)
+                    if err_sum <= err_reg:
+                        p_total = p_sum
+                        p_l3 = p_0818
+                    else:
+                        p_total = p_0818
+                        p_l3 = None
+                elif p_sum is not None and p_sum > 0:
+                    p_total = p_sum
+                    p_l3 = p_0818
+                else:
+                    p_total = p_0818
+                    p_l3 = None
 
                 if p_total is None or e_total is None:
                     return None
@@ -183,9 +222,10 @@ class AcrelModbusMeter(MeterInterface):
                         "voltage_v": {"l1": va, "l2": vb, "l3": vc},
                         "current_a": {"l1": ia, "l2": ib, "l3": ic},
                         "power_kw": {
-                            "l1": self._read_float(0x0814),
-                            "l2": self._read_float(0x0816),
-                            "l3": None,  # 0x0818 is total
+                            "l1": p_l1,
+                            "l2": p_l2,
+                            "l3": p_l3,
+                            "total": float(p_total),
                         },
                     },
                 )

@@ -1,8 +1,8 @@
 """
 Session Queries Module
 Created: 2025-12-10 21:09:49
-Last Modified: 2025-12-10 21:09:49
-Version: 1.0.0
+Last Modified: 2025-12-13 20:47:00
+Version: 1.0.1
 Description: Session CRUD ve sorgu operasyonları mixin'i.
 """
 
@@ -39,13 +39,20 @@ class SessionQueryMixin:
                 cursor = conn.cursor()
                 now_timestamp = int(datetime.now().timestamp())
                 start_time_timestamp = int(start_time.timestamp())
+                start_energy_kwh = None
+                try:
+                    meta_val = metadata.get("start_energy_kwh")
+                    if isinstance(meta_val, (int, float)) and meta_val >= 0:
+                        start_energy_kwh = float(meta_val)
+                except Exception:
+                    start_energy_kwh = None
 
                 cursor.execute(
                     """
                     INSERT INTO sessions
                     (session_id, user_id, start_time, end_time, start_state, end_state,
-                     status, events, metadata, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     status, events, metadata, start_energy_kwh, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         session_id,
@@ -57,6 +64,7 @@ class SessionQueryMixin:
                         "ACTIVE",
                         json.dumps(events),
                         json.dumps(metadata),
+                        start_energy_kwh,
                         now_timestamp,
                         now_timestamp,
                     ),
@@ -72,6 +80,59 @@ class SessionQueryMixin:
                 system_logger.error(f"Create session error: {exc}", exc_info=True)
                 conn.rollback()
                 return False
+
+    def cancel_other_active_sessions(
+        self,
+        exclude_session_id: Optional[str] = None,
+        end_time: Optional[datetime] = None,
+        end_state: Optional[int] = None,
+        status: str = "CANCELLED",
+    ) -> int:
+        """
+        Tek konnektör varsayımıyla, aynı anda birden fazla ACTIVE session kalmasını önlemek için
+        ACTIVE & end_time IS NULL kayıtlarını topluca kapatır.
+
+        Returns:
+            Güncellenen satır sayısı.
+        """
+        with self.lock:
+            conn = self._get_connection()
+            try:
+                cursor = conn.cursor()
+                now = end_time or datetime.now()
+                now_ts = int(now.timestamp())
+                end_state_val = int(end_state) if end_state is not None else None
+                updated_at = int(datetime.now().timestamp())
+
+                if exclude_session_id:
+                    cursor.execute(
+                        """
+                        UPDATE sessions
+                        SET end_time = ?, end_state = ?, status = ?, updated_at = ?
+                        WHERE status = 'ACTIVE' AND end_time IS NULL AND session_id != ?
+                        """,
+                        (now_ts, end_state_val, status, updated_at, exclude_session_id),
+                    )
+                else:
+                    cursor.execute(
+                        """
+                        UPDATE sessions
+                        SET end_time = ?, end_state = ?, status = ?, updated_at = ?
+                        WHERE status = 'ACTIVE' AND end_time IS NULL
+                        """,
+                        (now_ts, end_state_val, status, updated_at),
+                    )
+
+                affected = cursor.rowcount or 0
+                conn.commit()
+                self._clear_cache("sessions:")
+                return int(affected)
+            except Exception as exc:
+                system_logger.error(
+                    f"Cancel other active sessions error: {exc}", exc_info=True
+                )
+                conn.rollback()
+                return 0
 
     def update_session(
         self,

@@ -1,8 +1,8 @@
 """
 Session Lifecycle Helpers
 Created: 2025-12-13 02:12:00
-Last Modified: 2025-12-13 18:02:00
-Version: 1.0.1
+Last Modified: 2025-12-13 20:47:00
+Version: 1.0.2
 Description: Session başlatma, sonlandırma ve fault yönetimi mixin'i.
 """
 
@@ -38,6 +38,18 @@ class SessionLifecycleMixin(SessionEventLoggingMixin):
             session_id = str(uuid.uuid4())
             start_time = datetime.now()
             start_state = event_data.get("to_state", ESP32State.CHARGING.value)
+
+            # Tek konnektör varsayımı: DB'de ACTIVE kalan başka session varsa kapat
+            try:
+                self.db.cancel_other_active_sessions(
+                    exclude_session_id=None,
+                    end_time=start_time,
+                    end_state=start_state,
+                    status=SessionStatus.CANCELLED.value,
+                )
+            except Exception:
+                # Non-critical; session start devam eder
+                pass
 
             session = ChargingSession(session_id, start_time, start_state)
             session.add_event(EventType.CHARGE_STARTED, event_data)
@@ -154,8 +166,21 @@ class SessionLifecycleMixin(SessionEventLoggingMixin):
                         session.metadata["end_energy_kwh"] = end_energy
                         session.metadata["total_energy_kwh"] = max(0, total_energy)
                         session.metadata["energy_source"] = "meter"
+                        # Meter varsa total_energy metriklerini meter delta ile normalize et
+                        try:
+                            final_metrics["start_energy_kwh"] = float(start_energy)
+                            final_metrics["end_energy_kwh"] = float(end_energy)
+                            final_metrics["total_energy_kwh"] = float(
+                                max(0, total_energy)
+                            )
+                        except Exception:
+                            pass
                     else:
                         session.metadata["end_energy_kwh"] = end_energy
+                        try:
+                            final_metrics["end_energy_kwh"] = float(end_energy)
+                        except Exception:
+                            pass
             except Exception as exc:
                 system_logger.warning(f"Meter okuma hatası (session bitişi): {exc}")
                 session.metadata["energy_source"] = "calculated"
@@ -171,6 +196,17 @@ class SessionLifecycleMixin(SessionEventLoggingMixin):
             metadata=session.metadata,
             **final_metrics,
         )
+
+        # Tek konnektör varsayımı: DB'de ACTIVE kalan başka session varsa kapat (ghost session önleme)
+        try:
+            self.db.cancel_other_active_sessions(
+                exclude_session_id=session.session_id,
+                end_time=end_time,
+                end_state=end_state,
+                status=SessionStatus.CANCELLED.value,
+            )
+        except Exception:
+            pass
 
         system_logger.info(
             f"Session sonlandırıldı: {session.session_id}",
