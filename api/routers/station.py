@@ -1,8 +1,8 @@
 """
 Station Information Router
 Created: 2025-12-10
-Last Modified: 2025-12-13 13:10:00
-Version: 1.1.1
+Last Modified: 2025-12-13 20:47:00
+Version: 1.1.2
 Description: Station information endpoints
 """
 
@@ -142,11 +142,33 @@ async def get_station_status(
                 # Gerçek zamanlı güç tüketimi hesapla (yaklaşık)
                 # PWM değerinden ve MAX değerinden tahmin edilebilir
                 if state_name == "CHARGING":
+                    # Öncelik: meter ölçümü (3-faz dahil daha doğru)
+                    try:
+                        from api.meter import get_meter
+
+                        meter = get_meter()
+                        if (
+                            meter
+                            and hasattr(meter, "is_connected")
+                            and meter.is_connected()
+                            and hasattr(meter, "read_all")
+                        ):
+                            reading = meter.read_all()
+                            if reading and getattr(reading, "is_valid", False):
+                                meter_power_kw = getattr(reading, "power_kw", None)
+                                if isinstance(meter_power_kw, (int, float)):
+                                    realtime_power_kw = round(
+                                        float(meter_power_kw), 3
+                                    )
+                    except Exception:
+                        pass
+
+                    # Fallback: ESP32 PWM/Max ile tek faz yaklaşık hesap
                     pwm = esp32_status.get("PWM", 0)
                     max_amp = esp32_status.get("MAX", 0)
                     # PWM 0-255 arası, MAX amper cinsinden
                     # Güç = (PWM/255) * MAX * 230V / 1000 (kW) (tek faz için yaklaşık)
-                    if pwm > 0 and max_amp > 0:
+                    if realtime_power_kw is None and pwm > 0 and max_amp > 0:
                         # PWM yüzdesi
                         pwm_percent = (pwm / 255.0) * 100
                         # Aktif akım (PWM yüzdesine göre)
