@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-13 23:00:09
+**Son Güncelleme:** 2025-12-13 23:21:38
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -55,6 +55,13 @@
   - Tahmini Süre: 1-2 saat
   - Durum: 🟡 Uyarı eşiği yakın
   - Detaylar: Standart kontrol raporu (2025-12-13 22:59)
+
+- [ ] **Görev:** `api/routers/sessions.py` refactor (satır sayısı uyarı eşiği yakın)
+  - Açıklama: `scripts/standards_auto_check.py` raporuna göre dosya 415 satır (Limit: 500). Router içeriği büyüdüğü için endpoint'leri daha küçük router dosyalarına bölmek planlanmalı.
+  - Öncelik: 2 (Orta)
+  - Tahmini Süre: 1-2 saat
+  - Durum: 🟡 Uyarı eşiği yakın
+  - Detaylar: Standart kontrol raporu (2025-12-13 23:21)
 
 ### Faz 1: Temel Altyapı (Kritik) - Devam Ediyor
 
