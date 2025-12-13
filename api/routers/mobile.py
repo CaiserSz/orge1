@@ -1,39 +1,36 @@
 """
 Mobile Charging Router
 Created: 2025-12-13 03:15:00
-Last Modified: 2025-12-13 21:45:00
-Version: 1.2.1
+Last Modified: 2025-12-13 23:06:00
+Version: 1.2.2
 Description: Mobile uygulamalar için şarj durumu ve geçmiş oturum API'leri.
 """
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from api.alerting import get_alert_manager
-from api.cache import cache_response
+from api.cache import CacheInvalidator, cache_response, invalidate_cache
+from api.event_detector import ESP32State
 from api.logging_config import system_logger
 from api.meter import get_meter
 from api.models import APIResponse
-from api.services.mobile_meter import (
-    build_device_block,
-    build_measurements,
-    build_trend_block,
-    collect_alerts,
-    collect_meter_snapshot,
-)
-from api.services.mobile_sessions import (
-    build_session_block,
-    filter_sessions_by_date,
-    now_iso,
-    parse_datetime,
-    serialize_session_detail,
-    serialize_session_summary,
-)
+from api.routers.dependencies import get_bridge
+from api.services.mobile_meter import (build_device_block, build_measurements,
+                                       build_trend_block, collect_alerts,
+                                       collect_meter_snapshot)
+from api.services.mobile_sessions import (build_session_block,
+                                          filter_sessions_by_date, now_iso,
+                                          parse_datetime,
+                                          serialize_session_detail,
+                                          serialize_session_summary)
 from api.session import SessionStatus, get_session_manager
 from api.station_info import get_station_info
+from esp32.bridge import ESP32Bridge
 
 router = APIRouter(prefix="/api/mobile", tags=["Mobile"])
 
@@ -42,7 +39,9 @@ MAX_SESSION_FETCH = 500
 
 @router.get("/charging/current")
 @cache_response(ttl=5, key_prefix="mobile_charging_current")
-async def get_mobile_charging_state() -> APIResponse:
+async def get_mobile_charging_state(
+    bridge: ESP32Bridge = Depends(get_bridge),
+) -> APIResponse:
     """Mobil uygulama için aktif şarj durumu payload'u."""
     try:
         station_info = get_station_info() or {}
@@ -50,6 +49,51 @@ async def get_mobile_charging_state() -> APIResponse:
 
         session_manager = get_session_manager()
         current_session = session_manager.get_current_session()
+
+        # Ghost ACTIVE session temizliği (ESP32 IDLE + kablo yokken ACTIVE kalmamalı)
+        try:
+            status_data = bridge.get_status() or {}
+            state = status_data.get("STATE")
+            cable = status_data.get("CABLE")
+            if (
+                current_session
+                and current_session.get("status") == SessionStatus.ACTIVE.value
+                and state == ESP32State.IDLE.value
+                and cable == 0
+            ):
+                session_id = current_session.get("session_id")
+                if session_id:
+                    now = datetime.now()
+                    # DB'yi güncelle + memory'i temizle
+                    try:
+                        session_manager.db.update_session(
+                            session_id=session_id,
+                            end_time=now,
+                            end_state=int(state),
+                            status=SessionStatus.CANCELLED.value,
+                        )
+                    except Exception as exc:
+                        system_logger.warning(
+                            f"Ghost session auto-cancel failed: {exc}",
+                            extra={"session_id": session_id},
+                        )
+                    try:
+                        with session_manager.sessions_lock:
+                            if (
+                                session_manager.current_session
+                                and session_manager.current_session.session_id == session_id
+                            ):
+                                session_manager.current_session = None
+                    except Exception:
+                        pass
+
+                    current_session = None
+                    CacheInvalidator.invalidate_session()
+                    invalidate_cache("mobile_charging_current:*")
+                    invalidate_cache("mobile_sessions:*")
+        except Exception:
+            # Non-critical; normal akış devam eder
+            pass
 
         measurements = build_measurements(meter_snapshot.get("reading"))
         session_block = build_session_block(

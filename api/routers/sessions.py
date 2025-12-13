@@ -1,25 +1,29 @@
 """
 Session API Router
 Created: 2025-12-10 03:15:00
-Last Modified: 2025-12-10 03:15:00
-Version: 1.0.0
+Last Modified: 2025-12-13 23:06:00
+Version: 1.0.1
 Description: Session yönetimi için REST API endpoint'leri
 """
 
+from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from api.cache import cache_response
+from api.cache import CacheInvalidator, cache_response
+from api.event_detector import ESP32State
 from api.logging_config import system_logger
+from api.routers.dependencies import get_bridge
 from api.session import SessionStatus, get_session_manager
+from esp32.bridge import ESP32Bridge
 
 router = APIRouter(prefix="/api/sessions", tags=["Sessions"])
 
 
 @router.get("/current")
 @cache_response(ttl=10, key_prefix="session_current")  # 10 saniye cache
-async def get_current_session():
+async def get_current_session(bridge: ESP32Bridge = Depends(get_bridge)):
     """
     Aktif session'ı döndür
 
@@ -29,6 +33,46 @@ async def get_current_session():
     try:
         session_manager = get_session_manager()
         current_session = session_manager.get_current_session()
+
+        # Ghost ACTIVE session temizliği (ESP32 IDLE + kablo yokken ACTIVE kalmamalı)
+        try:
+            status_data = bridge.get_status() or {}
+            state = status_data.get("STATE")
+            cable = status_data.get("CABLE")
+            if (
+                current_session
+                and current_session.get("status") == SessionStatus.ACTIVE.value
+                and state == ESP32State.IDLE.value
+                and cable == 0
+            ):
+                session_id = current_session.get("session_id")
+                if session_id:
+                    now = datetime.now()
+                    try:
+                        session_manager.db.update_session(
+                            session_id=session_id,
+                            end_time=now,
+                            end_state=int(state),
+                            status=SessionStatus.CANCELLED.value,
+                        )
+                    except Exception as exc:
+                        system_logger.warning(
+                            f"Ghost session auto-cancel failed: {exc}",
+                            extra={"session_id": session_id},
+                        )
+                    try:
+                        with session_manager.sessions_lock:
+                            if (
+                                session_manager.current_session
+                                and session_manager.current_session.session_id == session_id
+                            ):
+                                session_manager.current_session = None
+                    except Exception:
+                        pass
+                    current_session = None
+                    CacheInvalidator.invalidate_session()
+        except Exception:
+            pass
 
         if current_session:
             return {"success": True, "session": current_session}

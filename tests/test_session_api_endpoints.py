@@ -39,6 +39,8 @@ class TestSessionAPIEndpoints:
                 "status": "ACTIVE",
                 "start_time": "2025-12-10T10:00:00",
             }
+            # Aktif session varken ESP32 status IDLE/cable=0 olmamalı (ghost auto-cancel tetiklenmesin)
+            mock_esp32_bridge.get_status.return_value = {"STATE": 5, "CABLE": 63}
 
             response = client.get("/api/sessions/current")
             assert response.status_code == 200

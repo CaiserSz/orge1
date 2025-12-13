@@ -1,8 +1,8 @@
 """
 Session Lifecycle Helpers
 Created: 2025-12-13 02:12:00
-Last Modified: 2025-12-13 20:47:00
-Version: 1.0.2
+Last Modified: 2025-12-13 23:06:00
+Version: 1.0.3
 Description: Session başlatma, sonlandırma ve fault yönetimi mixin'i.
 """
 
@@ -67,8 +67,15 @@ class SessionLifecycleMixin(SessionEventLoggingMixin):
 
             self.current_session = session
 
-            if self.meter and self.meter.is_connected():
+            if self.meter:
                 try:
+                    # Başlangıçta meter bağlantısı düşmüşse tekrar bağlanmayı dene
+                    if hasattr(self.meter, "is_connected") and hasattr(self.meter, "connect"):
+                        try:
+                            if not self.meter.is_connected():
+                                self.meter.connect()
+                        except Exception:
+                            pass
                     meter_reading = self.meter.read_all()
                     if meter_reading and meter_reading.is_valid:
                         session.metadata["start_energy_kwh"] = meter_reading.energy_kwh
