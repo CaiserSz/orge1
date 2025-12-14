@@ -954,11 +954,11 @@ CREATE TABLE sessions (
   - Aksiyon (2025-12-12 21:05:00): `docs/acrel/` klasörü `.gitignore`'a eklenerek ağır görsel/doküman arşivi git geçmişinden hariç tutuldu. Durum: ✅ 2025-12-12 21:12:00 (Code Quality Expert)
   - Aksiyon (2025-12-12 21:08:00): `git status` çıktısında kök dizinde `3}s` adlı beklenmedik bir dosya görüldü; kaynağı bilinmediği için temizlenmedi, manuel inceleme gerekiyor.
 
-- [ ] **Görev:** `logs/` büyüme analizi + retention/rotation teyidi
-  - Açıklama: `scripts/workspace_auto_check.py` (2025-12-14 18:44) raporunda `logs/` boyutu 69.34 MB göründü. Logların bu hızda büyüme nedeni (servisler, log seviyesi, rotation/retention) incelenmeli; gerekirse retention sıkılaştırılmalı ve gereksiz detay logları azaltılmalı.
+- [x] **Görev:** `logs/` büyüme analizi + retention/rotation teyidi
+  - Açıklama: `scripts/workspace_auto_check.py` (2025-12-14 18:44) raporunda `logs/` boyutu 69.34 MB göründü. Logların bu hızda büyüme nedeni (servisler, log seviyesi, rotation/retention) incelendi; yüksek frekanslı GET endpoint logları için throttle eklendi. Ayrıca eski rotate dosyalarından `logs/api.log.4` ve `logs/api.log.5` temizlendi (logs ~70MB → ~50MB).
   - Öncelik: 8
   - Tahmini Süre: 30-60 dakika
-  - Durum: 📋 Bekliyor
+  - Durum: ✅ Tamamlandı (2025-12-14 19:20)
 
 - [x] **Görev:** Eski log dosyalarını arşivleme / temizlik
   - Açıklama: Log klasörü temizlendi (şu anda ~0 MB). İleride log rotation/retention politikası uygulanmalı.

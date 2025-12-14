@@ -9,6 +9,7 @@ Description: Structured logging + context propagation for AC Charger API
 import contextvars
 import logging
 import threading
+import time
 from typing import Any, Dict, Optional
 
 from api.logging_setup import (
@@ -45,6 +46,20 @@ __all__ = [
 _logging_context: contextvars.ContextVar[Dict[str, Any]] = contextvars.ContextVar(
     "logging_context", default={}
 )
+
+# API request log throttle (yüksek frekanslı GET endpoint'lerinde log şişmesini önlemek için)
+# Not: Hata (>=400) logları her zaman yazılır; throttle sadece başarılı cevaplar içindir.
+_API_REQUEST_LOG_THROTTLE_WINDOW_SECONDS = 5.0
+_API_REQUEST_LOG_THROTTLE_ENDPOINTS = {
+    "/api/health",
+    "/api/status",
+    "/api/meter/reading",
+    "/api/station/status",
+    "/api/sessions/current",
+    "/api/mobile/charging/current",
+}
+_api_request_last_log_monotonic: Dict[str, float] = {}
+_api_request_log_counter = 0
 
 
 def get_logging_context() -> Dict[str, Any]:
@@ -121,6 +136,30 @@ def log_api_request(
     """
     try:
         with _log_lock:  # Thread-safe logging
+            # Throttle: bazı yüksek frekanslı GET endpoint'lerinde başarılı cevap loglarını seyrekleştir
+            # (ngrok/mobil polling gibi senaryolarda logs/ hızlı şişmesini engeller)
+            global _api_request_log_counter
+            if (
+                method == "GET"
+                and path in _API_REQUEST_LOG_THROTTLE_ENDPOINTS
+                and status_code is not None
+                and int(status_code) < 400
+            ):
+                now_mono = time.monotonic()
+                key = f"{client_ip or 'unknown'}|{path}"
+                last = _api_request_last_log_monotonic.get(key)
+                if last is not None and (now_mono - last) < _API_REQUEST_LOG_THROTTLE_WINDOW_SECONDS:
+                    return
+                _api_request_last_log_monotonic[key] = now_mono
+
+                # Basit housekeeping: sözlük büyümesini sınırlı tut
+                _api_request_log_counter += 1
+                if _api_request_log_counter % 2000 == 0 and len(_api_request_last_log_monotonic) > 5000:
+                    # En eski ~%25 kaydı sil
+                    items = sorted(_api_request_last_log_monotonic.items(), key=lambda kv: kv[1])
+                    for k, _ts in items[: max(1, len(items) // 4)]:
+                        _api_request_last_log_monotonic.pop(k, None)
+
             extra_fields = {
                 "type": "api_request",
                 "method": method,
