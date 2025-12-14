@@ -52,8 +52,8 @@ class JSONFormatter(logging.Formatter):
 
     def format(self, record: logging.LogRecord) -> str:
         """Log kaydını JSON formatına dönüştür."""
-        from datetime import datetime
         import json
+        from datetime import datetime
 
         try:
             log_data: Dict[str, Any] = {
