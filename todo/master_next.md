@@ -954,9 +954,18 @@ CREATE TABLE sessions (
   - Aksiyon (2025-12-12 21:05:00): `docs/acrel/` klasörü `.gitignore`'a eklenerek ağır görsel/doküman arşivi git geçmişinden hariç tutuldu. Durum: ✅ 2025-12-12 21:12:00 (Code Quality Expert)
   - Aksiyon (2025-12-12 21:08:00): `git status` çıktısında kök dizinde `3}s` adlı beklenmedik bir dosya görüldü; kaynağı bilinmediği için temizlenmedi, manuel inceleme gerekiyor.
 
-- [ ] **Görev:** Session metrikleri (avg/max/min power & voltage/current) yanlış (CPV/PPV gibi ham değerler yazılıyor)
-  - Açıklama: Gerçek şarj sonrası `/api/sessions?limit=1` kaydında `avg_power_kw/max_power_kw` ~100+ kW ve `avg_voltage_v/max_voltage_v` ~1500-3600 gibi fiziksel olmayan değerler görüldü. Bu alanlar muhtemelen ESP32 status ham alanlarından (CPV/PPV/PWM vb.) doluyor. Meter varsa kWh delta + süre ile avg güç hesaplanmalı; voltaj/akım metrikleri meter faz değerlerinden türetilmeli veya güvenli şekilde null bırakılmalı.
+- [x] **Görev:** Session metrikleri (avg/max/min power & voltage/current) yanlış (CPV/PPV gibi ham değerler yazılıyor)
+  - Açıklama: Gerçek şarj sonrası `/api/sessions?limit=1` kaydında `avg_power_kw/max_power_kw` ~100+ kW ve `avg_voltage_v/max_voltage_v` ~1500-3600 gibi fiziksel olmayan değerler görüldü. Bu alanlar muhtemelen ESP32 status ham alanlarından (CPV/PPV/PWM vb.) doluyordu.
   - Öncelik: 1 (Yüksek)
+  - Tahmini Süre: 1-2 saat
+  - Durum: ✅ Tamamlandı (2025-12-14 21:46)
+  - Aksiyon:
+    - Session kapanışında meter varsa final metrikler meter delta + süre + faz V/I üzerinden normalize edildi.
+    - Retro düzeltme: `scripts/migrate_events_to_table.py repair-session-metrics --apply` ile son bozuk kayıtlar düzeltildi (bazı kayıtlar enerji plausibility filtresinde SKIP edildi).
+
+- [ ] **Görev:** Bazı session'larda enerji delta/başlangıç zamanı plausibility analizi (SKIP edilenler)
+  - Açıklama: Retro metrik düzeltme sırasında bazı kayıtlar `energy_kwh` değeri, teorik maksimuma göre imkânsız çıktığı için otomatik düzeltilmedi (muhtemel sayaç reset/rollover, register semantiği veya timestamp (ms/s) hatası). Bu kayıtlar ayrıca start_time sıralamasını bozabilir.
+  - Öncelik: 2 (Orta)
   - Tahmini Süre: 1-2 saat
   - Durum: 📋 Bekliyor
 
