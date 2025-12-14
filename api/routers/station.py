@@ -9,7 +9,7 @@ Description: Station information endpoints
 from datetime import datetime
 from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from api.cache import cache_response, invalidate_cache
 from api.models import APIResponse
@@ -25,7 +25,7 @@ router = APIRouter(prefix="/api/station", tags=["Station"])
 @cache_response(
     ttl=3600, key_prefix="station_info"
 )  # 1 saat cache (station info nadiren değişir)
-async def get_station_info_endpoint() -> APIResponse:
+async def get_station_info_endpoint(request: Request) -> APIResponse:
     """
     Şarj istasyonu bilgilerini al.
 
@@ -83,6 +83,7 @@ async def save_station_info_endpoint(station_data: Dict[str, Any]) -> APIRespons
 @router.get("/status")
 @cache_response(ttl=10, key_prefix="station_status")  # 10 saniye cache
 async def get_station_status(
+    request: Request,
     bridge: ESP32Bridge = Depends(get_bridge),
 ) -> APIResponse:
     """

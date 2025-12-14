@@ -9,7 +9,7 @@ Description: Session yönetimi için REST API endpoint'leri
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from api.cache import CacheInvalidator, cache_response
 from api.event_detector import ESP32State
@@ -23,7 +23,7 @@ router = APIRouter(prefix="/api/sessions", tags=["Sessions"])
 
 @router.get("/current")
 @cache_response(ttl=10, key_prefix="session_current")  # 10 saniye cache
-async def get_current_session(bridge: ESP32Bridge = Depends(get_bridge)):
+async def get_current_session(request: Request, bridge: ESP32Bridge = Depends(get_bridge)):
     """
     Aktif session'ı döndür
 

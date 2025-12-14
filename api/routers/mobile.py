@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from api.alerting import get_alert_manager
 from api.cache import CacheInvalidator, cache_response, invalidate_cache
@@ -47,6 +47,7 @@ MAX_SESSION_FETCH = 500
 @router.get("/charging/current")
 @cache_response(ttl=5, key_prefix="mobile_charging_current")
 async def get_mobile_charging_state(
+    request: Request,
     bridge: ESP32Bridge = Depends(get_bridge),
 ) -> APIResponse:
     """Mobil uygulama için aktif şarj durumu payload'u."""

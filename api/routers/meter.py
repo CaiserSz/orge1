@@ -6,7 +6,7 @@ Version: 1.0.0
 Description: Meter data endpoints (for testing purposes)
 """
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from api.models import APIResponse
 from api.cache import cache_response
 from api.logging_config import system_logger
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/meter", tags=["Meter"])
 
 @router.get("/status")
 @cache_response(ttl=5, key_prefix="meter_status")  # 5 saniye cache
-async def get_meter_status():
+async def get_meter_status(request: Request):
     """
     Meter durum bilgisi
 
@@ -140,7 +140,7 @@ async def get_meter_status():
 @cache_response(
     ttl=2, key_prefix="meter_reading"
 )  # 2 saniye cache (daha sık güncelleme)
-async def get_meter_reading():
+async def get_meter_reading(request: Request):
     """
     Son meter okuması
 

@@ -24,7 +24,7 @@ router = APIRouter(prefix="/api", tags=["Status"])
 
 @router.get("/health")
 @cache_response(ttl=30, key_prefix="health")
-async def health_check(bridge: ESP32Bridge = Depends(get_bridge)):
+async def health_check(request: Request, bridge: ESP32Bridge = Depends(get_bridge)):
     return build_health_response(bridge, get_bridge)
 
 
