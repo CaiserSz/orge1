@@ -1,7 +1,7 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-14 02:55:00
+**Son Güncelleme:** 2025-12-14 03:30:00
 **Version:** 1.8.0
 
 ---
@@ -14,21 +14,16 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251214-031
-**Tarih:** 2025-12-14 02:55:00
-**Durum:** ✅ 3‑faz total power + import enerji tutarlılığı + log boyutu uyumu
-- 3‑faz total power düzeltmeleri:
-  - ABB (Modbus): Faz güçleri varsa total güç fazların toplamı ile normalize edildi (`power_kw`, `totals.power_kw`).
-  - Acrel: Under-reporting’i önlemek için total güç seçimi (PF + V/I türetimi) iyileştirildi.
-- Mobil payload tutarlılığı:
-  - Session başlangıç/bitiş enerji kaydı mümkünse `energy_import_kwh` register’ından alınır (fallback: `energy_kwh`) → ACTIVE session `energy_kwh` null olma riski azaltıldı.
-- Log hijyeni:
-  - Varsayılan log rotation yedek sayısı 5 → 3 (workspace log boyutu limitine uyum); eski `api.log.4` temizlendi.
+**Checkpoint ID:** CP-20251214-032
+**Tarih:** 2025-12-14 03:30:00
+**Durum:** ✅ `/api/station/status` realtime_power_kw meter önceliği + test
+- `/api/station/status`:
+  - CHARGING durumunda meter gücü için `is_connected()` şartı kaldırıldı; best-effort `connect()` + `read_all()` ile `realtime_power_kw` daha stabil okunur.
+- Test:
+  - `tests/test_api_main_endpoints.py` içine meter önceliği doğrulayan test eklendi.
 - Test Sonucu:
-  - `./env/bin/pytest` → ✅ 545 passed, 4 skipped, 6 warnings
-  - `./env/bin/pytest tests/test_mobile_api.py` → ✅ 3 passed
-  - `scripts/todo_auto_check.py`, `workspace_auto_check.py`, `code_quality_auto_check.py` → ✅ başarılı
-  - `scripts/standards_auto_check.py` → 🟡 2 uyarı (dosyalar `master_next.md` içinde takipte)
+  - `./env/bin/pytest` → ✅ 546 passed, 4 skipped, 6 warnings
+  - Kod kalitesi: `python3 scripts/code_quality_auto_check.py` → ✅ başarılı
 
 ### Önceki Checkpoint: CP-20251213-029 (2025-12-13 03:20:00)
 **Durum:** ✅ Mobil şarj API paketi hazır

@@ -1,8 +1,8 @@
 """
 Station Information Router
 Created: 2025-12-10
-Last Modified: 2025-12-13 20:47:00
-Version: 1.1.2
+Last Modified: 2025-12-14 03:25:00
+Version: 1.1.3
 Description: Station information endpoints
 """
 
@@ -147,15 +147,27 @@ async def get_station_status(
                         from api.meter import get_meter
 
                         meter = get_meter()
-                        if (
-                            meter
-                            and hasattr(meter, "is_connected")
-                            and meter.is_connected()
-                            and hasattr(meter, "read_all")
-                        ):
+                        if meter and hasattr(meter, "read_all"):
+                            # Meter driver'ları `read_all()` içinde connect() denemesi yapıyor.
+                            # Burada `is_connected()` kontrolü yüzünden ölçüm kaçırılmasın diye
+                            # en iyi efor ile bağlantı deniyoruz.
+                            try:
+                                if (
+                                    hasattr(meter, "is_connected")
+                                    and hasattr(meter, "connect")
+                                    and not meter.is_connected()
+                                ):
+                                    meter.connect()
+                            except Exception:
+                                pass
+
                             reading = meter.read_all()
                             if reading and getattr(reading, "is_valid", False):
                                 meter_power_kw = getattr(reading, "power_kw", None)
+                                if meter_power_kw is None:
+                                    totals = getattr(reading, "totals", None)
+                                    if isinstance(totals, dict):
+                                        meter_power_kw = totals.get("power_kw")
                                 if isinstance(meter_power_kw, (int, float)):
                                     realtime_power_kw = round(float(meter_power_kw), 3)
                     except Exception:

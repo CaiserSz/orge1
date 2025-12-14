@@ -1,8 +1,8 @@
 """
 API Main Endpoints Comprehensive Tests
 Created: 2025-12-09 23:50:00
-Last Modified: 2025-12-13 13:12:00
-Version: 1.0.3
+Last Modified: 2025-12-14 03:28:00
+Version: 1.0.4
 Description: api/main.py için kapsamlı endpoint testleri
 """
 
@@ -135,6 +135,46 @@ class TestStationInfoEndpoints:
             assert response.status_code == 500
             assert "kaydedilemedi" in response.json()["detail"]
 
+
+class TestStationStatusEndpoints:
+    """Station status endpoint testleri"""
+
+    def test_station_status_prefers_meter_power_when_charging(self, client, mock_esp32_bridge):
+        """CHARGING state'inde realtime_power_kw meter ölçümünü tercih etmeli."""
+        station_data = {
+            "station_id": "TEST-001",
+            "name": "Test Station",
+            "max_power_kw": 22,
+            "max_current_amp": 32,
+        }
+
+        mock_esp32_bridge.get_status.return_value = {
+            "STATE": ESP32State.CHARGING.value,
+            "STATE_NAME": "CHARGING",
+            "PWM": 10,  # fallback'ın devreye girmemesi için önemsiz, ama mevcut
+            "MAX": 32,
+            "AUTH": 1,
+            "CABLE": 1,
+        }
+
+        mock_meter = Mock()
+        mock_meter.is_connected.return_value = False
+        mock_meter.connect.return_value = True
+
+        reading = Mock()
+        reading.is_valid = True
+        reading.power_kw = 10.321
+        mock_meter.read_all.return_value = reading
+
+        with patch("api.routers.station.get_station_info", return_value=station_data), patch(
+            "api.meter.get_meter", return_value=mock_meter
+        ):
+            response = client.get("/api/station/status")
+            assert response.status_code == 200
+            payload = response.json()
+            assert payload["success"] is True
+            assert payload["data"]["status"]["availability"] == "busy"
+            assert payload["data"]["realtime_power_kw"] == 10.321
 
 class TestTestEndpoints:
     """Test endpoint testleri"""

@@ -25,11 +25,11 @@
   - Durum: ✅ Tamamlandı (2025-12-14)
   - Detaylar: Mobile snapshot’ta energy import mevcutken session.energy_kwh null gelebiliyor.
 
-- [ ] **Görev:** `/api/station/status` `realtime_power_kw` doğruluğu
+- [x] **Görev:** `/api/station/status` `realtime_power_kw` doğruluğu
   - Açıklama: EV şarjı aktifken `realtime_power_kw` alanı anlık şarj gücü ile tutarsız olabiliyor (ör. ~0.95 kW dönebildi). Meter total power düzeltmesi sonrası bu alan yeniden doğrulanmalı.
   - Öncelik: 2 (Orta)
   - Tahmini Süre: 1 saat
-  - Durum: 💡 Bulgu / Kontrol
+  - Durum: ✅ Tamamlandı (2025-12-14)
 
 - [ ] **Görev:** `RL` ve `LOCK` alanlarının beklenen davranışını doğrula (firmware/hardware)
   - Açıklama: `/api/status` çıktısında şarj esnasında dahi `RL=0` ve `LOCK=0` görünüyor. Donanımda lock yoksa normal olabilir; relay feedback bekleniyorsa mapping/telemetry eksik olabilir. Beklenen değerler netleştirilmeli.

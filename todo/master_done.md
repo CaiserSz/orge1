@@ -1,13 +1,25 @@
 # Tamamlanan Görevler
 
 **Oluşturulma Tarihi:** 2025-12-08 18:20:00
-**Son Güncelleme:** 2025-12-14 02:55:00
+**Son Güncelleme:** 2025-12-14 03:30:00
 
 ---
 
 ## Tamamlanan Görevler Listesi
 
 ### 2025-12-14
+
+#### ✅ `/api/station/status` realtime_power_kw doğruluğu (03:30:00)
+- **Görev:** CHARGING durumunda `realtime_power_kw` alanının meter verisiyle tutarlı dönmesini sağlamak
+- **Açıklama:** EV şarjı aktifken meter bağlantısı geçici düşmüş/yeniden bağlanmış olsa bile `/api/station/status` endpoint’i `realtime_power_kw` alanını mümkünse meter ölçümünden üretmelidir. Sadece `is_connected()` kontrolü yüzünden ölçüm kaçırılıp PWM/Max fallback’ına düşülmesi, 3‑faz kurulumlarda ciddi under‑reporting’e neden olabiliyordu.
+- **İmplementasyon:**
+  - `api/routers/station.py`: Meter ölçümü için `is_connected()` şartı kaldırıldı; best-effort `connect()` + `read_all()` ile power okuma güçlendirildi (fallback: `reading.totals.power_kw`).
+  - `tests/test_api_main_endpoints.py`: Meter önceliğini doğrulayan yeni test eklendi.
+- **Test/Doğrulama:**
+  - `./env/bin/python -m py_compile api/routers/station.py` → ✅
+  - `./env/bin/python -m py_compile tests/test_api_main_endpoints.py` → ✅
+  - `./env/bin/pytest tests/test_api_main_endpoints.py` → ✅
+  - `./env/bin/pytest` → ✅ 546 passed, 4 skipped
 
 #### ✅ 3‑Faz Total Power + Mobile Energy Tutarlılığı (00:22:00)
 - **Görev:** Meter total güç (kW) ve mobil payload enerji/power tutarlılığını düzeltmek

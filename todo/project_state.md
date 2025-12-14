@@ -1,8 +1,8 @@
 # Proje Durumu ve İlerleme Takibi
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-14 02:55:00
-**Version:** 1.8.2
+**Son Güncelleme:** 2025-12-14 03:30:00
+**Version:** 1.8.3
 
 ---
 
@@ -11,7 +11,7 @@
 **Mevcut Faz:** Faz 6 - Logging ve Session Yönetimi (Tamamlandı ✅)
 **Sonraki Faz:** Faz 7 - Production Deployment ve Mobil Uygulama Entegrasyonu
 **Proje Sağlığı:** ✅ Mükemmel (Skor: 9.6/10)
-**Son Aktif Çalışma:** 3‑faz total power + import enerji tutarlılığı + log boyutu uyumu (Tamamlandı - 2025-12-14 02:55:00)
+**Son Aktif Çalışma:** `/api/station/status` realtime_power_kw meter önceliği doğrulandı (Tamamlandı - 2025-12-14 03:30:00)
 **İstasyon Durumu:** ✅ Production-Ready (2025-12-10 15:40:00)
 **Checkpoint Tag:** v1.0.0-test-complete
 
@@ -138,6 +138,10 @@
   - `./env/bin/python -m pytest` çalıştırıldı (159 failure, 414 passed, 4 skipped) — ağırlıklı rate limiting ve mock/konfigürasyon kaynaklı hatalar; takip gerekiyor
 
 ### 2025-12-14
+- **03:30:00** - `/api/station/status` realtime_power_kw meter önceliği doğrulandı
+  - ✅ CHARGING durumunda meter ölçümü için `is_connected()` şartı kaldırıldı; best-effort `connect()` + `read_all()` ile güç okuma güçlendirildi.
+  - ✅ Yeni test: `tests/test_api_main_endpoints.py` içinde meter önceliği doğrulandı.
+  - ✅ Tam test suite: `./env/bin/pytest` → 546 passed, 4 skipped, 6 warnings.
 - **02:55:00** - 3‑faz total power + import enerji tutarlılığı + log boyutu uyumu
   - ✅ ABB (Modbus) meter total güç: faz güçleri varsa total güç faz toplamından normalize edildi (`power_kw`, `totals.power_kw`).
   - ✅ Acrel meter total güç: under‑reporting’i önlemek için total güç seçimi (PF + V/I türetimi) iyileştirildi.
