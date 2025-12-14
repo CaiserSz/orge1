@@ -7,9 +7,10 @@ Description: Meter data endpoints (for testing purposes)
 """
 
 from fastapi import APIRouter, HTTPException, Request, status
-from api.models import APIResponse
+
 from api.cache import cache_response
 from api.logging_config import system_logger
+from api.models import APIResponse
 
 router = APIRouter(prefix="/api/meter", tags=["Meter"])
 
