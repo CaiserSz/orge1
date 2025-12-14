@@ -31,11 +31,12 @@
   - Tahmini Süre: 1 saat
   - Durum: ✅ Tamamlandı (2025-12-14)
 
-- [ ] **Görev:** `RL` ve `LOCK` alanlarının beklenen davranışını doğrula (firmware/hardware)
+- [x] **Görev:** `RL` ve `LOCK` alanlarının beklenen davranışını doğrula (firmware/hardware)
   - Açıklama: `/api/status` çıktısında şarj esnasında dahi `RL=0` ve `LOCK=0` görünüyor. Donanımda lock yoksa normal olabilir; relay feedback bekleniyorsa mapping/telemetry eksik olabilir. Beklenen değerler netleştirilmeli.
   - Öncelik: 2 (Orta)
   - Tahmini Süre: 1-2 saat
-  - Durum: 💡 Bulgu / İnceleme
+  - Durum: ✅ Tamamlandı (2025-12-14)
+  - Not: Yazılım tarafında `/api/status` içine `telemetry` açıklama bloğu + (CHARGING/PAUSED iken) `warnings` eklendi. Donanımda lock/relay feedback yoksa RL/LOCK=0 normal olabilir.
 
 - [ ] **Görev:** Acrel ADL400 enerji register anlamları (energy_total vs energy_import/export) doğrulaması
   - Açıklama: `/api/meter/reading` içinde `energy_kwh`, `energy_import_kwh`, `energy_export_kwh` alanlarının hangi sayaç register’larından geldiği ve “import”/“total” semantiğinin doğru olduğu sahada teyit edilmeli. Export değeri sabit görünebiliyor (ör. 0.3 kWh) — bu hata olmayabilir, ama register map üzerinden doğrulanmalı.

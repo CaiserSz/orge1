@@ -1,8 +1,8 @@
 # Proje Durumu ve İlerleme Takibi
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-14 03:30:00
-**Version:** 1.8.3
+**Son Güncelleme:** 2025-12-14 03:50:00
+**Version:** 1.8.4
 
 ---
 
@@ -11,7 +11,7 @@
 **Mevcut Faz:** Faz 6 - Logging ve Session Yönetimi (Tamamlandı ✅)
 **Sonraki Faz:** Faz 7 - Production Deployment ve Mobil Uygulama Entegrasyonu
 **Proje Sağlığı:** ✅ Mükemmel (Skor: 9.6/10)
-**Son Aktif Çalışma:** `/api/station/status` realtime_power_kw meter önceliği doğrulandı (Tamamlandı - 2025-12-14 03:30:00)
+**Son Aktif Çalışma:** `/api/status` RL/LOCK telemetri açıklaması ve uyarılar (Tamamlandı - 2025-12-14 03:50:00)
 **İstasyon Durumu:** ✅ Production-Ready (2025-12-10 15:40:00)
 **Checkpoint Tag:** v1.0.0-test-complete
 
@@ -138,6 +138,10 @@
   - `./env/bin/python -m pytest` çalıştırıldı (159 failure, 414 passed, 4 skipped) — ağırlıklı rate limiting ve mock/konfigürasyon kaynaklı hatalar; takip gerekiyor
 
 ### 2025-12-14
+- **03:50:00** - `/api/status` RL/LOCK telemetri açıklaması ve uyarılar
+  - ✅ Status payload içine `telemetry` bloğu eklendi (RL/LOCK için açıklama + normalize edilmiş boolean alanlar).
+  - ✅ CHARGING/PAUSED iken RL/LOCK=0 ise `warnings` alanında uyarı kodları eklenir.
+  - ✅ Test: `./env/bin/pytest tests/test_api_endpoints.py` → 12 passed.
 - **03:30:00** - `/api/station/status` realtime_power_kw meter önceliği doğrulandı
   - ✅ CHARGING durumunda meter ölçümü için `is_connected()` şartı kaldırıldı; best-effort `connect()` + `read_all()` ile güç okuma güçlendirildi.
   - ✅ Yeni test: `tests/test_api_main_endpoints.py` içinde meter önceliği doğrulandı.

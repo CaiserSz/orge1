@@ -1,7 +1,7 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-14 03:30:00
+**Son Güncelleme:** 2025-12-14 03:50:00
 **Version:** 1.8.0
 
 ---
@@ -14,16 +14,16 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251214-032
-**Tarih:** 2025-12-14 03:30:00
-**Durum:** ✅ `/api/station/status` realtime_power_kw meter önceliği + test
-- `/api/station/status`:
-  - CHARGING durumunda meter gücü için `is_connected()` şartı kaldırıldı; best-effort `connect()` + `read_all()` ile `realtime_power_kw` daha stabil okunur.
-- Test:
-  - `tests/test_api_main_endpoints.py` içine meter önceliği doğrulayan test eklendi.
+**Checkpoint ID:** CP-20251214-033
+**Tarih:** 2025-12-14 03:50:00
+**Durum:** ✅ RL/LOCK telemetri açıklaması + uyarılar + test
+- `/api/status`:
+  - `data.telemetry` bloğu eklendi (RL/LOCK için normalize boolean alanlar + açıklama).
+  - CHARGING/PAUSED iken RL/LOCK=0 ise `data.warnings` altında uyarı kodları eklenir.
 - Test Sonucu:
   - `./env/bin/pytest` → ✅ 546 passed, 4 skipped, 6 warnings
-  - Kod kalitesi: `python3 scripts/code_quality_auto_check.py` → ✅ başarılı
+  - `./env/bin/pytest tests/test_api_endpoints.py` → ✅ 12 passed
+  - `python3 scripts/code_quality_auto_check.py` → ✅ başarılı
 
 ### Önceki Checkpoint: CP-20251213-029 (2025-12-13 03:20:00)
 **Durum:** ✅ Mobil şarj API paketi hazır

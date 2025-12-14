@@ -39,6 +39,8 @@ class TestAPIEndpoints:
         assert data["success"] is True
         assert "data" in data
         assert "STATE" in data["data"]
+        # RL/LOCK gibi firmware/hardware'a bağlı telemetri alanları için açıklama bloğu
+        assert "telemetry" in data["data"]
         mock_esp32_bridge.get_status.assert_called()
 
     def test_start_charge_endpoint(self, client, mock_esp32_bridge, test_headers):

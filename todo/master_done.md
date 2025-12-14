@@ -21,6 +21,17 @@
   - `./env/bin/pytest tests/test_api_main_endpoints.py` → ✅
   - `./env/bin/pytest` → ✅ 546 passed, 4 skipped
 
+#### ✅ RL/LOCK telemetri açıklaması ve uyarılar (03:50:00)
+- **Görev:** `/api/status` içinde RL/LOCK alanlarını daha anlaşılır hale getirmek
+- **Açıklama:** Sahada şarj esnasında `RL=0` ve `LOCK=0` görülebiliyor. Donanımda lock/relay feedback yoksa bu normaldir; bekleniyorsa firmware mapping/telemetry eksik olabilir. Bu belirsizliği azaltmak için status payload’a açıklama ve soft uyarı eklendi.
+- **İmplementasyon:**
+  - `api/routers/status.py`: `data.telemetry` bloğu eklendi (`relay_feedback`, `lock_engaged`, `note`). CHARGING/PAUSED iken RL/LOCK=0 ise `data.warnings` altında uyarı kodları eklenir.
+  - `tests/test_api_endpoints.py`: Status response içinde `telemetry` bloğunu doğrulayan assertion eklendi.
+- **Test/Doğrulama:**
+  - `python3 -m py_compile api/routers/status.py` → ✅
+  - `python3 -m py_compile tests/test_api_endpoints.py` → ✅
+  - `./env/bin/pytest tests/test_api_endpoints.py` → ✅ 12 passed
+
 #### ✅ 3‑Faz Total Power + Mobile Energy Tutarlılığı (00:22:00)
 - **Görev:** Meter total güç (kW) ve mobil payload enerji/power tutarlılığını düzeltmek
 - **Açıklama:** Gerçek EV testinde faz değerleri 3‑faz ~10 kW iken API tarafında `power_kw` ve `totals.power_kw` alanları tek faz (~3.4 kW) gibi dönüyordu. Ayrıca session başlangıcında saklanan enerji değeri bazı sayaçlarda “total” üzerinden yazıldığı için mobil tarafta import register ile delta tutarsızlaşıp `session.energy_kwh` null kalabiliyordu.

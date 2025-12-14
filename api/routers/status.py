@@ -1,8 +1,8 @@
 """
 Status Router
 Created: 2025-12-10
-Last Modified: 2025-12-13 23:25:00
-Version: 1.2.0
+Last Modified: 2025-12-14 03:50:00
+Version: 1.2.1
 Description: Status and health check endpoints
 """
 
@@ -91,6 +91,38 @@ async def get_status(request: Request, bridge: ESP32Bridge = Depends(get_bridge)
             if bridge.send_current_set(desired_max):
                 status_data["MAX"] = desired_max
                 CacheInvalidator.invalidate_status()
+    except Exception:
+        # Non-critical; status read akışını bozma
+        pass
+
+    # RL/LOCK telemetry açıklaması (firmware/hardware'a bağlı olabilir)
+    try:
+        rl_raw = status_data.get("RL")
+        lock_raw = status_data.get("LOCK")
+        rl_val = int(rl_raw) if rl_raw is not None else None
+        lock_val = int(lock_raw) if lock_raw is not None else None
+
+        telemetry = {
+            "relay_feedback_raw": rl_val,
+            "lock_raw": lock_val,
+            "relay_feedback": (bool(rl_val) if rl_val is not None else None),
+            "lock_engaged": (bool(lock_val) if lock_val is not None else None),
+            "note": (
+                "RL/LOCK alanları firmware ve donanım bağlantısına bağlıdır. "
+                "Donanımda lock/relay feedback yoksa 0 görünmesi normal olabilir."
+            ),
+        }
+        status_data["telemetry"] = telemetry
+
+        warnings = []
+        state_val = status_data.get("STATE")
+        if state_val in (ESP32State.CHARGING.value, ESP32State.PAUSED.value):
+            if rl_val == 0:
+                warnings.append("relay_feedback_off_or_unavailable")
+            if lock_val == 0:
+                warnings.append("lock_feedback_off_or_unavailable")
+        if warnings:
+            status_data["warnings"] = warnings
     except Exception:
         # Non-critical; status read akışını bozma
         pass
