@@ -42,7 +42,8 @@
   - Açıklama: `/api/meter/reading` içinde `energy_kwh`, `energy_import_kwh`, `energy_export_kwh` alanlarının hangi sayaç register’larından geldiği ve “import”/“total” semantiğinin doğru olduğu sahada teyit edilmeli. Export değeri sabit görünebiliyor (ör. 0.3 kWh) — bu hata olmayabilir, ama register map üzerinden doğrulanmalı.
   - Öncelik: 2 (Orta)
   - Tahmini Süre: 1-2 saat
-  - Durum: 💡 İnceleme
+  - Durum: 🟡 Kısmi (2025-12-14)
+  - Not: Yazılım tarafında `api/meter/acrel.py` `totals` içine `energy_total_kwh` alias ve `registers` referans bloğu eklendi. Saha teyidi hâlâ gerekli.
 
 - [ ] **Görev:** `/api/current/available` endpoint’ini kaldırma/deprecate kararı
   - Açıklama: Endpoint şu an statik aralık döndürüyor (6-32). Kullanım yoksa kaldırılabilir; kullanılacaksa station/meter/ESP32 config’e göre dinamik hale getirilebilir.

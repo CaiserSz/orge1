@@ -1,8 +1,8 @@
 """
 Acrel ADL400/T317 Modbus Meter Implementation
 Created: 2025-12-12 18:54:25
-Last Modified: 2025-12-14 00:14:00
-Version: 1.0.2
+Last Modified: 2025-12-14 03:58:00
+Version: 1.0.3
 Description: Acrel three-phase meter (ADL400/T317) Modbus RTU reader
 """
 
@@ -270,12 +270,25 @@ class AcrelModbusMeter(MeterInterface):
                     {
                         "power_kw": float(p_total),
                         "energy_kwh": float(e_total),
+                        # Açıklık için alias (bazı UI'lar energy_kwh'ı "total mı import mu?" karıştırabiliyor)
+                        "energy_total_kwh": float(e_total),
                         "energy_import_kwh": (
                             float(e_fwd) if e_fwd is not None else None
                         ),
                         "energy_export_kwh": (
                             float(e_rev) if e_rev is not None else None
                         ),
+                        # Register referansı (saha doğrulaması için)
+                        "registers": {
+                            "power_kw_l1": "0x0814 (float32 kW)",
+                            "power_kw_l2": "0x0816 (float32 kW)",
+                            "power_kw_total_or_l3": "0x0818 (float32 kW, sahada total/L3 değişebiliyor)",
+                            "energy_total_kwh": "0x0842 (uint32, scale=0.1 kWh)",
+                            "energy_import_kwh": "0x084C (uint32, scale=0.1 kWh)",
+                            "energy_export_kwh": "0x0856 (uint32, scale=0.1 kWh)",
+                            "pf_total": "0x0832 (float32)",
+                            "frequency_hz": "0x0834 (float32)",
+                        },
                     },
                 )
 
