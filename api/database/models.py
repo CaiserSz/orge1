@@ -64,7 +64,11 @@ def row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:
     if user_id:
         result["user_id"] = user_id
 
-    # Metrikleri ekle (eğer varsa)
+    # Metrikleri ekle
+    #
+    # Not: API response standardizasyonu için, metrik kolonları mevcutsa anahtarların
+    # response'ta her zaman bulunmasını istiyoruz (değer None olsa bile).
+    # Bu sayede client tarafında "field missing" yerine "null" görülür ve schema tutarlı olur.
     metric_fields = [
         "duration_seconds",
         "charging_duration_seconds",
@@ -86,8 +90,14 @@ def row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:
     ]
 
     for field in metric_fields:
-        if field in row.keys() and row[field] is not None:
+        if field not in row.keys():
+            continue
+        if row[field] is not None:
+            # DB'de kalıcı metrik varsa onu tercih et
             result[field] = row[field]
+        else:
+            # Kolon var ama değer yok: client schema'sı stabil kalsın diye anahtarı koru
+            result.setdefault(field, None)
 
     return result
 

@@ -435,6 +435,14 @@
     - `requirements.txt` - slowapi>=0.1.9 eklendi
   - Durum: ✅ Tamamlandı
 
+#### 🔒 Session History Endpoint Authentication (Yeni)
+- [ ] **Görev:** Geçmiş şarj/session endpoint'lerini authentication ile koru (`/api/sessions/*`, `/api/mobile/charging/sessions*`)
+  - Açıklama: Bu endpoint'ler şu an `verify_api_key`/auth dependency kullanmıyor. `user_id` query/path ile farklı kullanıcıların geçmiş session verisi istenebilir (multi-user senaryosunda veri sızıntısı riski).
+  - Öncelik: 1 (Yüksek)
+  - Tahmini Süre: 1-2 saat
+  - Durum: 📋 Bekliyor
+  - Detaylar: `verify_api_key` eklenmeli; ayrıca `user_id` erişim yetkilendirmesi (caller ↔ user_id eşleştirmesi) netleştirilmeli.
+
 #### 🔄 API Key Rotation Mekanizması
 - [ ] **Görev:** API key rotation mekanizması implementasyonu
   - Açıklama: Codebase deep dive analizi sonucu Security Expert tarafından tespit edildi. API key'lerin periyodik olarak değiştirilmesi için mekanizma eklenmeli.
