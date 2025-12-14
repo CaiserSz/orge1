@@ -213,10 +213,9 @@ class SessionLifecycleMixin(SessionEventLoggingMixin):
                         # Meter varsa güç/akım/voltaj metriklerini CPV/PPV gibi ham değerlerden değil,
                         # gerçek meter ölçümlerinden türet (saha doğruluğu).
                         try:
-                            duration_s = (
-                                int(final_metrics.get("charging_duration_seconds") or 0)
-                                or int(final_metrics.get("duration_seconds") or 0)
-                            )
+                            duration_s = int(
+                                final_metrics.get("charging_duration_seconds") or 0
+                            ) or int(final_metrics.get("duration_seconds") or 0)
                             total_energy_kwh = float(max(0, total_energy))
                             if duration_s > 0 and total_energy_kwh >= 0:
                                 hours = duration_s / 3600.0
