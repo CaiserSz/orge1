@@ -18,6 +18,19 @@ Terminal açıldığında otomatik olarak virtual ortamda açılacak ve kodlar o
 Kullanıcı ile Türkçe iletişim kurulacaktır.
 Tüm kodlar profesyonel standartlarda yazılacaktır.
 **ÖNEMLİ - Test Zamanlaması:** Her dosya editinden sonra SADECE o dosyanın syntax kontrolü yapılmalıdır (`python3 -m py_compile dosya.py` veya `python3 -c "import ast; ast.parse(open('dosya.py').read())"`). İlgili test dosyası varsa SADECE o test dosyası çalıştırılmalıdır (`pytest tests/test_ilgili_dosya.py`). TÜM test suite'i (`pytest` veya `./env/bin/python -m pytest`) SADECE görev tamamlandığında, commit öncesi veya kullanıcıya teslim etmeden önce çalıştırılmalıdır. Her dosya editinden sonra tüm test suite'ini çalıştırmak VERİMSİZDİR ve YAPILMAMALIDIR.
+
+### 🚫 FULL TEST SUITE (pytest) POLİTİKASI — Kırmızı Çizgi
+
+- ❌ **YASAK:** Her dosya editinden sonra “alışkanlıkla” `./env/bin/pytest` çalıştırmak (zaman/efor/maliyet kaybı).
+- ✅ **ZORUNLU OLAN (minimum):**
+  - Her dosya editinden sonra **sadece o dosya** için syntax kontrolü (`py_compile` / `ast.parse`).
+  - İlgili test varsa **sadece ilgili test dosyası** (`pytest tests/test_...py`).
+- ✅ **TAM SUITE ne zaman?**
+  - Görev tamamlandığında
+  - Kullanıcıya teslim etmeden önce
+  - Büyük refactor sonrası
+  - **Birden fazla modülü etkileyen** değişikliklerde commit öncesi
+- ✅ **İstisna notu:** Sadece dokümantasyon/todo değişikliği varsa tam suite koşmak **zorunlu değildir** (syntax/test yok).
 Tüm önemli değişiklikler dokümante edilecektir.
 Tüm kod dosyalarına oluşturulma tarihi, revizyon tarihleri(saat ve dakika dahil) ve kısa açıklama eklenecektir.
 Tüm dosya isimleri her zaman İngilizce olacaktır.
@@ -44,6 +57,8 @@ Kod standardı tüm workspace ve projede korunacaktır.
   2. Commit öncesi
   3. Kullanıcıya teslim etmeden önce
   4. Büyük refactoring sonrası
+
+- ✅ **Not:** Sadece dokümantasyon/todo değişikliği varsa (Python kodu yoksa) tam suite çalıştırmak gerekmez.
 
 - Test edilmemiş veya teyit edilmemiş hiçbir şey kullanıcıya verilmemelidir
 - Her implementasyon sonrası çalıştırılabilir testler yapılmalıdır (SADECE ilgili testler, tüm suite değil)

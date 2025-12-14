@@ -1,8 +1,8 @@
 # AI Çalışma Akışı ve Otonom Proje Yönetimi
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00  
-**Son Güncelleme:** 2025-12-08 18:35:00  
-**Version:** 1.0.0
+**Son Güncelleme:** 2025-12-14 03:59:00  
+**Version:** 1.0.1
 
 ---
 
@@ -15,6 +15,15 @@ Bu dokümantasyon, AI asistanlarının (şimdi veya gelecekte) projeye devam ett
 4. Projeyi ilerletmesi
 
 için hazırlanmıştır.
+
+---
+
+## ✅ Test Zamanlaması Kuralı (ÖZET — Unutma)
+
+- **Her kod dosyası editinden sonra:** sadece ilgili dosya için `python3 -m py_compile dosya.py`
+- **İlgili test varsa:** sadece ilgili test dosyası `pytest tests/test_...py`
+- **Tam test suite (`./env/bin/pytest`):** sadece görev tamamlanınca / teslim öncesi / büyük refactor sonrası / çoklu modül etkileyen değişikliklerde commit öncesi
+- **Sadece dokümantasyon/todo değişikliği:** tam suite koşmak zorunlu değildir
 
 ---
 

@@ -113,6 +113,7 @@ En yüksek öncelikli görevi seç ve çalışmaya başla.
 - **Özet:** Kullanıcıya teslim etmeden önce MUTLAKA test edip teyit et
 - **Özet:** Her dosya editinden sonra SADECE o dosyanın syntax kontrolü yapılmalıdır
 - **Özet:** Tüm test suite'i SADECE görev tamamlandığında, commit öncesi veya teslim öncesi çalıştırılmalıdır
+- **Özet (Verimlilik):** Her adımda tam suite çalıştırma; sadece ilgili testleri çalıştır (dokümantasyon-only değişikliklerde pytest gerekmez)
 
 **Verimlilik ve Odak:**
 - Gereksiz dosya okuma yapma
