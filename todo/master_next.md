@@ -954,6 +954,12 @@ CREATE TABLE sessions (
   - Aksiyon (2025-12-12 21:05:00): `docs/acrel/` klasörü `.gitignore`'a eklenerek ağır görsel/doküman arşivi git geçmişinden hariç tutuldu. Durum: ✅ 2025-12-12 21:12:00 (Code Quality Expert)
   - Aksiyon (2025-12-12 21:08:00): `git status` çıktısında kök dizinde `3}s` adlı beklenmedik bir dosya görüldü; kaynağı bilinmediği için temizlenmedi, manuel inceleme gerekiyor.
 
+- [x] **Görev:** `api_test.html` polling optimizasyonu (visibility-aware + düşük frekans)
+  - Açıklama: `/test` sayfası (api_test.html) yüksek frekansta `/api/health` (5sn), `/api/sessions/current` (5sn) ve `mobile snapshot` (7sn) çekiyordu. Tab arka plandayken polling durduruldu, görünür olunca yeniden başlatılıyor; ayrıca default frekanslar düşürüldü (15sn).
+  - Öncelik: 8
+  - Tahmini Süre: 30-45 dakika
+  - Durum: ✅ Tamamlandı (2025-12-14 19:25)
+
 - [x] **Görev:** `logs/` büyüme analizi + retention/rotation teyidi
   - Açıklama: `scripts/workspace_auto_check.py` (2025-12-14 18:44) raporunda `logs/` boyutu 69.34 MB göründü. Logların bu hızda büyüme nedeni (servisler, log seviyesi, rotation/retention) incelendi; yüksek frekanslı GET endpoint logları için throttle eklendi. Ayrıca eski rotate dosyalarından `logs/api.log.4` ve `logs/api.log.5` temizlendi (logs ~70MB → ~50MB).
   - Öncelik: 8

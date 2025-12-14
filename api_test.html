@@ -1465,6 +1465,13 @@ Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/t
         const API_BASE_URL = window.location.origin;
         let cachedApiKey = null;
 
+        // Polling ayarları (trafik ve log şişmesini azaltmak için)
+        // Not: Canlı saha testinde daha sık takip gerekiyorsa bu değerler düşürülebilir.
+        const STATUS_POLL_MS = 10000; // /api/status
+        const SYSTEM_METRICS_POLL_MS = 15000; // /api/health (eskiden 5sn)
+        const SESSION_POLL_MS = 15000; // /api/sessions/current (eskiden 5sn)
+        const MOBILE_SNAPSHOT_POLL_MS = 15000; // /api/mobile/charging/current (eskiden 7sn)
+
         // Debounce timer for curl preview updates
         let curlPreviewTimeouts = {};
 
@@ -1485,6 +1492,37 @@ Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/t
         let sessionEnergyBaselineKwh = null;
         let currentSessionId = null;
         let mobileSnapshotInterval = null;
+
+        function stopAllPolling() {
+            if (statusUpdateInterval) {
+                clearInterval(statusUpdateInterval);
+                statusUpdateInterval = null;
+            }
+            if (systemMetricsInterval) {
+                clearInterval(systemMetricsInterval);
+                systemMetricsInterval = null;
+            }
+            if (meterUpdateInterval) {
+                clearInterval(meterUpdateInterval);
+                meterUpdateInterval = null;
+            }
+            if (sessionUpdateInterval) {
+                clearInterval(sessionUpdateInterval);
+                sessionUpdateInterval = null;
+            }
+            if (mobileSnapshotInterval) {
+                clearInterval(mobileSnapshotInterval);
+                mobileSnapshotInterval = null;
+            }
+        }
+
+        async function startAllPolling() {
+            // Duplicate interval oluşmasını engelle
+            stopAllPolling();
+            await startStatusPolling();
+            startSessionPolling();
+            startMobileSnapshotPolling();
+        }
 
         // STATE açıklamaları
         const STATE_MEANINGS = {
@@ -1585,10 +1623,21 @@ Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/t
             updateCurlPreviewForPathParam('GET', '/api/mobile/charging/sessions/{session_id}', 'param-/api/mobile/charging/sessions/{session_id}', 'curl-/api/mobile/charging/sessions/{session_id}');
             updateMobileSessionsCurl();
 
-            // Start ESP32 status polling
-            startStatusPolling();
-            startSessionPolling();
-            startMobileSnapshotPolling();
+            // Start polling (visibility-aware)
+            await startAllPolling();
+
+            // Arka planda gereksiz polling'i durdur (mobilde ekran kilidi/arka plana alma durumlarında ciddi trafik azaltır)
+            document.addEventListener('visibilitychange', async () => {
+                try {
+                    if (document.hidden) {
+                        stopAllPolling();
+                        return;
+                    }
+                    await startAllPolling();
+                } catch (error) {
+                    console.error('visibilitychange polling error:', error);
+                }
+            });
         });
 
         // Load default values for input fields
@@ -1690,14 +1739,24 @@ Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/t
         }
 
         async function startStatusPolling() {
+            // Duplicate interval oluşmasını engelle
+            if (statusUpdateInterval) {
+                clearInterval(statusUpdateInterval);
+                statusUpdateInterval = null;
+            }
+            if (systemMetricsInterval) {
+                clearInterval(systemMetricsInterval);
+                systemMetricsInterval = null;
+            }
+
             // İlk güncelleme
             await updateESP32Status();
 
             // Her 10 saniyede bir güncelle (rate limit + stabilite için daha güvenli)
-            statusUpdateInterval = setInterval(updateESP32Status, 10000);
+            statusUpdateInterval = setInterval(updateESP32Status, STATUS_POLL_MS);
 
-            // Sistem metriklerini güncelle (her 5 saniyede bir)
-            systemMetricsInterval = setInterval(updateSystemMetrics, 5000);
+            // Sistem metriklerini daha düşük frekansta güncelle (trafik azaltma)
+            systemMetricsInterval = setInterval(updateSystemMetrics, SYSTEM_METRICS_POLL_MS);
             updateSystemMetrics(); // İlk güncelleme
 
             // Meter değerlerini düşük frekansta güncelle (varsayılan 30 sn)
@@ -2092,11 +2151,11 @@ Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/t
         function startSessionPolling() {
             // İlk güncelleme
             updateSessionInfo();
-            // 5 saniye aralıkla session bilgisi
+            // Daha düşük frekanslı session polling (trafik azaltma)
             if (sessionUpdateInterval) {
                 clearInterval(sessionUpdateInterval);
             }
-            sessionUpdateInterval = setInterval(updateSessionInfo, 5000);
+            sessionUpdateInterval = setInterval(updateSessionInfo, SESSION_POLL_MS);
         }
 
         async function updateMeterValues() {
@@ -2377,7 +2436,7 @@ Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/t
             if (mobileSnapshotInterval) {
                 clearInterval(mobileSnapshotInterval);
             }
-            mobileSnapshotInterval = setInterval(updateMobileSnapshot, 7000);
+            mobileSnapshotInterval = setInterval(updateMobileSnapshot, MOBILE_SNAPSHOT_POLL_MS);
         }
 
         async function updateMobileSnapshot() {
@@ -2583,21 +2642,7 @@ Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/t
 
         // Sayfa kapatılırken polling'i durdur
         window.addEventListener('beforeunload', () => {
-            if (statusUpdateInterval) {
-                clearInterval(statusUpdateInterval);
-            }
-            if (systemMetricsInterval) {
-                clearInterval(systemMetricsInterval);
-            }
-            if (meterUpdateInterval) {
-                clearInterval(meterUpdateInterval);
-            }
-            if (sessionUpdateInterval) {
-                clearInterval(sessionUpdateInterval);
-            }
-            if (mobileSnapshotInterval) {
-                clearInterval(mobileSnapshotInterval);
-            }
+            stopAllPolling();
         });
 
         function updateCurlPreviewDebounced(method, path, bodyElementId, curlElementId, isNumber = false) {
