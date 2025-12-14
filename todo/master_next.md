@@ -954,6 +954,12 @@ CREATE TABLE sessions (
   - Aksiyon (2025-12-12 21:05:00): `docs/acrel/` klasörü `.gitignore`'a eklenerek ağır görsel/doküman arşivi git geçmişinden hariç tutuldu. Durum: ✅ 2025-12-12 21:12:00 (Code Quality Expert)
   - Aksiyon (2025-12-12 21:08:00): `git status` çıktısında kök dizinde `3}s` adlı beklenmedik bir dosya görüldü; kaynağı bilinmediği için temizlenmedi, manuel inceleme gerekiyor.
 
+- [ ] **Görev:** Session metrikleri (avg/max/min power & voltage/current) yanlış (CPV/PPV gibi ham değerler yazılıyor)
+  - Açıklama: Gerçek şarj sonrası `/api/sessions?limit=1` kaydında `avg_power_kw/max_power_kw` ~100+ kW ve `avg_voltage_v/max_voltage_v` ~1500-3600 gibi fiziksel olmayan değerler görüldü. Bu alanlar muhtemelen ESP32 status ham alanlarından (CPV/PPV/PWM vb.) doluyor. Meter varsa kWh delta + süre ile avg güç hesaplanmalı; voltaj/akım metrikleri meter faz değerlerinden türetilmeli veya güvenli şekilde null bırakılmalı.
+  - Öncelik: 1 (Yüksek)
+  - Tahmini Süre: 1-2 saat
+  - Durum: 📋 Bekliyor
+
 - [x] **Görev:** `api_test.html` polling optimizasyonu (visibility-aware + düşük frekans)
   - Açıklama: `/test` sayfası (api_test.html) yüksek frekansta `/api/health` (5sn), `/api/sessions/current` (5sn) ve `mobile snapshot` (7sn) çekiyordu. Tab arka plandayken polling durduruldu, görünür olunca yeniden başlatılıyor; ayrıca default frekanslar düşürüldü (15sn).
   - Öncelik: 8

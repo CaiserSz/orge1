@@ -17,6 +17,7 @@ from api.logging_config import log_event, log_incident, system_logger
 from api.session.events_logging import SessionEventLoggingMixin
 from api.session.session import ChargingSession
 from api.session.status import SessionStatus
+from api.station_info import get_station_info
 
 
 class SessionLifecycleMixin(SessionEventLoggingMixin):
@@ -207,6 +208,79 @@ class SessionLifecycleMixin(SessionEventLoggingMixin):
                                 max(0, total_energy)
                             )
                         except Exception:
+                            pass
+
+                        # Meter varsa güç/akım/voltaj metriklerini CPV/PPV gibi ham değerlerden değil,
+                        # gerçek meter ölçümlerinden türet (saha doğruluğu).
+                        try:
+                            duration_s = (
+                                int(final_metrics.get("charging_duration_seconds") or 0)
+                                or int(final_metrics.get("duration_seconds") or 0)
+                            )
+                            total_energy_kwh = float(max(0, total_energy))
+                            if duration_s > 0 and total_energy_kwh >= 0:
+                                hours = duration_s / 3600.0
+                                avg_power_kw = (
+                                    (total_energy_kwh / hours) if hours > 0 else None
+                                )
+                                if avg_power_kw is not None:
+                                    avg_power_kw = round(avg_power_kw, 3)
+                                    final_metrics["avg_power_kw"] = avg_power_kw
+                                    # Max/min için örnekleme yoksa avg ile normalize et (en azından fiziksel aralıkta kalsın)
+                                    final_metrics["max_power_kw"] = avg_power_kw
+                                    final_metrics["min_power_kw"] = avg_power_kw
+
+                            phase_values = getattr(meter_reading, "phase_values", None)
+                            if isinstance(phase_values, dict):
+                                pv_v = phase_values.get("voltage_v") or {}
+                                pv_i = phase_values.get("current_a") or {}
+                                voltages = [
+                                    pv_v.get("l1"),
+                                    pv_v.get("l2"),
+                                    pv_v.get("l3"),
+                                ]
+                                currents = [
+                                    pv_i.get("l1"),
+                                    pv_i.get("l2"),
+                                    pv_i.get("l3"),
+                                ]
+                                voltages = [float(v) for v in voltages if v is not None]
+                                currents = [float(i) for i in currents if i is not None]
+                                if voltages:
+                                    final_metrics["max_voltage_v"] = round(
+                                        max(voltages), 2
+                                    )
+                                    final_metrics["min_voltage_v"] = round(
+                                        min(voltages), 2
+                                    )
+                                    final_metrics["avg_voltage_v"] = round(
+                                        sum(voltages) / len(voltages), 2
+                                    )
+                                if currents:
+                                    final_metrics["max_current_a"] = round(
+                                        max(currents), 2
+                                    )
+                                    final_metrics["min_current_a"] = round(
+                                        min(currents), 2
+                                    )
+                                    final_metrics["avg_current_a"] = round(
+                                        sum(currents) / len(currents), 2
+                                    )
+
+                            # Maliyet için faydalı metadata (DB alanı eklemeden)
+                            try:
+                                station_info = get_station_info() or {}
+                                per_kwh = station_info.get("price_per_kwh")
+                                if per_kwh is not None:
+                                    per_kwh_f = float(per_kwh)
+                                    session.metadata["price_per_kwh"] = per_kwh_f
+                                    session.metadata["total_cost"] = round(
+                                        total_energy_kwh * per_kwh_f, 2
+                                    )
+                            except Exception:
+                                pass
+                        except Exception:
+                            # Non-critical; session kapanışını bozma
                             pass
                     else:
                         session.metadata["end_energy_kwh"] = end_energy
