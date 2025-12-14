@@ -2,11 +2,12 @@
 """
 Database Maintenance Script (Events Migration + Session Metrics Repair)
 Created: 2025-12-10 07:40:00
-Last Modified: 2025-12-14 21:35:00
-Version: 1.1.0
+Last Modified: 2025-12-14 21:55:00
+Version: 1.2.0
 Description:
   - Mevcut events JSON'ını session_events tablosuna migrate eder
   - (Opsiyonel) geçmiş session metriklerini düzeltir (avg/max/min power vb.)
+  - (Opsiyonel) belirli bir tarihten önceki session'ları temizler (ABB dönemi temizliği)
 """
 
 from __future__ import annotations
@@ -101,6 +102,87 @@ def _needs_metrics_repair(session: Dict[str, Any]) -> bool:
 def migrate_events() -> int:
     db = get_database()
     return int(db.migrate_events_to_table())
+
+
+def _parse_before_iso_to_epoch(before_iso: str) -> int:
+    """
+    Parse ISO timestamp (naive local or timezone-aware) to epoch seconds.
+
+    Not: DB'deki start_time/end_time değerleri, kod tarafında `datetime.now().timestamp()`
+    ile yazıldığı için "local timezone" bazlı epoch saniye formatındadır.
+    """
+    dt = datetime.fromisoformat(before_iso)
+    return int(dt.timestamp())
+
+
+def purge_sessions_before(before_iso: str, apply_changes: bool) -> int:
+    """
+    Purge sessions (and related session_events) before a cutoff timestamp.
+
+    Amaç: ABB sayaç dönemindeki eski/bozuk/test session verilerini temizleyip,
+    Acrel döneminde trend/istatistikleri daha anlamlı hale getirmek.
+    """
+    db = get_database()
+    cutoff_ts = _parse_before_iso_to_epoch(before_iso)
+
+    conn = sqlite3.connect(db.db_path)
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT COUNT(*), MIN(start_time), MAX(start_time) "
+            "FROM sessions WHERE start_time < ?",
+            (cutoff_ts,),
+        )
+        count, min_ts, max_ts = cursor.fetchone()
+        candidate_count = int(count or 0)
+
+        print("=" * 60)
+        print("Purge Sessions Before Cutoff")
+        print("=" * 60)
+        print(f"before_iso={before_iso} cutoff_ts={cutoff_ts} apply={apply_changes}")
+        print(
+            f"candidates={candidate_count} "
+            f"min_start={datetime.fromtimestamp(min_ts).isoformat() if min_ts else None} "
+            f"max_start={datetime.fromtimestamp(max_ts).isoformat() if max_ts else None}"
+        )
+
+        cursor.execute(
+            "SELECT session_id, start_time, status "
+            "FROM sessions WHERE start_time < ? "
+            "ORDER BY start_time DESC LIMIT 10",
+            (cutoff_ts,),
+        )
+        sample = cursor.fetchall() or []
+        if sample:
+            print()
+            print("Sample (latest 10 candidates):")
+            for sid, st, status in sample:
+                print(
+                    f"- {sid} start={datetime.fromtimestamp(int(st)).isoformat()} status={status}"
+                )
+
+        if not apply_changes:
+            print()
+            print("ℹ️ Dry-run completed (no changes applied).")
+            print("=" * 60)
+            return 0
+
+        # Foreign key cascade, PRAGMA foreign_keys'e bağlı olabilir; garanti olsun diye explicit delete.
+        cursor.execute(
+            "DELETE FROM session_events "
+            "WHERE session_id IN (SELECT session_id FROM sessions WHERE start_time < ?)",
+            (cutoff_ts,),
+        )
+        cursor.execute("DELETE FROM sessions WHERE start_time < ?", (cutoff_ts,))
+        deleted_sessions = int(cursor.rowcount or 0)
+        conn.commit()
+
+        print()
+        print(f"✅ Deleted sessions: {deleted_sessions}")
+        print("=" * 60)
+        return deleted_sessions
+    finally:
+        conn.close()
 
 
 def repair_session_metrics(limit: int, apply_changes: bool) -> int:
@@ -252,6 +334,18 @@ def main() -> None:
         "--apply", action="store_true", help="Apply changes to DB (default: dry-run)"
     )
 
+    p_purge = sub.add_parser(
+        "purge-sessions-before",
+        help="Delete sessions (and session_events) older than a cutoff ISO timestamp",
+    )
+    p_purge.add_argument(
+        "--before",
+        dest="before_iso",
+        default="2025-12-13T00:00:00",
+        help="Cutoff ISO timestamp (naive local or timezone-aware)",
+    )
+    p_purge.add_argument("--apply", action="store_true", help="Apply deletions")
+
     args = parser.parse_args()
 
     if not args.command or args.command == "migrate-events":
@@ -266,6 +360,12 @@ def main() -> None:
 
     if args.command == "repair-session-metrics":
         repair_session_metrics(limit=int(args.limit), apply_changes=bool(args.apply))
+        return
+
+    if args.command == "purge-sessions-before":
+        purge_sessions_before(
+            before_iso=str(args.before_iso), apply_changes=bool(args.apply)
+        )
         return
 
     raise SystemExit(f"Unknown command: {args.command}")

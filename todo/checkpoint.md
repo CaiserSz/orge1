@@ -1,8 +1,8 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-14 03:50:00
-**Version:** 1.8.0
+**Son Güncelleme:** 2025-12-14 21:56:00
+**Version:** 1.9.0
 
 ---
 
@@ -35,6 +35,18 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
   - Tab arka planda iken polling durduruluyor; görünür olunca tekrar başlıyor (mobil ekran kilidi/arka plan trafik azaltma).
 - Sahada doğrulama:
   - Tesla Model Y canlı şarj testinde 5A (~3kW) ve 16A (~10kW) değerleri API/meter ile tutarlı gözlendi.
+
+### Güncel Checkpoint: CP-20251214-035 (2025-12-14 21:56:00)
+**Durum:** ✅ Session metrik düzeltmesi + ABB dönemi session temizliği (Acrel trend doğruluğu)
+- Session metrikleri:
+  - Session kapanışında meter varsa avg/max/min power ve V/I metrikleri meter delta + süre + faz V/I üzerinden normalize edildi.
+  - Retro metrik düzeltme eklendi: `scripts/migrate_events_to_table.py repair-session-metrics` (plausibility filtresi ile).
+- ABB dönemi temizlik:
+  - `scripts/migrate_events_to_table.py purge-sessions-before --before 2025-12-13T00:00:00 --apply`
+  - Sonuç: 369 session silindi; toplam session sayısı 732 → 363.
+- Teyit:
+  - `repair-session-metrics --limit 20` dry-run → düzeltilecek kayıt kalmadı.
+  - `/api/sessions?limit=1` → `total_count=363`.
 
 ### Önceki Checkpoint: CP-20251213-029 (2025-12-13 03:20:00)
 **Durum:** ✅ Mobil şarj API paketi hazır
