@@ -977,6 +977,24 @@ CREATE TABLE sessions (
   - Tahmini Süre: 1-2 saat
   - Durum: 📋 Bekliyor
 
+- [ ] **Görev:** HTTP caching (ETag/304) saha ölçümü ve TTL optimizasyonu
+  - Açıklama: Browser/ngrok gibi dış client’larda `ETag`/`304 Not Modified` oranı ve bandwidth kazanımı ölçülmeli. Ölçüme göre TTL’ler sahaya uygun ayarlanmalı (örn. `/api/status` 5s, `/api/health` 30s, `/api/sessions/current` 10s, `/api/mobile/charging/current` 5-10s).
+  - Öncelik: 2 (Orta)
+  - Tahmini Süre: 30-60 dakika
+  - Durum: 📋 Bekliyor
+
+- [ ] **Görev:** Session metadata’ya `meter_type` (abb/acrel/mock) yaz (ayırt edilebilirlik)
+  - Açıklama: Gelecekte “ABB dönemi / Acrel dönemi” gibi filtrelemeler için session create/end sırasında `metadata.meter_type` kaydı tutulmalı. Böylece temizlik/analiz scriptleri tarih varsayımı yerine güvenilir etiketle çalışır.
+  - Öncelik: 3 (Orta)
+  - Tahmini Süre: 30-45 dakika
+  - Durum: 📋 Bekliyor
+
+- [ ] **Görev:** Session “data quality guard” (anormal metrikleri işaretle)
+  - Açıklama: Eğer meter yoksa veya metrikler fiziksel sınırları aşıyorsa (ör. `avg_voltage_v>500` / `avg_power_kw>max_power_kw` gibi) session `metadata.metrics_quality="suspect"` ve `metadata.metrics_quality_reason=[...]` ile işaretlenmeli; UI/trend hesaplarında bu kayıtlar opsiyonel dışlanabilir.
+  - Öncelik: 3 (Orta)
+  - Tahmini Süre: 45-90 dakika
+  - Durum: 📋 Bekliyor
+
 - [x] **Görev:** `api_test.html` polling optimizasyonu (visibility-aware + düşük frekans)
   - Açıklama: `/test` sayfası (api_test.html) yüksek frekansta `/api/health` (5sn), `/api/sessions/current` (5sn) ve `mobile snapshot` (7sn) çekiyordu. Tab arka plandayken polling durduruldu, görünür olunca yeniden başlatılıyor; ayrıca default frekanslar düşürüldü (15sn).
   - Öncelik: 8
@@ -1021,5 +1039,11 @@ CREATE TABLE sessions (
   - Açıklama: 2 adet test session'da events yok (CANCELLED status). Bu session'lar test amaçlı oluşturulmuş olabilir.
   - Öncelik: 8
   - Tahmini Süre: 15 dakika
+  - Durum: 📋 Bekliyor
+
+- [ ] **Görev:** DB bakım adımı: VACUUM/ANALYZE (silme sonrası dosya boyutu)
+  - Açıklama: ABB dönemindeki session temizliği sonrası SQLite dosya boyutu fiziksel olarak küçülmeyebilir. Bakım komutu olarak `VACUUM` (opsiyonel `ANALYZE`) uygulanmalı; bakım penceresinde çalıştırılmalı.
+  - Öncelik: 8
+  - Tahmini Süre: 10-20 dakika
   - Durum: 📋 Bekliyor
 
