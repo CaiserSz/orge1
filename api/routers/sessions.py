@@ -23,7 +23,9 @@ router = APIRouter(prefix="/api/sessions", tags=["Sessions"])
 
 @router.get("/current")
 @cache_response(ttl=10, key_prefix="session_current")  # 10 saniye cache
-async def get_current_session(request: Request, bridge: ESP32Bridge = Depends(get_bridge)):
+async def get_current_session(
+    request: Request, bridge: ESP32Bridge = Depends(get_bridge)
+):
     """
     Aktif session'ı döndür
 
