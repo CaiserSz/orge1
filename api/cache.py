@@ -152,11 +152,11 @@ def cache_response(
             if cached_response is not None:
                 system_logger.debug(f"Cache hit: {cache_key}")
                 # HTTP cache headers (client tarafında değişiklik yapmadan bandwidth azaltma)
-                body = json.dumps(cached_response, ensure_ascii=False, sort_keys=True).encode(
-                    "utf-8"
-                )
+                body = json.dumps(
+                    cached_response, ensure_ascii=False, sort_keys=True
+                ).encode("utf-8")
                 etag = hashlib.md5(body).hexdigest()
-                etag_value = f"\"{etag}\""
+                etag_value = f'"{etag}"'
 
                 headers = {
                     "X-Cache": "HIT",
@@ -215,7 +215,7 @@ def cache_response(
                             response_data, ensure_ascii=False, sort_keys=True
                         ).encode("utf-8")
                         etag = hashlib.md5(body).hexdigest()
-                        response.headers["ETag"] = f"\"{etag}\""
+                        response.headers["ETag"] = f'"{etag}"'
                 except Exception as e:
                     system_logger.error(f"Cache set error: {e}")
 
