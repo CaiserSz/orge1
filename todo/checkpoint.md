@@ -25,6 +25,17 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
   - `./env/bin/pytest tests/test_api_endpoints.py` → ✅ 12 passed
   - `python3 scripts/code_quality_auto_check.py` → ✅ başarılı
 
+### Güncel Checkpoint: CP-20251214-034 (2025-12-14 19:30:00)
+**Durum:** ✅ Log büyümesi kontrol altına alındı + /test polling optimizasyonu (saha doğrulama)
+- `api/logging_config.py`:
+  - Noisy GET endpoint’lerinde (health/status/meter/station/sessions/mobile current) başarılı istek logları throttle edildi (client_ip+path bazında 5sn’de 1).
+  - Hata (>=400) logları aynen korunuyor.
+- `api_test.html` (`/test`):
+  - Polling frekansları düşürüldü (health/session/mobile 15sn; status 10sn).
+  - Tab arka planda iken polling durduruluyor; görünür olunca tekrar başlıyor (mobil ekran kilidi/arka plan trafik azaltma).
+- Sahada doğrulama:
+  - Tesla Model Y canlı şarj testinde 5A (~3kW) ve 16A (~10kW) değerleri API/meter ile tutarlı gözlendi.
+
 ### Önceki Checkpoint: CP-20251213-029 (2025-12-13 03:20:00)
 **Durum:** ✅ Mobil şarj API paketi hazır
 - `/api/mobile/charging/current` endpoint’i cihaz durumu + aktif session + trend + alert verisini tek payload’da sunuyor.
