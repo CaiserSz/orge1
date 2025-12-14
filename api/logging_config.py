@@ -148,15 +148,23 @@ def log_api_request(
                 now_mono = time.monotonic()
                 key = f"{client_ip or 'unknown'}|{path}"
                 last = _api_request_last_log_monotonic.get(key)
-                if last is not None and (now_mono - last) < _API_REQUEST_LOG_THROTTLE_WINDOW_SECONDS:
+                if (
+                    last is not None
+                    and (now_mono - last) < _API_REQUEST_LOG_THROTTLE_WINDOW_SECONDS
+                ):
                     return
                 _api_request_last_log_monotonic[key] = now_mono
 
                 # Basit housekeeping: sözlük büyümesini sınırlı tut
                 _api_request_log_counter += 1
-                if _api_request_log_counter % 2000 == 0 and len(_api_request_last_log_monotonic) > 5000:
+                if (
+                    _api_request_log_counter % 2000 == 0
+                    and len(_api_request_last_log_monotonic) > 5000
+                ):
                     # En eski ~%25 kaydı sil
-                    items = sorted(_api_request_last_log_monotonic.items(), key=lambda kv: kv[1])
+                    items = sorted(
+                        _api_request_last_log_monotonic.items(), key=lambda kv: kv[1]
+                    )
                     for k, _ts in items[: max(1, len(items) // 4)]:
                         _api_request_last_log_monotonic.pop(k, None)
 
