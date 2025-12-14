@@ -11,18 +11,18 @@
 
 ### Öncelik 1: EV Gerçek Test Bulguları (2025-12-13) - Güç/Enerji Tutarlılığı ve UI Stabilitesi
 
-- [ ] **Görev:** `api/meter/reading` toplam güç (kW) hesaplama düzeltmesi (3-faz)
+- [x] **Görev:** `api/meter/reading` toplam güç (kW) hesaplama düzeltmesi (3-faz)
   - Açıklama: Gerçek EV şarj testinde faz voltaj/akım değerleri (L1/L2/L3) 3‑faz ~10 kW gösterirken, `power_kw` ve `totals.power_kw` alanları ~3.4 kW (tek faz gibi) dönüyor. Bu durum `/test` ve mobil payload’larda gücün yanlış görünmesine neden oluyor.
   - Öncelik: 1 (Yüksek)
   - Tahmini Süre: 1-2 saat
-  - Durum: 💡 Bulgu / Düzeltme gerekiyor
+  - Durum: ✅ Tamamlandı (2025-12-14)
   - Detaylar: `/test` ekranında phase power ~3.4 kW × 3 faz; Tesla ekranında ~10 kW. API “total power” alanları tek faz gibi.
 
-- [ ] **Görev:** `api/mobile/charging/current` total power ve `session.energy_kwh` üretimi
+- [x] **Görev:** `api/mobile/charging/current` total power ve `session.energy_kwh` üretimi
   - Açıklama: Mobile payload’ta `measurements.power_kw.total` ve `session.power_kw_current` ~3.4 kW dönüyor; 3‑faz toplam (~10 kW) olmalı. Ayrıca `session.energy_kwh` null geldiği için UI/entegrasyonlarda enerji “-” görünebiliyor (null ise measurements import’a fallback yapılmalı veya session energy hesaplanmalı).
   - Öncelik: 1 (Yüksek)
   - Tahmini Süre: 2-3 saat
-  - Durum: 💡 Bulgu / Düzeltme gerekiyor
+  - Durum: ✅ Tamamlandı (2025-12-14)
   - Detaylar: Mobile snapshot’ta energy import mevcutken session.energy_kwh null gelebiliyor.
 
 - [ ] **Görev:** `/api/station/status` `realtime_power_kw` doğruluğu

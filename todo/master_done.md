@@ -1,11 +1,27 @@
 # Tamamlanan Görevler
 
 **Oluşturulma Tarihi:** 2025-12-08 18:20:00
-**Son Güncelleme:** 2025-12-13 03:20:00
+**Son Güncelleme:** 2025-12-14 02:55:00
 
 ---
 
 ## Tamamlanan Görevler Listesi
+
+### 2025-12-14
+
+#### ✅ 3‑Faz Total Power + Mobile Energy Tutarlılığı (00:22:00)
+- **Görev:** Meter total güç (kW) ve mobil payload enerji/power tutarlılığını düzeltmek
+- **Açıklama:** Gerçek EV testinde faz değerleri 3‑faz ~10 kW iken API tarafında `power_kw` ve `totals.power_kw` alanları tek faz (~3.4 kW) gibi dönüyordu. Ayrıca session başlangıcında saklanan enerji değeri bazı sayaçlarda “total” üzerinden yazıldığı için mobil tarafta import register ile delta tutarsızlaşıp `session.energy_kwh` null kalabiliyordu.
+- **İmplementasyon:**
+  - `api/meter/modbus.py` (ABB): Faz güçleri varsa toplam güç fazların toplamından normalize edilip `reading.power_kw`, `totals.power_kw` ve `phase_values.power_kw.total` alanlarına yansıtıldı.
+  - `api/meter/acrel.py` (Acrel): Total güç seçimi under‑reporting’i önleyecek şekilde (PF + V/I türetimi ile) yeniden düzenlendi.
+  - `api/session/events_lifecycle.py`: Session start/end enerji kaydı için mümkünse `totals.energy_import_kwh` tercih edilecek şekilde güncellendi (fallback: `energy_kwh`).
+  - `api/logging_setup.py`: Varsayılan log rotation yedek sayısı workspace log boyutu limitine uyum için 5 → 3 düşürüldü; eski `api.log.4` temizlendi.
+- **Test/Doğrulama:**
+  - `./env/bin/python -m py_compile api/meter/modbus.py` → ✅
+  - `./env/bin/python -m py_compile api/meter/acrel.py` → ✅
+  - `./env/bin/python -m py_compile api/session/events_lifecycle.py` → ✅
+  - `./env/bin/pytest tests/test_mobile_api.py` → ✅ 3 passed
 
 ### 2025-12-13
 

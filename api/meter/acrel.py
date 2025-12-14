@@ -1,8 +1,8 @@
 """
 Acrel ADL400/T317 Modbus Meter Implementation
 Created: 2025-12-12 18:54:25
-Last Modified: 2025-12-13 20:47:00
-Version: 1.0.1
+Last Modified: 2025-12-14 00:14:00
+Version: 1.0.2
 Description: Acrel three-phase meter (ADL400/T317) Modbus RTU reader
 """
 
@@ -161,39 +161,74 @@ class AcrelModbusMeter(MeterInterface):
                 e_rev = self._read_uint32_scaled(0x0856, 0.1)
 
                 # Total power decide
-                pf_safe = float(pf_total) if pf_total is not None else 1.0
-                p_vi = None
-                if all(v is not None for v in (va, vb, vc, ia, ib, ic)):
+                def _is_nonzero(value: Optional[float]) -> bool:
+                    if value is None:
+                        return False
                     try:
-                        p_vi = ((va * ia) + (vb * ib) + (vc * ic)) / 1000.0
-                        p_vi = p_vi * pf_safe
+                        return abs(float(value)) > 0.001
+                    except (TypeError, ValueError):
+                        return False
+
+                # V/I türetimi (kW): sadece PF mevcutsa aktif güce çevirebiliyoruz
+                p_vi = None
+                if pf_total is not None and all(
+                    v is not None for v in (va, vb, vc, ia, ib, ic)
+                ):
+                    try:
+                        apparent_kw = ((va * ia) + (vb * ib) + (vc * ic)) / 1000.0
+                        p_vi = float(apparent_kw) * float(pf_total)
                     except Exception:
                         p_vi = None
 
-                p_sum = (
-                    (p_l1 or 0.0) + (p_l2 or 0.0) + (p_0818 or 0.0)
-                    if any(v is not None for v in (p_l1, p_l2, p_0818))
-                    else None
-                )
+                # Register bazlı değerler
+                p_reg = p_0818
+                phase_candidates = [p_l1, p_l2, p_0818]
+                phase_values = [float(v) for v in phase_candidates if v is not None]
+                phase_count = len(phase_values)
+                p_sum = sum(phase_values) if phase_values else None
 
+                # Öncelik: (1) register toplamı veya faz toplamı p_vi'ya yakınsa onu kullan
+                #          (2) aksi halde p_vi (varsa) ile under-reporting'i engelle
+                #          (3) p_vi yoksa faz toplamı (en az 2 faz) veya register değerine düş
                 p_total = None
-                p_l3 = None
-                if p_vi is not None and p_0818 is not None and p_sum is not None:
-                    # V/I türetimine daha yakın olanı seç
-                    err_reg = abs(p_0818 - p_vi)
-                    err_sum = abs(p_sum - p_vi)
-                    if err_sum <= err_reg:
-                        p_total = p_sum
-                        p_l3 = p_0818
+                if p_vi is not None and _is_nonzero(p_vi):
+                    best_val = None
+                    best_rel_err = None
+
+                    for candidate in (p_reg, p_sum if phase_count >= 2 else None):
+                        if not _is_nonzero(candidate):
+                            continue
+                        rel_err = abs(float(candidate) - float(p_vi)) / max(
+                            abs(float(p_vi)), 0.001
+                        )
+                        if best_rel_err is None or rel_err < best_rel_err:
+                            best_rel_err = rel_err
+                            best_val = float(candidate)
+
+                    if (
+                        best_val is not None
+                        and best_rel_err is not None
+                        and best_rel_err <= 0.15
+                    ):
+                        p_total = best_val
                     else:
-                        p_total = p_0818
-                        p_l3 = None
-                elif p_sum is not None and p_sum > 0:
-                    p_total = p_sum
-                    p_l3 = p_0818
+                        p_total = float(p_vi)
                 else:
-                    p_total = p_0818
-                    p_l3 = None
+                    if p_sum is not None and _is_nonzero(p_sum) and phase_count >= 2:
+                        p_total = float(p_sum)
+                    elif _is_nonzero(p_reg):
+                        p_total = float(p_reg)
+                    else:
+                        p_total = None
+
+                # 0x0818 bazı kurulumlarda total olabilir. L3 alanını, total'e oranla ayırt etmeye çalış.
+                p_l3 = None
+                if p_0818 is not None and p_total is not None:
+                    try:
+                        if abs(float(p_0818)) <= abs(float(p_total)) * 0.8:
+                            p_l3 = p_0818
+                    except Exception:
+                        p_l3 = None
 
                 if p_total is None or e_total is None:
                     return None

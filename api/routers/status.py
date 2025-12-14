@@ -8,8 +8,7 @@ Description: Status and health check endpoints
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
-from api.cache import cache_response
-from api.cache import CacheInvalidator
+from api.cache import CacheInvalidator, cache_response
 from api.event_detector import ESP32State, get_event_detector
 from api.metrics import get_metrics_response, update_all_metrics
 from api.models import APIResponse

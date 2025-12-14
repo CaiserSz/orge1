@@ -1,8 +1,8 @@
 # Proje Durumu ve İlerleme Takibi
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-13 23:15:00
-**Version:** 1.8.0
+**Son Güncelleme:** 2025-12-14 02:55:00
+**Version:** 1.8.2
 
 ---
 
@@ -11,7 +11,7 @@
 **Mevcut Faz:** Faz 6 - Logging ve Session Yönetimi (Tamamlandı ✅)
 **Sonraki Faz:** Faz 7 - Production Deployment ve Mobil Uygulama Entegrasyonu
 **Proje Sağlığı:** ✅ Mükemmel (Skor: 9.6/10)
-**Son Aktif Çalışma:** Mobile API doğruluk + ghost session cleanup + /test cost düzeltmesi (Tamamlandı - 2025-12-13 23:15:00)
+**Son Aktif Çalışma:** 3‑faz total power + import enerji tutarlılığı + log boyutu uyumu (Tamamlandı - 2025-12-14 02:55:00)
 **İstasyon Durumu:** ✅ Production-Ready (2025-12-10 15:40:00)
 **Checkpoint Tag:** v1.0.0-test-complete
 
@@ -33,7 +33,7 @@
 ### ✅ Faz 6: Logging ve Session Yönetimi (Devam Ediyor - %50 Tamamlandı)
 - [x] Structured Logging Sistemi (`api/logging_config.py`)
   - JSON formatında loglama
-  - Log rotation (10MB, 5 yedek)
+  - Log rotation (10MB, 3 yedek)
   - Thread-safe logging
   - ESP32 mesajları loglanıyor
   - API istekleri loglanıyor
@@ -137,10 +137,19 @@
   - Black/ruff uyarıları giderildi (router/service/meter test dosyalarında format ve f-string düzeltmeleri)
   - `./env/bin/python -m pytest` çalıştırıldı (159 failure, 414 passed, 4 skipped) — ağırlıklı rate limiting ve mock/konfigürasyon kaynaklı hatalar; takip gerekiyor
 
+### 2025-12-14
+- **02:55:00** - 3‑faz total power + import enerji tutarlılığı + log boyutu uyumu
+  - ✅ ABB (Modbus) meter total güç: faz güçleri varsa total güç faz toplamından normalize edildi (`power_kw`, `totals.power_kw`).
+  - ✅ Acrel meter total güç: under‑reporting’i önlemek için total güç seçimi (PF + V/I türetimi) iyileştirildi.
+  - ✅ Session start/end enerji kaydı mümkünse `energy_import_kwh` register’ı ile hizalandı (fallback: `energy_kwh`) → ACTIVE session `energy_kwh` null riski azaldı.
+  - ✅ Varsayılan log rotation backup sayısı 5 → 3; logs/ boyutu limit uyumu için eski `api.log.4` temizlendi.
+  - ✅ Test: `./env/bin/pytest` → 545 passed, 4 skipped, 6 warnings; `tests/test_mobile_api.py` → 3 passed; kalite script’leri → başarılı.
+
 ### 2025-12-13
 - **23:15:00** - Mobile API doğruluk iyileştirmeleri + ghost session cleanup + /test cost düzeltmesi
   - ✅ Mobile aktif session için enerji/maliyet/duration hesapları iyileştirildi; import enerji register’ı (energy_import_kwh) önceliklendirildi.
   - ✅ Ghost ACTIVE session: ESP32 `IDLE` + `CABLE=0` iken otomatik `CANCELLED` (mobile + sessions current endpoint’leri).
+  - ✅ MAX akım reset: ESP32 `IDLE` + `CABLE=0` iken `MAX` değeri varsayılan 32A’ye otomatik döndürülür.
   - ✅ `/test` sayfasında “Cost” artık toplam maliyeti gösteriyor (fallback: `energy * per_kwh`).
   - ✅ Tam test suite çalıştırıldı: `./env/bin/pytest` → 545 passed, 4 skipped; kalite script’leri → başarılı.
 - **03:20:00** - Mobil şarj API + test paketi

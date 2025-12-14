@@ -1,8 +1,8 @@
 """
 Logging Setup Helpers
 Created: 2025-12-13 01:50:00
-Last Modified: 2025-12-13 18:05:00
-Version: 1.0.1
+Last Modified: 2025-12-14 02:40:00
+Version: 1.0.2
 Description: Logger oluşturma ve JSON formatter yardımcıları.
 """
 
@@ -24,7 +24,9 @@ SESSION_LOG_FILE = LOG_DIR / "session.log"
 INCIDENT_LOG_FILE = LOG_DIR / "incident.log"
 
 MAX_BYTES = 10 * 1024 * 1024  # 10MB
-BACKUP_COUNT = 5  # 5 backup files
+# Not: Workspace standartlarında logs/ klasörü için maksimum boyut sınırı bulunuyor.
+# Bu nedenle default backup sayısını daha düşük tutuyoruz.
+BACKUP_COUNT = 3  # 3 backup files
 
 __all__ = [
     "API_LOG_FILE",

@@ -1,8 +1,8 @@
 """
 Modbus Meter Implementation (ABB/RS485)
 Created: 2025-12-10 07:00:00
-Last Modified: 2025-12-12 21:04:36
-Version: 1.1.0
+Last Modified: 2025-12-14 00:12:00
+Version: 1.2.0
 Description: ABB meter (Modbus RTU/RS485) okuyucusu için MeterInterface wrapper
 """
 
@@ -233,10 +233,26 @@ class ModbusMeter(MeterInterface):
             ):
                 return None
 
+            # Bazı ABB kurulumlarında "power_active_w" tek faz gücü gibi gelebiliyor.
+            # Faz bazlı güçler okunabiliyorsa toplam gücü fazların toplamı ile normalize et.
+            phase_powers_w = [power_l1_w, power_l2_w, power_l3_w]
+            phase_sum_w = None
+            if any(v is not None for v in phase_powers_w):
+                try:
+                    phase_sum_w = sum(float(v) for v in phase_powers_w if v is not None)
+                except (TypeError, ValueError):
+                    phase_sum_w = None
+
+            computed_power_w = float(power_w)
+            if phase_sum_w is not None and phase_sum_w > 0:
+                # Toplamı küçümsememek için makul olan en yüksek değeri seç.
+                # (power_w zaten toplam ise phase_sum_w ~ power_w olur.)
+                computed_power_w = max(computed_power_w, float(phase_sum_w))
+
             reading = MeterReading(
                 timestamp=time.time(),
                 energy_kwh=float(energy_kwh),
-                power_kw=float(power_w) / 1000.0,
+                power_kw=float(computed_power_w) / 1000.0,
                 voltage_v=float(voltage_v),
                 current_a=float(current_a),
                 frequency_hz=float(frequency_hz) if frequency_hz is not None else None,
@@ -245,7 +261,7 @@ class ModbusMeter(MeterInterface):
 
             # Opsiyonel alanlar (router getattr ile okuyor)
             try:
-                setattr(reading, "power_w", float(power_w))
+                setattr(reading, "power_w", float(computed_power_w))
             except Exception:
                 pass
             try:
@@ -270,6 +286,7 @@ class ModbusMeter(MeterInterface):
                     "l1": power_l1_w,
                     "l2": power_l2_w,
                     "l3": power_l3_w,
+                    "total": float(computed_power_w),
                 },
                 "power_kw": {
                     "l1": (
@@ -281,13 +298,14 @@ class ModbusMeter(MeterInterface):
                     "l3": (
                         float(power_l3_w) / 1000.0 if power_l3_w is not None else None
                     ),
+                    "total": float(computed_power_w) / 1000.0,
                 },
             }
             setattr(reading, "phase_values", phase_values)
 
             totals = {
-                "power_w": float(power_w),
-                "power_kw": float(power_w) / 1000.0,
+                "power_w": float(computed_power_w),
+                "power_kw": float(computed_power_w) / 1000.0,
                 "energy_kwh": float(energy_kwh),
             }
             setattr(reading, "totals", totals)

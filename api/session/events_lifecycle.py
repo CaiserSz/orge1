@@ -1,8 +1,8 @@
 """
 Session Lifecycle Helpers
 Created: 2025-12-13 02:12:00
-Last Modified: 2025-12-13 23:06:00
-Version: 1.0.3
+Last Modified: 2025-12-14 00:18:00
+Version: 1.0.4
 Description: Session başlatma, sonlandırma ve fault yönetimi mixin'i.
 """
 
@@ -21,6 +21,26 @@ from api.session.status import SessionStatus
 
 class SessionLifecycleMixin(SessionEventLoggingMixin):
     """Session yaşam döngüsü işlemleri."""
+
+    @staticmethod
+    def _extract_meter_import_energy_kwh(meter_reading: Any) -> Any:
+        """
+        Meter'dan mümkünse import enerji register'ını (kWh) seçer.
+
+        Not: Mobile tarafındaki canlı enerji `energy_import_kwh` register'ını önceliklendiriyor.
+        Session başlangıç/bitişinde aynı register baz alınmazsa ACTIVE session için delta hesabı
+        tutarsızlaşabilir ve `session.energy_kwh` alanı null kalabilir.
+        """
+        try:
+            totals = getattr(meter_reading, "totals", None)
+            if isinstance(totals, dict):
+                if totals.get("energy_import_kwh") is not None:
+                    return totals.get("energy_import_kwh")
+                if totals.get("energy_kwh") is not None:
+                    return totals.get("energy_kwh")
+        except Exception:
+            pass
+        return getattr(meter_reading, "energy_kwh", None)
 
     def _start_session(self, event_data: Dict[str, Any]):
         with self.sessions_lock:
@@ -80,7 +100,11 @@ class SessionLifecycleMixin(SessionEventLoggingMixin):
                             pass
                     meter_reading = self.meter.read_all()
                     if meter_reading and meter_reading.is_valid:
-                        session.metadata["start_energy_kwh"] = meter_reading.energy_kwh
+                        start_energy = self._extract_meter_import_energy_kwh(
+                            meter_reading
+                        )
+                        if start_energy is not None:
+                            session.metadata["start_energy_kwh"] = start_energy
                         session.metadata["meter_available"] = True
                 except Exception as exc:
                     system_logger.warning(
@@ -167,7 +191,7 @@ class SessionLifecycleMixin(SessionEventLoggingMixin):
             try:
                 meter_reading = self.meter.read_all()
                 if meter_reading and meter_reading.is_valid:
-                    end_energy = meter_reading.energy_kwh
+                    end_energy = self._extract_meter_import_energy_kwh(meter_reading)
                     start_energy = session.metadata.get("start_energy_kwh")
 
                     if start_energy is not None:
