@@ -223,12 +223,19 @@ Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/t
 
         /* Meter detail grid */
         .meter-detail-grid {
-            display: grid;
-            /* Daha yatay/kompakt görünüm için minimum kart genişliğini düşür. */
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 8px;
+            /*
+              İstenen görünüm: kartlar tek satırda yatay dizilsin.
+              Dar ekranlarda aşağı sarmak yerine yatay scroll ile ilerlesin.
+            */
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 10px;
             margin-top: 8px;
             padding: 0 6px 6px 6px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            max-width: 100%;
+            -webkit-overflow-scrolling: touch;
         }
 
         .meter-detail-card {
@@ -238,6 +245,8 @@ Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/t
             border-radius: 8px;
             padding: 6px 8px;
             box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+            flex: 0 0 auto;
+            min-width: 260px;
         }
 
         .meter-detail-title {
@@ -249,7 +258,10 @@ Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/t
         .meter-detail-values {
             font-size: 0.82em;
             line-height: 1.25;
-            word-break: break-word;
+            /* Tek satır (başlık + değer) hedefi için sarmayı kapat */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         /* Session info bar */
