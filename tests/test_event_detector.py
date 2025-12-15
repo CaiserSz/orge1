@@ -259,7 +259,9 @@ class TestEventDetector:
         )
 
         # Resume adayı: CHARGING
-        self.mock_bridge.get_status = Mock(return_value={"STATE": ESP32State.CHARGING.value})
+        self.mock_bridge.get_status = Mock(
+            return_value={"STATE": ESP32State.CHARGING.value}
+        )
         self.detector._check_state_transition(
             ESP32State.CHARGING.value, {"STATE": ESP32State.CHARGING.value}
         )
@@ -270,7 +272,9 @@ class TestEventDetector:
         # Resume event'i üretilmemeli
         assert len(self.received_events) == 0
 
-    def test_resume_candidate_emits_charge_started_when_power_validated(self, monkeypatch):
+    def test_resume_candidate_emits_charge_started_when_power_validated(
+        self, monkeypatch
+    ):
         """
         PAUSED -> CHARGING transition, meter power eşiği üstünde stabil kalıyorsa
         CHARGE_STARTED (resume) event'i üretilmeli.
@@ -306,7 +310,9 @@ class TestEventDetector:
         )
 
         # Resume adayı: CHARGING
-        self.mock_bridge.get_status = Mock(return_value={"STATE": ESP32State.CHARGING.value})
+        self.mock_bridge.get_status = Mock(
+            return_value={"STATE": ESP32State.CHARGING.value}
+        )
         self.detector._check_state_transition(
             ESP32State.CHARGING.value, {"STATE": ESP32State.CHARGING.value}
         )
@@ -459,4 +465,3 @@ class TestEventDetector:
 
         self.detector.stop_monitoring()
         assert not self.detector.is_monitoring
-

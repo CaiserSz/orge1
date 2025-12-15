@@ -141,7 +141,9 @@ class EventDetector:
         - Örnekler RESUME_DEBOUNCE_SECONDS süresi içinde alınır
         """
         now_mono = time.monotonic()
-        cooldown = float(getattr(config, "RESUME_SUPPRESS_COOLDOWN_SECONDS", 30.0) or 0.0)
+        cooldown = float(
+            getattr(config, "RESUME_SUPPRESS_COOLDOWN_SECONDS", 30.0) or 0.0
+        )
         last_suppressed = self._resume_last_suppressed_monotonic
         if last_suppressed is not None and (now_mono - last_suppressed) < cooldown:
             return
@@ -162,8 +164,12 @@ class EventDetector:
         Resume doğrulama worker'ı.
         """
         min_power_kw = float(getattr(config, "RESUME_MIN_POWER_KW", 1.0) or 1.0)
-        debounce_seconds = float(getattr(config, "RESUME_DEBOUNCE_SECONDS", 10.0) or 0.0)
-        sample_interval = float(getattr(config, "RESUME_SAMPLE_INTERVAL_SECONDS", 1.0) or 1.0)
+        debounce_seconds = float(
+            getattr(config, "RESUME_DEBOUNCE_SECONDS", 10.0) or 0.0
+        )
+        sample_interval = float(
+            getattr(config, "RESUME_SAMPLE_INTERVAL_SECONDS", 1.0) or 1.0
+        )
         required_consecutive = int(
             getattr(config, "RESUME_REQUIRED_CONSECUTIVE_SAMPLES", 3) or 3
         )
@@ -219,7 +225,10 @@ class EventDetector:
                     state_val = last_status.get("STATE")
 
                 # Araç tekrar PAUSED/STOPPED/IDLE'a döndüyse resume doğrulamasını iptal et
-                if state_val is not None and int(state_val) != ESP32State.CHARGING.value:
+                if (
+                    state_val is not None
+                    and int(state_val) != ESP32State.CHARGING.value
+                ):
                     break
 
                 last_power_kw = _read_power_kw()
@@ -231,7 +240,9 @@ class EventDetector:
                             self.previous_state = ESP32State.PAUSED.value
                             self.current_state = ESP32State.CHARGING.value
 
-                        payload_status = last_status if isinstance(last_status, dict) else {}
+                        payload_status = (
+                            last_status if isinstance(last_status, dict) else {}
+                        )
                         self._create_event(
                             EventType.CHARGE_STARTED,
                             ESP32State.PAUSED.value,

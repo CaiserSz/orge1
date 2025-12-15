@@ -179,7 +179,9 @@ class Config:
             cls.RESUME_MIN_POWER_KW = 1.0
 
         try:
-            cls.RESUME_DEBOUNCE_SECONDS = float(os.getenv("RESUME_DEBOUNCE_SECONDS", "10"))
+            cls.RESUME_DEBOUNCE_SECONDS = float(
+                os.getenv("RESUME_DEBOUNCE_SECONDS", "10")
+            )
         except ValueError:
             system_logger.warning(
                 f"Geçersiz RESUME_DEBOUNCE_SECONDS: {os.getenv('RESUME_DEBOUNCE_SECONDS')}, varsayılan kullanılıyor: 10.0"
