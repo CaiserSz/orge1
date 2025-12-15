@@ -2,7 +2,7 @@
 <!--
 API Test Page (/test)
 Created: 2025-12-09 17:32:47 +0300
-Last Modified: 2025-12-13 22:55:48 +0300
+Last Modified: 2025-12-15 19:25:00 +0300
 Version: 1.4.0
 Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/test etme sayfası.
 -->
@@ -1017,6 +1017,10 @@ Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/t
                     <span class="status-label">STATE:</span>
                     <span class="status-value" id="stateValue">-</span>
                 </div>
+                <div class="status-item status-state-1" id="statusPhysicalState" title="Enerjiye göre doğrulanmış state (kW eşik + debounce)">
+                    <span class="status-label">PHYSICAL:</span>
+                    <span class="status-value" id="physicalStateValue">-</span>
+                </div>
                 <div class="status-item" id="statusCP">
                     <span class="status-label">CP:</span>
                     <span class="status-value" id="cpValue">-</span>
@@ -1801,6 +1805,7 @@ Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/t
         // Status bar'ı temizle (hata durumunda)
         function clearStatusBar() {
             document.getElementById('stateValue').textContent = '-';
+            document.getElementById('physicalStateValue').textContent = '-';
             document.getElementById('cpValue').textContent = '-';
             document.getElementById('ppValue').textContent = '-';
             document.getElementById('rlValue').textContent = '-';
@@ -1810,6 +1815,10 @@ Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/t
             // STATE için varsayılan renk sınıfını geri yükle
             const stateContainer = document.getElementById('statusState');
             stateContainer.className = 'status-item status-state-1';
+            const physicalContainer = document.getElementById('statusPhysicalState');
+            if (physicalContainer) {
+                physicalContainer.className = 'status-item status-state-1';
+            }
             // Son durum verilerini temizle
             lastStatusData = {};
         }
@@ -1842,6 +1851,10 @@ Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/t
             const stateText = `${data.STATE}-${STATE_MEANINGS[data.STATE] || 'UNKNOWN'}`;
             updateStatusItem('stateValue', data.STATE, stateText, 'statusState', `status-state-${data.STATE}`);
             window.lastStatusState = data.STATE;
+            window.lastStatusPayload = data;
+
+            // Physical state (meter power ile doğrulama) güncelle
+            updatePhysicalState(data);
 
             // Diğer değerler
             updateStatusItem('cpValue', data.CP, data.CP);
@@ -1850,6 +1863,50 @@ Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/t
             updateStatusItem('lockValue', data.LOCK, data.LOCK);
             updateStatusItem('maxValue', data.MAX, data.MAX);
             updateStatusItem('authValue', data.AUTH, data.AUTH);
+        }
+
+        // Physical (enerjiye göre doğrulanmış) state hesaplama
+        // Not: Sistem tarafında resume doğrulaması "power >= 1.0 kW + ardışık örnek" ile yapılıyor.
+        // UI tarafında ise anlık meter verisiyle "raw state" ile ayrımı göstermek için kullanıyoruz.
+        const PHYSICAL_MIN_POWER_KW = 1.0;
+
+        function updatePhysicalState(statusData) {
+            const containerId = 'statusPhysicalState';
+            const elementId = 'physicalStateValue';
+
+            if (!statusData || typeof statusData.STATE !== 'number') {
+                updateStatusItem(elementId, null, '-', containerId, 'status-state-1');
+                return;
+            }
+
+            const rawState = statusData.STATE;
+            const powerKw = lastMeterData && typeof lastMeterData.power_kw === 'number' ? lastMeterData.power_kw : null;
+
+            let physicalState = rawState;
+            let note = '';
+
+            // Raw CHARGING iken ama güç düşükse, bunu "physical paused" gibi göster
+            if (rawState === 5) {
+                if (powerKw === null) {
+                    physicalState = 5;
+                    note = '(meter N/A)';
+                } else if (Math.abs(powerKw) < PHYSICAL_MIN_POWER_KW) {
+                    physicalState = 6; // PAUSED
+                    note = `(P<${PHYSICAL_MIN_POWER_KW.toFixed(1)}kW)`;
+                } else {
+                    physicalState = 5;
+                    note = `(P≥${PHYSICAL_MIN_POWER_KW.toFixed(1)}kW)`;
+                }
+            }
+
+            const physicalText = `${physicalState}-${STATE_MEANINGS[physicalState] || 'UNKNOWN'} ${note}`.trim();
+            updateStatusItem(
+                elementId,
+                physicalState,
+                physicalText,
+                containerId,
+                `status-state-${physicalState}`
+            );
         }
 
         function updateStatusItem(elementId, newValue, displayValue, containerId = null, stateClass = null) {
@@ -2315,6 +2372,11 @@ Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/t
                     lastMeterData.power_kw = computedTotalPowerKw;
                     lastMeterData.energy_kwh = energyKwh;
                     lastMeterData.total_power_dir = totalDir;
+
+                    // Meter güncellenince physical state'i tekrar hesapla (status değişmese bile)
+                    if (window.lastStatusPayload) {
+                        updatePhysicalState(window.lastStatusPayload);
+                    }
 
                     // Güç yönü uyarısı (STATE=CHARGING ve export ise)
                     const isCharging = window.lastStatusState === 5;
