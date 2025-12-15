@@ -1,7 +1,7 @@
 """
 Event Detector Unit Tests
 Created: 2025-12-09 23:00:00
-Last Modified: 2025-12-09 23:00:00
+Last Modified: 2025-12-15 18:35:00
 Version: 1.0.0
 Description: Event Detection modülü için unit testler
 """
@@ -16,6 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from api.event_detector import EventDetector, EventType, ESP32State
+from api.config import config
 
 
 class TestEventDetector:
@@ -220,11 +221,104 @@ class TestEventDetector:
         self.detector._check_state_transition(
             ESP32State.CHARGING.value, {"STATE": ESP32State.CHARGING.value}
         )
+
+    def test_resume_candidate_suppressed_when_power_below_threshold(self, monkeypatch):
+        """
+        PAUSED -> CHARGING transition, meter power eşiği altında kalıyorsa
+        CHARGE_STARTED (resume) event'i üretilmemeli.
+        """
+        # Config'i hızlı test için küçült
+        config.RESUME_VALIDATION_ENABLED = True
+        config.RESUME_MIN_POWER_KW = 5.0
+        config.RESUME_DEBOUNCE_SECONDS = 0.05
+        config.RESUME_SAMPLE_INTERVAL_SECONDS = 0.01
+        config.RESUME_REQUIRED_CONSECUTIVE_SAMPLES = 2
+        config.RESUME_SUPPRESS_COOLDOWN_SECONDS = 0.0
+
+        class _Reading:
+            is_valid = True
+            power_kw = 0.1
+
+        class _Meter:
+            def is_connected(self):
+                return True
+
+            def connect(self):
+                return True
+
+            def read_all(self):
+                return _Reading()
+
+        import api.meter as meter_module
+
+        monkeypatch.setattr(meter_module, "get_meter", lambda: _Meter())
+
+        # İlk state: PAUSED
+        self.detector._check_state_transition(
+            ESP32State.PAUSED.value, {"STATE": ESP32State.PAUSED.value}
+        )
+
+        # Resume adayı: CHARGING
+        self.mock_bridge.get_status = Mock(return_value={"STATE": ESP32State.CHARGING.value})
         self.detector._check_state_transition(
             ESP32State.CHARGING.value, {"STATE": ESP32State.CHARGING.value}
         )
 
+        # Doğrulama thread'inin bitmesini bekle
+        time.sleep(0.15)
+
+        # Resume event'i üretilmemeli
         assert len(self.received_events) == 0
+
+    def test_resume_candidate_emits_charge_started_when_power_validated(self, monkeypatch):
+        """
+        PAUSED -> CHARGING transition, meter power eşiği üstünde stabil kalıyorsa
+        CHARGE_STARTED (resume) event'i üretilmeli.
+        """
+        config.RESUME_VALIDATION_ENABLED = True
+        config.RESUME_MIN_POWER_KW = 1.0
+        config.RESUME_DEBOUNCE_SECONDS = 0.2
+        config.RESUME_SAMPLE_INTERVAL_SECONDS = 0.01
+        config.RESUME_REQUIRED_CONSECUTIVE_SAMPLES = 2
+        config.RESUME_SUPPRESS_COOLDOWN_SECONDS = 0.0
+
+        class _Reading:
+            is_valid = True
+            power_kw = 2.5
+
+        class _Meter:
+            def is_connected(self):
+                return True
+
+            def connect(self):
+                return True
+
+            def read_all(self):
+                return _Reading()
+
+        import api.meter as meter_module
+
+        monkeypatch.setattr(meter_module, "get_meter", lambda: _Meter())
+
+        # İlk state: PAUSED
+        self.detector._check_state_transition(
+            ESP32State.PAUSED.value, {"STATE": ESP32State.PAUSED.value}
+        )
+
+        # Resume adayı: CHARGING
+        self.mock_bridge.get_status = Mock(return_value={"STATE": ESP32State.CHARGING.value})
+        self.detector._check_state_transition(
+            ESP32State.CHARGING.value, {"STATE": ESP32State.CHARGING.value}
+        )
+
+        # Doğrulama thread'inin bitmesini bekle
+        time.sleep(0.15)
+
+        assert len(self.received_events) == 1
+        event_type, event_data = self.received_events[0]
+        assert event_type == EventType.CHARGE_STARTED
+        assert event_data["from_state"] == ESP32State.PAUSED.value
+        assert event_data["to_state"] == ESP32State.CHARGING.value
 
     def test_get_state_names(self):
         """State name'ler doğru döndürülüyor mu?"""

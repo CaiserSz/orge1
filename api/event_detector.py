@@ -1,19 +1,21 @@
 """
 Event Detection Module
 Created: 2025-12-09 22:50:00
-Last Modified: 2025-12-13 02:00:00
+Last Modified: 2025-12-15 18:35:00
 Version: 1.1.0
 Description: ESP32 state transition detection ve event classification modülü
 """
 
 import os
 import sys
+import logging
 import threading
 import time
 from datetime import datetime
 from typing import Any, Callable, Dict, Optional
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from api.config import config
 from api.event_types import ESP32State, EventType
 from api.logging_config import log_event, log_incident, system_logger
 
@@ -42,6 +44,11 @@ class EventDetector:
         self.is_monitoring = False
         self._monitor_thread: Optional[threading.Thread] = None
         self.event_callbacks: list[Callable] = []
+
+        # Resume validation (PAUSED -> CHARGING) için stateful kontrol
+        self._resume_validation_lock = threading.Lock()
+        self._resume_validation_in_progress = False
+        self._resume_last_suppressed_monotonic: Optional[float] = None
 
     def start_monitoring(self):
         """Event detection monitoring'i başlat"""
@@ -89,25 +96,172 @@ class EventDetector:
             new_state: Yeni state değeri
             status: Tam status dict'i
         """
+        # Not: PAUSED -> CHARGING transition bazı araçlarda UI paused iken kısa süreli "bounce" yapabilir.
+        # Bu nedenle bu transition'ı "resume" olarak kabul etmeden önce meter power + debounce ile doğruluyoruz.
         with self.state_lock:
-            self.previous_state = self.current_state
-            self.current_state = new_state
+            prev_state = self.current_state
 
             # İlk durum - event oluşturma
-            if self.previous_state is None:
+            if prev_state is None:
+                self.previous_state = None
+                self.current_state = new_state
                 system_logger.debug(f"İlk state tespit edildi: {new_state}")
                 return
 
             # State değişmemişse event oluşturma
-            if self.previous_state == self.current_state:
+            if prev_state == new_state:
                 return
 
-            # State transition tespit edildi
-            event_type = self._classify_event(self.previous_state, self.current_state)
-            if event_type:
-                self._create_event(
-                    event_type, self.previous_state, self.current_state, status
-                )
+            # Resume adayı: PAUSED -> CHARGING (doğrulama yapılacak)
+            if (
+                prev_state == ESP32State.PAUSED.value
+                and new_state == ESP32State.CHARGING.value
+                and bool(getattr(config, "RESUME_VALIDATION_ENABLED", True))
+            ):
+                # current_state'i PAUSED olarak bırakıyoruz; doğrulama geçerse CHARGING'e geçirip event üreteceğiz
+                self._schedule_resume_validation(status=status)
+                return
+
+            # Normal transition: state'i güncelle ve event oluştur
+            self.previous_state = prev_state
+            self.current_state = new_state
+
+        # Lock dışında event üret (callback'ler ağır olabilir)
+        event_type = self._classify_event(prev_state, new_state)
+        if event_type:
+            self._create_event(event_type, prev_state, new_state, status)
+
+    def _schedule_resume_validation(self, status: Dict[str, Any]) -> None:
+        """
+        PAUSED -> CHARGING transition için "resume" doğrulamasını başlat.
+
+        Doğrulama kriteri:
+        - Meter power_kw >= RESUME_MIN_POWER_KW
+        - RESUME_REQUIRED_CONSECUTIVE_SAMPLES kadar ardışık örnek
+        - Örnekler RESUME_DEBOUNCE_SECONDS süresi içinde alınır
+        """
+        now_mono = time.monotonic()
+        cooldown = float(getattr(config, "RESUME_SUPPRESS_COOLDOWN_SECONDS", 30.0) or 0.0)
+        last_suppressed = self._resume_last_suppressed_monotonic
+        if last_suppressed is not None and (now_mono - last_suppressed) < cooldown:
+            return
+
+        with self._resume_validation_lock:
+            if self._resume_validation_in_progress:
+                return
+            self._resume_validation_in_progress = True
+
+        threading.Thread(
+            target=self._resume_validation_worker,
+            daemon=True,
+            name="resume_validation_worker",
+        ).start()
+
+    def _resume_validation_worker(self) -> None:
+        """
+        Resume doğrulama worker'ı.
+        """
+        min_power_kw = float(getattr(config, "RESUME_MIN_POWER_KW", 1.0) or 1.0)
+        debounce_seconds = float(getattr(config, "RESUME_DEBOUNCE_SECONDS", 10.0) or 0.0)
+        sample_interval = float(getattr(config, "RESUME_SAMPLE_INTERVAL_SECONDS", 1.0) or 1.0)
+        required_consecutive = int(
+            getattr(config, "RESUME_REQUIRED_CONSECUTIVE_SAMPLES", 3) or 3
+        )
+        required_consecutive = max(1, required_consecutive)
+
+        start_mono = time.monotonic()
+        consecutive = 0
+        last_power_kw: Optional[float] = None
+        last_status: Optional[Dict[str, Any]] = None
+
+        def _read_power_kw() -> Optional[float]:
+            try:
+                from api.meter import get_meter
+
+                meter = get_meter()
+                if not meter:
+                    return None
+                # best-effort connect
+                try:
+                    if hasattr(meter, "connect") and hasattr(meter, "is_connected"):
+                        if not meter.is_connected():
+                            meter.connect()
+                except Exception:
+                    pass
+
+                reading = meter.read_all() if hasattr(meter, "read_all") else None
+                if not reading or not getattr(reading, "is_valid", False):
+                    return None
+                power_kw = getattr(reading, "power_kw", None)
+                return float(power_kw) if isinstance(power_kw, (int, float)) else None
+            except Exception:
+                return None
+
+        try:
+            while (time.monotonic() - start_mono) <= debounce_seconds:
+                # En güncel status'ı al (araç fiilen CHARGING değilse doğrulamayı kes)
+                bridge = None
+                try:
+                    bridge = self.bridge_getter()
+                except Exception:
+                    bridge = None
+
+                try:
+                    if bridge and getattr(bridge, "is_connected", False):
+                        last_status = bridge.get_status()
+                    else:
+                        last_status = None
+                except Exception:
+                    last_status = None
+
+                state_val = None
+                if isinstance(last_status, dict):
+                    state_val = last_status.get("STATE")
+
+                # Araç tekrar PAUSED/STOPPED/IDLE'a döndüyse resume doğrulamasını iptal et
+                if state_val is not None and int(state_val) != ESP32State.CHARGING.value:
+                    break
+
+                last_power_kw = _read_power_kw()
+                if last_power_kw is not None and last_power_kw >= min_power_kw:
+                    consecutive += 1
+                    if consecutive >= required_consecutive:
+                        # Resume doğrulandı: state'i güncelle ve CHARGE_STARTED event'i üret
+                        with self.state_lock:
+                            self.previous_state = ESP32State.PAUSED.value
+                            self.current_state = ESP32State.CHARGING.value
+
+                        payload_status = last_status if isinstance(last_status, dict) else {}
+                        self._create_event(
+                            EventType.CHARGE_STARTED,
+                            ESP32State.PAUSED.value,
+                            ESP32State.CHARGING.value,
+                            payload_status,
+                        )
+                        return
+                else:
+                    consecutive = 0
+
+                time.sleep(sample_interval)
+
+            # Resume doğrulanamadı → suppress et (event üretme)
+            self._resume_last_suppressed_monotonic = time.monotonic()
+            log_event(
+                event_type="RESUME_SUPPRESSED",
+                event_data={
+                    "reason": "resume_not_validated_by_power_threshold",
+                    "min_power_kw": min_power_kw,
+                    "required_consecutive_samples": required_consecutive,
+                    "debounce_seconds": debounce_seconds,
+                    "sample_interval_seconds": sample_interval,
+                    "last_power_kw": last_power_kw,
+                    "last_status": last_status,
+                },
+                level=logging.INFO,
+            )
+        finally:
+            with self._resume_validation_lock:
+                self._resume_validation_in_progress = False
 
     def _classify_event(self, from_state: int, to_state: int) -> Optional[EventType]:
         """

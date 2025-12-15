@@ -1,7 +1,7 @@
 """
 Configuration Management Module
 Created: 2025-12-10 15:50:00
-Last Modified: 2025-12-10 23:00:00
+Last Modified: 2025-12-15 18:35:00
 Version: 1.0.1
 Description: Merkezi configuration management - Environment variable yönetimi ve validation
 """
@@ -59,6 +59,16 @@ class Config:
     METER_SLAVE_ID: int = 1
     METER_TIMEOUT: float = 1.0
     METER_AUTO_CONNECT: bool = True
+
+    # Charging state validation (PAUSED -> CHARGING "resume" doğrulama)
+    # Not: Bazı araçlar "paused" UI durumundayken pilot/state kısa süreli CHARGING'e dönebiliyor.
+    # Bu durumda gerçek enerji akışı (meter power) üzerinden doğrulama yapılmadan "resume" kabul edilmemelidir.
+    RESUME_VALIDATION_ENABLED: bool = True
+    RESUME_MIN_POWER_KW: float = 1.0
+    RESUME_DEBOUNCE_SECONDS: float = 10.0
+    RESUME_SAMPLE_INTERVAL_SECONDS: float = 1.0
+    RESUME_REQUIRED_CONSECUTIVE_SAMPLES: int = 3
+    RESUME_SUPPRESS_COOLDOWN_SECONDS: float = 30.0
 
     @classmethod
     def load(cls) -> None:
@@ -156,6 +166,56 @@ class Config:
             )
             cls.METER_TIMEOUT = 1.0
 
+        # Resume validation configuration
+        cls.RESUME_VALIDATION_ENABLED = (
+            os.getenv("RESUME_VALIDATION_ENABLED", "true").lower() == "true"
+        )
+        try:
+            cls.RESUME_MIN_POWER_KW = float(os.getenv("RESUME_MIN_POWER_KW", "1.0"))
+        except ValueError:
+            system_logger.warning(
+                f"Geçersiz RESUME_MIN_POWER_KW: {os.getenv('RESUME_MIN_POWER_KW')}, varsayılan kullanılıyor: 1.0"
+            )
+            cls.RESUME_MIN_POWER_KW = 1.0
+
+        try:
+            cls.RESUME_DEBOUNCE_SECONDS = float(os.getenv("RESUME_DEBOUNCE_SECONDS", "10"))
+        except ValueError:
+            system_logger.warning(
+                f"Geçersiz RESUME_DEBOUNCE_SECONDS: {os.getenv('RESUME_DEBOUNCE_SECONDS')}, varsayılan kullanılıyor: 10.0"
+            )
+            cls.RESUME_DEBOUNCE_SECONDS = 10.0
+
+        try:
+            cls.RESUME_SAMPLE_INTERVAL_SECONDS = float(
+                os.getenv("RESUME_SAMPLE_INTERVAL_SECONDS", "1")
+            )
+        except ValueError:
+            system_logger.warning(
+                f"Geçersiz RESUME_SAMPLE_INTERVAL_SECONDS: {os.getenv('RESUME_SAMPLE_INTERVAL_SECONDS')}, varsayılan kullanılıyor: 1.0"
+            )
+            cls.RESUME_SAMPLE_INTERVAL_SECONDS = 1.0
+
+        try:
+            cls.RESUME_REQUIRED_CONSECUTIVE_SAMPLES = int(
+                os.getenv("RESUME_REQUIRED_CONSECUTIVE_SAMPLES", "3")
+            )
+        except ValueError:
+            system_logger.warning(
+                f"Geçersiz RESUME_REQUIRED_CONSECUTIVE_SAMPLES: {os.getenv('RESUME_REQUIRED_CONSECUTIVE_SAMPLES')}, varsayılan kullanılıyor: 3"
+            )
+            cls.RESUME_REQUIRED_CONSECUTIVE_SAMPLES = 3
+
+        try:
+            cls.RESUME_SUPPRESS_COOLDOWN_SECONDS = float(
+                os.getenv("RESUME_SUPPRESS_COOLDOWN_SECONDS", "30")
+            )
+        except ValueError:
+            system_logger.warning(
+                f"Geçersiz RESUME_SUPPRESS_COOLDOWN_SECONDS: {os.getenv('RESUME_SUPPRESS_COOLDOWN_SECONDS')}, varsayılan kullanılıyor: 30.0"
+            )
+            cls.RESUME_SUPPRESS_COOLDOWN_SECONDS = 30.0
+
         # Pytest sırasında fiziksel meter erişimi denenmemeli
         if is_pytest:
             cls.METER_TYPE = "mock"
@@ -230,6 +290,33 @@ class Config:
                 f"Geçersiz METER_TIMEOUT: {cls.METER_TIMEOUT}. Varsayılan 1.0 kullanılacak."
             )
             cls.METER_TIMEOUT = 1.0
+
+        # Resume validation bounds
+        if cls.RESUME_MIN_POWER_KW < 0:
+            system_logger.warning(
+                f"Geçersiz RESUME_MIN_POWER_KW: {cls.RESUME_MIN_POWER_KW}. Varsayılan 1.0 kullanılacak."
+            )
+            cls.RESUME_MIN_POWER_KW = 1.0
+        if cls.RESUME_DEBOUNCE_SECONDS < 0:
+            system_logger.warning(
+                f"Geçersiz RESUME_DEBOUNCE_SECONDS: {cls.RESUME_DEBOUNCE_SECONDS}. Varsayılan 10.0 kullanılacak."
+            )
+            cls.RESUME_DEBOUNCE_SECONDS = 10.0
+        if cls.RESUME_SAMPLE_INTERVAL_SECONDS <= 0:
+            system_logger.warning(
+                f"Geçersiz RESUME_SAMPLE_INTERVAL_SECONDS: {cls.RESUME_SAMPLE_INTERVAL_SECONDS}. Varsayılan 1.0 kullanılacak."
+            )
+            cls.RESUME_SAMPLE_INTERVAL_SECONDS = 1.0
+        if cls.RESUME_REQUIRED_CONSECUTIVE_SAMPLES <= 0:
+            system_logger.warning(
+                f"Geçersiz RESUME_REQUIRED_CONSECUTIVE_SAMPLES: {cls.RESUME_REQUIRED_CONSECUTIVE_SAMPLES}. Varsayılan 3 kullanılacak."
+            )
+            cls.RESUME_REQUIRED_CONSECUTIVE_SAMPLES = 3
+        if cls.RESUME_SUPPRESS_COOLDOWN_SECONDS < 0:
+            system_logger.warning(
+                f"Geçersiz RESUME_SUPPRESS_COOLDOWN_SECONDS: {cls.RESUME_SUPPRESS_COOLDOWN_SECONDS}. Varsayılan 30.0 kullanılacak."
+            )
+            cls.RESUME_SUPPRESS_COOLDOWN_SECONDS = 30.0
 
     @classmethod
     def get_secret_api_key(cls) -> str:
