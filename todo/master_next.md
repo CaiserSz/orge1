@@ -1,12 +1,35 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-13 23:21:38
+**Son Güncelleme:** 2025-12-15 06:20:00
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
 ---
 
 ## Öncelikli Görevler
+
+### Öncelik 0: Sistem Sağlık Tespitleri (2025-12-15) - Güç Beslemesi ve Servis Tutarlılığı
+
+- [ ] **Görev:** RPi “Undervoltage detected” olaylarını kök neden analizi + kalıcı çözüm
+  - Açıklama: Kernel log’larında undervoltage tespit edildi. Bu durum CPU throttling, SD kart I/O hataları ve rastgele servis sorunlarına yol açabilir. Güç adaptörü/USB-C kablo/hat direnci ve besleme ölçümü (5V stabilitesi) doğrulanmalı; gerekirse daha güçlü PSU + kısa/kalın kablo kullanılmalı.
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 30-60 dakika (ölçüm + doğrulama)
+  - Durum: 🔴 Kritik risk
+  - Detaylar: `journalctl -k` içinde “Undervoltage detected!” kaydı mevcut.
+
+- [ ] **Görev:** `backup.service` systemd unit tutarlılığı (unit mevcut değil / user farklı)
+  - Açıklama: `backup.service` status sorgusunda “Unit ... could not be found.” dönüyor; ayrıca repo içindeki `scripts/backup.service` User/Group `pi` iken cihazda ana kullanıcı `basar`. Servis gerçekten kullanılacaksa doğru şekilde `/etc/systemd/system/` altına kurulmalı, user/group ve path’ler doğrulanmalı; kullanılmayacaksa dokümantasyondan/kurulumdan kaldırılmalı.
+  - Öncelik: 2 (Orta)
+  - Tahmini Süre: 30-45 dakika
+  - Durum: 📋 Bekliyor
+  - Detaylar: Repo: `scripts/backup.service`, cihaz: unit yok.
+
+- [ ] **Görev:** Ngrok DNS/bağlantı hataları (geçmiş) - resolver yapılandırması kontrolü
+  - Açıklama: Journal’da ngrok “lookup ... on [::1]:53 ... connection refused” hataları görüldü. Bu genelde DNS resolver’ın localhost’a (IPv6) işaret edip DNS servisi kapalı olmasıyla tetiklenir. Mevcut durumda ağ stabil mi teyit edilmeli; `/etc/resolv.conf` / `systemd-resolved` / `dnsmasq` durumları kontrol edilmelidir.
+  - Öncelik: 3 (Orta/Düşük)
+  - Tahmini Süre: 30-60 dakika
+  - Durum: 📋 Bekliyor
+  - Detaylar: ngrok hataları 2025-12-08 civarı journal’da.
 
 
 ### Öncelik 1: EV Gerçek Test Bulguları (2025-12-13) - Güç/Enerji Tutarlılığı ve UI Stabilitesi
