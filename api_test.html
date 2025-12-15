@@ -2,7 +2,7 @@
 <!--
 API Test Page (/test)
 Created: 2025-12-09 17:32:47 +0300
-Last Modified: 2025-12-15 19:25:00 +0300
+Last Modified: 2025-12-15 19:30:00 +0300
 Version: 1.4.0
 Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/test etme sayfası.
 -->
@@ -1021,6 +1021,12 @@ Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/t
                     <span class="status-label">PHYSICAL:</span>
                     <span class="status-value" id="physicalStateValue">-</span>
                 </div>
+                <div class="status-item" id="statusPhysicalThreshold" title="PHYSICAL eşik gücü (kW). Sayfa yenilense bile korunur.">
+                    <span class="status-label">THR:</span>
+                    <input id="physicalThresholdInput" type="number" min="0" step="0.1" value="1.0"
+                        style="width: 64px; padding: 4px 6px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.12); color: #fff; outline: none;" />
+                    <span style="font-size: 0.7em; margin-left: 2px;">kW</span>
+                </div>
                 <div class="status-item" id="statusCP">
                     <span class="status-label">CP:</span>
                     <span class="status-value" id="cpValue">-</span>
@@ -1614,6 +1620,9 @@ Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/t
             // Load default values for input fields
             await loadDefaultValues();
 
+            // PHYSICAL threshold UI init
+            initPhysicalThresholdUI();
+
             updateCurlPreview('POST', '/api/charge/start', 'body-/api/charge/start', 'curl-/api/charge/start');
             updateCurlPreview('POST', '/api/charge/stop', 'body-/api/charge/stop', 'curl-/api/charge/stop');
             updateCurlPreview('POST', '/api/maxcurrent', 'body-/api/maxcurrent', 'curl-/api/maxcurrent', true);
@@ -1868,7 +1877,51 @@ Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/t
         // Physical (enerjiye göre doğrulanmış) state hesaplama
         // Not: Sistem tarafında resume doğrulaması "power >= 1.0 kW + ardışık örnek" ile yapılıyor.
         // UI tarafında ise anlık meter verisiyle "raw state" ile ayrımı göstermek için kullanıyoruz.
-        const PHYSICAL_MIN_POWER_KW = 1.0;
+        const PHYSICAL_MIN_POWER_KW_DEFAULT = 1.0;
+        const PHYSICAL_MIN_POWER_KW_STORAGE_KEY = 'physical_min_power_kw';
+
+        function getPhysicalMinPowerKw() {
+            try {
+                const raw = localStorage.getItem(PHYSICAL_MIN_POWER_KW_STORAGE_KEY);
+                if (raw === null || raw === undefined || raw === '') return PHYSICAL_MIN_POWER_KW_DEFAULT;
+                const v = Number(raw);
+                if (!Number.isFinite(v) || v < 0) return PHYSICAL_MIN_POWER_KW_DEFAULT;
+                return v;
+            } catch (e) {
+                return PHYSICAL_MIN_POWER_KW_DEFAULT;
+            }
+        }
+
+        function setPhysicalMinPowerKw(value) {
+            try {
+                const v = Number(value);
+                if (!Number.isFinite(v) || v < 0) return false;
+                localStorage.setItem(PHYSICAL_MIN_POWER_KW_STORAGE_KEY, String(v));
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function initPhysicalThresholdUI() {
+            const input = document.getElementById('physicalThresholdInput');
+            if (!input) return;
+
+            input.value = String(getPhysicalMinPowerKw());
+
+            const apply = () => {
+                const ok = setPhysicalMinPowerKw(input.value);
+                if (!ok) {
+                    input.value = String(getPhysicalMinPowerKw());
+                }
+                if (window.lastStatusPayload) {
+                    updatePhysicalState(window.lastStatusPayload);
+                }
+            };
+
+            input.addEventListener('change', apply);
+            input.addEventListener('blur', apply);
+        }
 
         function updatePhysicalState(statusData) {
             const containerId = 'statusPhysicalState';
@@ -1881,6 +1934,7 @@ Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/t
 
             const rawState = statusData.STATE;
             const powerKw = lastMeterData && typeof lastMeterData.power_kw === 'number' ? lastMeterData.power_kw : null;
+            const thrKw = getPhysicalMinPowerKw();
 
             let physicalState = rawState;
             let note = '';
@@ -1890,12 +1944,12 @@ Description: API durum, meter ve mobile snapshot verilerini tek ekranda izleme/t
                 if (powerKw === null) {
                     physicalState = 5;
                     note = '(meter N/A)';
-                } else if (Math.abs(powerKw) < PHYSICAL_MIN_POWER_KW) {
+                } else if (Math.abs(powerKw) < thrKw) {
                     physicalState = 6; // PAUSED
-                    note = `(P<${PHYSICAL_MIN_POWER_KW.toFixed(1)}kW)`;
+                    note = `(P<${thrKw.toFixed(1)}kW)`;
                 } else {
                     physicalState = 5;
-                    note = `(P≥${PHYSICAL_MIN_POWER_KW.toFixed(1)}kW)`;
+                    note = `(P≥${thrKw.toFixed(1)}kW)`;
                 }
             }
 
