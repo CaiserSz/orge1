@@ -64,7 +64,7 @@ class Config:
     # Not: Bazı araçlar "paused" UI durumundayken pilot/state kısa süreli CHARGING'e dönebiliyor.
     # Bu durumda gerçek enerji akışı (meter power) üzerinden doğrulama yapılmadan "resume" kabul edilmemelidir.
     RESUME_VALIDATION_ENABLED: bool = True
-    RESUME_MIN_POWER_KW: float = 0.5
+    RESUME_MIN_POWER_KW: float = 1.0
     RESUME_DEBOUNCE_SECONDS: float = 10.0
     RESUME_SAMPLE_INTERVAL_SECONDS: float = 1.0
     RESUME_REQUIRED_CONSECUTIVE_SAMPLES: int = 3
@@ -171,12 +171,12 @@ class Config:
             os.getenv("RESUME_VALIDATION_ENABLED", "true").lower() == "true"
         )
         try:
-            cls.RESUME_MIN_POWER_KW = float(os.getenv("RESUME_MIN_POWER_KW", "0.5"))
+            cls.RESUME_MIN_POWER_KW = float(os.getenv("RESUME_MIN_POWER_KW", "1.0"))
         except ValueError:
             system_logger.warning(
-                f"Geçersiz RESUME_MIN_POWER_KW: {os.getenv('RESUME_MIN_POWER_KW')}, varsayılan kullanılıyor: 0.5"
+                f"Geçersiz RESUME_MIN_POWER_KW: {os.getenv('RESUME_MIN_POWER_KW')}, varsayılan kullanılıyor: 1.0"
             )
-            cls.RESUME_MIN_POWER_KW = 0.5
+            cls.RESUME_MIN_POWER_KW = 1.0
 
         try:
             cls.RESUME_DEBOUNCE_SECONDS = float(
@@ -296,9 +296,9 @@ class Config:
         # Resume validation bounds
         if cls.RESUME_MIN_POWER_KW < 0:
             system_logger.warning(
-                f"Geçersiz RESUME_MIN_POWER_KW: {cls.RESUME_MIN_POWER_KW}. Varsayılan 0.5 kullanılacak."
+                f"Geçersiz RESUME_MIN_POWER_KW: {cls.RESUME_MIN_POWER_KW}. Varsayılan 1.0 kullanılacak."
             )
-            cls.RESUME_MIN_POWER_KW = 0.5
+            cls.RESUME_MIN_POWER_KW = 1.0
         if cls.RESUME_DEBOUNCE_SECONDS < 0:
             system_logger.warning(
                 f"Geçersiz RESUME_DEBOUNCE_SECONDS: {cls.RESUME_DEBOUNCE_SECONDS}. Varsayılan 10.0 kullanılacak."
