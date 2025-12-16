@@ -588,6 +588,12 @@
   - Tahmini Süre: 10-15 dk
   - Durum: 📋 Bekliyor
 
+- [ ] **Görev:** CSMS API route çakışması: `GET /api/v1/station/pending` unreachable (422)
+  - Açıklama: OpenAPI’de `/api/v1/station/pending` tanımlı ancak runtime’da `station_id` path param route’u tarafından gölgeleniyor; çağrı `station_id="pending"` olarak parse edilmeye çalışıp 422 dönüyor. Bu nedenle pending stations listesi/UI doğrulaması bloklanıyor.
+  - Öncelik: 1 (Yüksek - CSMS tarafı bug)
+  - Tahmini Süre: 15-30 dk
+  - Durum: 🧱 Bloklayıcı (CSMS fix gerekli)
+
 ---
 
 ## Faz 4: Meter ve Monitoring
