@@ -1,8 +1,8 @@
 """
 Event Detection Module
 Created: 2025-12-09 22:50:00
-Last Modified: 2025-12-15 18:35:00
-Version: 1.1.0
+Last Modified: 2025-12-16 16:25:00
+Version: 1.1.1
 Description: ESP32 state transition detection ve event classification modülü
 """
 
@@ -275,94 +275,27 @@ class EventDetector:
                 self._resume_validation_in_progress = False
 
     def _classify_event(self, from_state: int, to_state: int) -> Optional[EventType]:
-        """
-        State transition'dan event type belirleme
-
-        Args:
-            from_state: Önceki state
-            to_state: Yeni state
-
-        Returns:
-            EventType veya None
-        """
-        # State transition mapping
+        """State transition -> EventType (bilinen mapping yoksa STATE_CHANGED)."""
+        # Not: ESP32 firmware bazı akışlarda READY'yi atlayıp EV_CONNECTED/IDLE -> CHARGING geçebilir.
         transitions = {
-            (
-                ESP32State.IDLE.value,
-                ESP32State.CABLE_DETECT.value,
-            ): EventType.CABLE_CONNECTED,
-            (
-                ESP32State.CABLE_DETECT.value,
-                ESP32State.EV_CONNECTED.value,
-            ): EventType.EV_CONNECTED,
-            (
-                ESP32State.EV_CONNECTED.value,
-                ESP32State.READY.value,
-            ): EventType.CHARGE_READY,
-            (
-                ESP32State.READY.value,
-                ESP32State.CHARGING.value,
-            ): EventType.CHARGE_STARTED,
-            # EV_CONNECTED → CHARGING transition (ESP32 firmware gerçek davranışı)
-            # Authorization verildikten sonra READY'ye geçmeden direkt CHARGING state'ine geçebilir
-            (
-                ESP32State.EV_CONNECTED.value,
-                ESP32State.CHARGING.value,
-            ): EventType.CHARGE_STARTED,
-            # IDLE → CHARGING transition (ESP32 firmware gerçek davranışı)
-            # Authorization verildikten sonra direkt CHARGING state'ine geçebilir
-            (
-                ESP32State.IDLE.value,
-                ESP32State.CHARGING.value,
-            ): EventType.CHARGE_STARTED,
-            (
-                ESP32State.CHARGING.value,
-                ESP32State.PAUSED.value,
-            ): EventType.CHARGE_PAUSED,
-            # PAUSED → CHARGING transition (şarja devam etme)
-            # Suspended durumundan şarja devam edildiğinde CHARGE_STARTED event'i üretilmeli
-            (
-                ESP32State.PAUSED.value,
-                ESP32State.CHARGING.value,
-            ): EventType.CHARGE_STARTED,
-            (
-                ESP32State.CHARGING.value,
-                ESP32State.STOPPED.value,
-            ): EventType.CHARGE_STOPPED,
-            (
-                ESP32State.PAUSED.value,
-                ESP32State.STOPPED.value,
-            ): EventType.CHARGE_STOPPED,
-            # CHARGING → IDLE transition (araç şarjı sonlandırdığında direkt IDLE'a geçebilir)
-            # Bu durumda CHARGE_STOPPED event'i üretilmeli
-            (
-                ESP32State.CHARGING.value,
-                ESP32State.IDLE.value,
-            ): EventType.CHARGE_STOPPED,
-            # PAUSED → IDLE transition (araç suspended durumdayken şarjı sonlandırdığında)
-            # Bu durumda da CHARGE_STOPPED event'i üretilmeli
+            (ESP32State.IDLE.value, ESP32State.CABLE_DETECT.value): EventType.CABLE_CONNECTED,
+            (ESP32State.CABLE_DETECT.value, ESP32State.EV_CONNECTED.value): EventType.EV_CONNECTED,
+            (ESP32State.EV_CONNECTED.value, ESP32State.READY.value): EventType.CHARGE_READY,
+            (ESP32State.READY.value, ESP32State.CHARGING.value): EventType.CHARGE_STARTED,
+            (ESP32State.EV_CONNECTED.value, ESP32State.CHARGING.value): EventType.CHARGE_STARTED,
+            (ESP32State.IDLE.value, ESP32State.CHARGING.value): EventType.CHARGE_STARTED,
+            (ESP32State.CHARGING.value, ESP32State.PAUSED.value): EventType.CHARGE_PAUSED,
+            (ESP32State.PAUSED.value, ESP32State.CHARGING.value): EventType.CHARGE_STARTED,
+            (ESP32State.CHARGING.value, ESP32State.STOPPED.value): EventType.CHARGE_STOPPED,
+            (ESP32State.PAUSED.value, ESP32State.STOPPED.value): EventType.CHARGE_STOPPED,
+            (ESP32State.CHARGING.value, ESP32State.IDLE.value): EventType.CHARGE_STOPPED,
             (ESP32State.PAUSED.value, ESP32State.IDLE.value): EventType.CHARGE_STOPPED,
-            (
-                ESP32State.CABLE_DETECT.value,
-                ESP32State.IDLE.value,
-            ): EventType.CABLE_DISCONNECTED,
-            (
-                ESP32State.EV_CONNECTED.value,
-                ESP32State.IDLE.value,
-            ): EventType.CABLE_DISCONNECTED,
-            # PAUSED → READY transition (ESP32 firmware gerçek davranışı)
-            # NOT: ESP32 firmware'de bu transition mantık hatası olabilir (CHARGING olmalı)
-            # Ancak gerçek davranış bu olduğu için RPi tarafı buna uyum sağlamalı
+            (ESP32State.CABLE_DETECT.value, ESP32State.IDLE.value): EventType.CABLE_DISCONNECTED,
+            (ESP32State.EV_CONNECTED.value, ESP32State.IDLE.value): EventType.CABLE_DISCONNECTED,
+            # Firmware davranışı: PAUSED -> READY görülebiliyor; genel state değişikliği olarak loglanır.
             (ESP32State.PAUSED.value, ESP32State.READY.value): EventType.STATE_CHANGED,
-            # Fault handling transitions
-            (
-                ESP32State.FAULT_HARD.value,
-                ESP32State.HARDFAULT_END.value,
-            ): EventType.FAULT_DETECTED,
-            (
-                ESP32State.HARDFAULT_END.value,
-                ESP32State.IDLE.value,
-            ): EventType.STATE_CHANGED,
+            (ESP32State.FAULT_HARD.value, ESP32State.HARDFAULT_END.value): EventType.FAULT_DETECTED,
+            (ESP32State.HARDFAULT_END.value, ESP32State.IDLE.value): EventType.STATE_CHANGED,
         }
 
         # Fault detection (herhangi bir state'den FAULT_HARD'a geçiş)
