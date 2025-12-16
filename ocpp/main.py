@@ -1,7 +1,175 @@
-# /home/basar/charger/ocpp/main.py
+"""
+OCPP Station Client Runner (Phase-1)
 
-import time
+Created: 2025-12-16 01:20
+Last Modified: 2025-12-16 01:20
+Version: 0.1.0
+Description:
+  OCPP station client entrypoint for Raspberry Pi (Python runtime).
+  - Primary: OCPP 2.0.1 (v201)
+  - Fallback: OCPP 1.6J (v16)
 
-while True:
-    print("charger service running...")
-    time.sleep(5)
+IMPORTANT:
+  - This process is intentionally isolated from the existing FastAPI/ESP32 runtime.
+  - It must NOT open the ESP32 serial port or mutate the current running API.
+  - It only connects outward to CSMS via WebSocket (ws/wss).
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import os
+import sys
+from dataclasses import dataclass
+from typing import Optional
+
+from handlers import Ocpp16Adapter, Ocpp201Adapter
+
+
+@dataclass(frozen=True)
+class OcppRuntimeConfig:
+    """
+    Runtime configuration for the station client.
+
+    Values are sourced from CLI args first, then env vars, then defaults.
+    """
+
+    station_name: str
+    station_password: str
+
+    ocpp201_url: str
+    ocpp16_url: str
+
+    primary: str  # "201" or "16"
+    poc_mode: bool
+
+    vendor_name: str
+    model: str
+    id_token: str  # TEST001 (Phase-1)
+
+
+def _env(name: str, default: str) -> str:
+    val = os.getenv(name)
+    return val if val is not None and val != "" else default
+
+
+def _build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
+    station_name = args.station_name or _env("OCPP_STATION_NAME", "ORGE_AC_001")
+    station_password = args.station_password or _env(
+        "OCPP_STATION_PASSWORD", "temp_password_123"
+    )
+
+    # URLs can be ws:// or wss://
+    ocpp201_url = args.ocpp201_url or _env(
+        "OCPP_201_URL", f"wss://lixhium.xyz/ocpp/{station_name}"
+    )
+    ocpp16_url = args.ocpp16_url or _env(
+        "OCPP_16_URL", f"wss://lixhium.xyz/ocpp16/{station_name}"
+    )
+
+    primary = (args.primary or _env("OCPP_PRIMARY", "201")).strip().lower()
+    if primary in {"2.0.1", "201", "v201", "ocpp201"}:
+        primary = "201"
+    elif primary in {"1.6", "1.6j", "16", "v16", "ocpp16"}:
+        primary = "16"
+    else:
+        raise ValueError(f"Invalid primary OCPP version: {primary!r} (use 201 or 16)")
+
+    return OcppRuntimeConfig(
+        station_name=station_name,
+        station_password=station_password,
+        ocpp201_url=ocpp201_url,
+        ocpp16_url=ocpp16_url,
+        primary=primary,
+        poc_mode=bool(args.poc),
+        vendor_name=args.vendor_name or _env("OCPP_VENDOR", "ORGE"),
+        model=args.model or _env("OCPP_MODEL", "AC-1"),
+        id_token=args.id_token or _env("OCPP_TEST_ID_TOKEN", "TEST001"),
+    )
+
+
+def _parse_args(argv: list[str]) -> argparse.Namespace:
+    p = argparse.ArgumentParser(
+        prog="ocpp/main.py",
+        description="OCPP station client runner (Phase-1, isolated process).",
+    )
+
+    p.add_argument("--station-name", default=None)
+    p.add_argument("--station-password", default=None)
+    p.add_argument("--ocpp201-url", default=None)
+    p.add_argument("--ocpp16-url", default=None)
+    p.add_argument(
+        "--primary",
+        default=None,
+        help="Primary protocol version: 201 (OCPP 2.0.1) or 16 (OCPP 1.6J).",
+    )
+
+    p.add_argument("--vendor-name", default=None)
+    p.add_argument("--model", default=None)
+    p.add_argument("--id-token", default=None, help="Phase-1 test idToken/idTag.")
+
+    p.add_argument(
+        "--poc",
+        action="store_true",
+        help="Run Phase-1 PoC message sequence and exit (smoke test).",
+    )
+    return p.parse_args(argv)
+
+
+async def _run_primary_then_fallback(cfg: OcppRuntimeConfig) -> None:
+    """
+    Start station client.
+
+    Phase-1 behavior:
+    - Try primary once.
+    - If primary fails to connect, try fallback once.
+    - In PoC mode, the adapter runs the PoC sequence then exits.
+    """
+
+    primary_exc: Optional[BaseException] = None
+
+    if cfg.primary == "201":
+        try:
+            adapter = Ocpp201Adapter(cfg)
+            await adapter.run()
+            return
+        except BaseException as e:
+            primary_exc = e
+            sys.stderr.write(f"[OCPP] Primary (2.0.1) failed: {e}\n")
+            sys.stderr.flush()
+
+        adapter = Ocpp16Adapter(cfg)
+        await adapter.run()
+        return
+
+    # Primary 1.6J
+    try:
+        adapter = Ocpp16Adapter(cfg)
+        await adapter.run()
+        return
+    except BaseException as e:
+        primary_exc = e
+        sys.stderr.write(f"[OCPP] Primary (1.6J) failed: {e}\n")
+        sys.stderr.flush()
+
+    adapter = Ocpp201Adapter(cfg)
+    await adapter.run()
+
+
+def main(argv: list[str]) -> int:
+    args = _parse_args(argv)
+    cfg = _build_config(args)
+
+    # Safety: this runner is isolated. It must not be started implicitly.
+    print("[OCPP] Station client starting (isolated process)")
+    print(f"[OCPP] station_name={cfg.station_name} primary={cfg.primary} poc={cfg.poc_mode}")
+    print(f"[OCPP] url_201={cfg.ocpp201_url}")
+    print(f"[OCPP] url_16={cfg.ocpp16_url}")
+
+    asyncio.run(_run_primary_then_fallback(cfg))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

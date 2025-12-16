@@ -38,6 +38,11 @@ psutil>=5.9.0
 # Prometheus Metrics
 prometheus-client>=0.21.0
 
+# OCPP (Station Client)
+# Not: Repo içinde `ocpp/` klasörü proje kodudur; pip paketi `ocpp` OCPP mesaj modelleri/client için kullanılır.
+ocpp==2.1.0
+websockets==15.0.1
+
 # Code Quality Tools (development)
 black>=24.0.0
 ruff>=0.14.0

@@ -6,7 +6,13 @@
 
 ## Aktif Görevler
 
-- Şu anda aktif görev yok. Son tamamlanan işler:
+- **OCPP Phase-1 (Station Client)** – 2025-12-16 (ocpp/phase1 branch)
+  - Durum: 🔄 Devam ediyor
+  - Kapsam: Tek transport + iki adapter (Primary: OCPP 2.0.1, Fallback: OCPP 1.6j)
+  - CSMS: `lixhium.xyz` (BasicAuth + ocpp2.0.1 / ocpp1.6)
+  - Not: Mevcut API/ESP32/session sistemi bozulmayacak; OCPP ayrı proses olarak ilerleyecek.
+
+- Şu anda başka aktif görev yok. Son tamamlanan işler:
   0. **RL/LOCK telemetri açıklaması** – 2025-12-14 03:50 (`/api/status` telemetry + warnings)
   0. **/api/station/status realtime_power_kw doğrulama** – 2025-12-14 03:30 (`realtime_power_kw` meter ölçümü öncelikli)
   0. **3‑faz total power + mobile energy tutarlılığı** – 2025-12-14 02:55 (`/api/meter/reading`, mobile payload)
