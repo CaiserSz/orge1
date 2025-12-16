@@ -1,13 +1,14 @@
 """
 API Endpoints Unit Tests
 Created: 2025-12-09 02:00:00
-Last Modified: 2025-12-09 02:00:00
-Version: 1.0.0
+Last Modified: 2025-12-16 09:40:00
+Version: 1.1.0
 Description: API endpoint'leri için unit testler - Mock ESP32 bridge ile
 """
 
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 # Proje root'unu path'e ekle
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -151,3 +152,212 @@ class TestAPIEndpoints:
         )
         assert response.status_code == 400
         assert "aktifken" in response.json()["detail"].lower()
+
+
+class TestMeterEndpoints:
+    """
+    Meter endpoint testleri (router seviyesinde)
+
+    Not:
+      Bu testler donanım/RS485 erişimi yapmaz; `api.meter.get_meter` patch edilerek
+      router'ın tüm branch'leri güvenli şekilde kapsanır.
+    """
+
+    def test_meter_status_when_module_returns_none(self, client, monkeypatch):
+        import api.meter as meter_module
+
+        monkeypatch.setattr(meter_module, "get_meter", lambda: None, raising=True)
+
+        res = client.get("/api/meter/status")
+        assert res.status_code == 200
+        body = res.json()
+        assert body["success"] is True
+        assert body["message"] == "Meter modülü yüklü değil"
+        assert body["data"]["connected"] is False
+        assert body["data"]["available"] is False
+
+    def test_meter_status_when_not_connected(self, client, monkeypatch):
+        import api.meter as meter_module
+
+        class FakeMeter:
+            def is_connected(self):
+                return False
+
+            def connect(self):
+                return True
+
+        monkeypatch.setattr(meter_module, "get_meter", lambda: FakeMeter(), raising=True)
+
+        res = client.get("/api/meter/status")
+        assert res.status_code == 200
+        body = res.json()
+        assert body["success"] is True
+        assert body["message"] == "Meter bağlı değil"
+        assert body["data"]["connected"] is False
+        assert body["data"]["available"] is True
+
+    def test_meter_status_when_connected_and_valid_reading(self, client, monkeypatch):
+        import api.meter as meter_module
+
+        reading = SimpleNamespace(
+            is_valid=True,
+            voltage_v=230.0,
+            current_a=10.0,
+            power_w=2300.0,
+            power_kw=2.3,
+            energy_kwh=100.5,
+            frequency_hz=50.0,
+            power_factor=0.98,
+            timestamp="2025-12-16T09:40:00Z",
+            phase_values={"l1": {"v": 230.0}},
+            totals={"energy_import_kwh": 100.5},
+        )
+
+        class FakeMeter:
+            def is_connected(self):
+                return True
+
+            def read_all(self):
+                return reading
+
+        monkeypatch.setattr(meter_module, "get_meter", lambda: FakeMeter(), raising=True)
+
+        res = client.get("/api/meter/status")
+        assert res.status_code == 200
+        body = res.json()
+        assert body["success"] is True
+        assert body["message"] == "Meter verileri başarıyla alındı"
+        assert body["data"]["connected"] is True
+        assert body["data"]["available"] is True
+        assert body["data"]["voltage_v"] == 230.0
+        assert body["data"]["energy_kwh"] == 100.5
+
+    def test_meter_status_when_connected_but_invalid_reading(self, client, monkeypatch):
+        import api.meter as meter_module
+
+        reading = SimpleNamespace(is_valid=False)
+
+        class FakeMeter:
+            def is_connected(self):
+                return True
+
+            def read_all(self):
+                return reading
+
+        monkeypatch.setattr(meter_module, "get_meter", lambda: FakeMeter(), raising=True)
+
+        res = client.get("/api/meter/status")
+        assert res.status_code == 200
+        body = res.json()
+        assert body["success"] is True
+        assert body["message"] == "Meter verisi geçersiz"
+        assert body["data"]["connected"] is True
+        assert body["data"]["available"] is True
+        assert body["data"]["valid"] is False
+
+    def test_meter_status_when_read_raises_exception(self, client, monkeypatch):
+        import api.meter as meter_module
+
+        class FakeMeter:
+            def is_connected(self):
+                return True
+
+            def read_all(self):
+                raise RuntimeError("read failed")
+
+        monkeypatch.setattr(meter_module, "get_meter", lambda: FakeMeter(), raising=True)
+
+        res = client.get("/api/meter/status")
+        assert res.status_code == 200
+        body = res.json()
+        assert body["success"] is True
+        assert body["message"] == "Meter verisi okunamadı"
+        assert body["data"]["connected"] is True
+        assert body["data"]["available"] is True
+        assert "read failed" in body["data"]["error"]
+
+    def test_meter_reading_when_module_returns_none(self, client, monkeypatch):
+        import api.meter as meter_module
+
+        monkeypatch.setattr(meter_module, "get_meter", lambda: None, raising=True)
+
+        res = client.get("/api/meter/reading")
+        assert res.status_code == 200
+        body = res.json()
+        assert body["success"] is True
+        assert body["message"] == "Meter modülü yüklü değil"
+        assert body["data"] is None
+
+    def test_meter_reading_when_not_connected(self, client, monkeypatch):
+        import api.meter as meter_module
+
+        class FakeMeter:
+            def is_connected(self):
+                return False
+
+            def connect(self):
+                return True
+
+        monkeypatch.setattr(meter_module, "get_meter", lambda: FakeMeter(), raising=True)
+
+        res = client.get("/api/meter/reading")
+        assert res.status_code == 200
+        body = res.json()
+        assert body["success"] is True
+        assert body["message"] == "Meter bağlı değil"
+        assert body["data"] is None
+
+    def test_meter_reading_when_valid(self, client, monkeypatch):
+        import api.meter as meter_module
+
+        reading = SimpleNamespace(
+            is_valid=True,
+            voltage_v=230.0,
+            current_a=10.0,
+            power_w=2300.0,
+            power_kw=2.3,
+            energy_kwh=100.5,
+            frequency_hz=50.0,
+            power_factor=0.98,
+            timestamp="2025-12-16T09:40:00Z",
+            phase_values={"l1": {"v": 230.0}},
+            totals={"energy_import_kwh": 100.5},
+        )
+
+        class FakeMeter:
+            def is_connected(self):
+                return True
+
+            def read_all(self):
+                return reading
+
+        monkeypatch.setattr(meter_module, "get_meter", lambda: FakeMeter(), raising=True)
+
+        res = client.get("/api/meter/reading")
+        assert res.status_code == 200
+        body = res.json()
+        assert body["success"] is True
+        assert body["message"] == "Meter okuması başarıyla alındı"
+        assert isinstance(body["data"], dict)
+        assert body["data"]["energy_kwh"] == 100.5
+
+    def test_meter_reading_when_invalid(self, client, monkeypatch):
+        import api.meter as meter_module
+
+        reading = SimpleNamespace(is_valid=False)
+
+        class FakeMeter:
+            def is_connected(self):
+                return True
+
+            def read_all(self):
+                return reading
+
+        monkeypatch.setattr(meter_module, "get_meter", lambda: FakeMeter(), raising=True)
+
+        res = client.get("/api/meter/reading")
+        assert res.status_code == 200
+        body = res.json()
+        assert body["success"] is True
+        assert body["message"] == "Meter verisi geçersiz"
+        assert body["data"] is None

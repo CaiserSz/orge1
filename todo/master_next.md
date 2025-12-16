@@ -1,12 +1,35 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-16 04:45:00
+**Son Güncelleme:** 2025-12-16 10:07:00
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
 ---
 
 ## Öncelikli Görevler
+
+### Öncelik 2: Test Coverage Boşlukları (2025-12-16) - Meter/OCPP/DB
+
+- [ ] **Görev:** `meter/read_meter.py` için unit test kapsamı ekle (helper + CRC + request/response parse)
+  - Açıklama: Coverage raporunda `meter/read_meter.py` %0 görünüyor. Donanım/serial açmadan test edilebilecek saf fonksiyonlar ve parse mantığı için testler eklenmeli (CRC16, request build, response parse, register decode).
+  - Öncelik: 2 (Orta/Yüksek)
+  - Tahmini Süre: 1-2 saat
+  - Durum: 📋 Bekliyor
+  - Detaylar: Coverage (2025-12-16): TOTAL %62, `meter/read_meter.py` %0.
+
+- [ ] **Görev:** `api/meter/modbus.py` ve `api/meter/acrel.py` için saf parse/convert unit testleri ekle
+  - Açıklama: `api/meter/modbus.py` %13, `api/meter/acrel.py` %0. Donanım erişimi olmadan test edilebilecek register decode, mapping, hata senaryoları ve dönüştürücüler kapsanmalı.
+  - Öncelik: 2 (Orta)
+  - Tahmini Süre: 2-4 saat
+  - Durum: 📋 Bekliyor
+  - Detaylar: Coverage (2025-12-16): `api/meter/acrel.py` %0, `api/meter/modbus.py` %13.
+
+- [ ] **Görev:** `api/database/event_queries.py` coverage artır (DB query path’leri)
+  - Açıklama: Coverage %25. Mevcut test DB fixture’ları kullanılarak (in-memory / temp sqlite) query fonksiyonlarının success + empty + error path’leri kapsanmalı.
+  - Öncelik: 3 (Orta/Düşük)
+  - Tahmini Süre: 2-3 saat
+  - Durum: 📋 Bekliyor
+  - Detaylar: Coverage (2025-12-16): `api/database/event_queries.py` %25.
 
 ### Öncelik 0: Sistem Sağlık Tespitleri (2025-12-15) - Güç Beslemesi ve Servis Tutarlılığı
 
@@ -62,6 +85,13 @@
   - Tahmini Süre: 1-2 saat
   - Durum: 🟡 Uyarı eşiği yakın
   - Detaylar: Rapor zamanı: 2025-12-16 04:40
+
+- [ ] **Görev:** `tests/test_protocol_rules.py` test suite’e bölme planı
+  - Açıklama: `standards_auto_check` raporu dosya 468 satır (Limit: 500). Uyarı eşiğine yakın; OCPP helper testleri ayrı test dosyasına taşınabilir (mevcut klasör yapısı içinde).
+  - Öncelik: 3 (Orta/Düşük)
+  - Tahmini Süre: 1-2 saat
+  - Durum: 🟡 Uyarı eşiği yakın
+  - Detaylar: Rapor zamanı: 2025-12-16 12:44
 
 
 ### Öncelik 1: EV Gerçek Test Bulguları (2025-12-13) - Güç/Enerji Tutarlılığı ve UI Stabilitesi

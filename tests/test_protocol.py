@@ -1,8 +1,8 @@
 """
 ESP32 Protocol JSON Unit and Edge Case Tests
 Created: 2025-12-10 18:15:00
-Last Modified: 2025-12-10 18:15:00
-Version: 1.0.0
+Last Modified: 2025-12-16 09:55:00
+Version: 1.1.1
 Description: protocol.json dosyası için kapsamlı unit ve edge case testleri
 """
 
