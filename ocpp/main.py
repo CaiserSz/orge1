@@ -78,7 +78,7 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
                 "action": action,
                 "utc": ts,
                 "unique_id": uid,
-                "request_summary": {"payload_keys": _dataclass_field_names(req)},
+                "request_keys": _dataclass_field_names(req),
                 "response_summary": _response_summary(res),
             }
         )
