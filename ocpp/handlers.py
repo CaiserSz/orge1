@@ -22,18 +22,22 @@ import base64
 import contextlib
 import ssl
 import uuid
-from dataclasses import asdict, is_dataclass
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import websockets
-from ocpp.routing import on
-
 from states import StationIdentity
+
+from ocpp.routing import on
 
 
 def _utc_now_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return (
+        datetime.now(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
 
 
 def _basic_auth_header(station_name: str, password: str) -> str:
@@ -59,8 +63,7 @@ class Ocpp201Adapter:
         )
 
     async def run(self) -> None:
-        from ocpp.v201 import ChargePoint
-        from ocpp.v201 import call, call_result, datatypes, enums
+        from ocpp.v201 import ChargePoint, call, call_result, datatypes, enums
 
         class StationCP(ChargePoint):
             # CSMS may send inventory/model queries; accept them in Phase-1 to avoid breaking the flow.
@@ -72,7 +75,9 @@ class Ocpp201Adapter:
 
             @on("GetReport")
             def on_get_report(self, request_id: int, **kwargs):
-                return call_result.GetReport(status=enums.GenericDeviceModelStatusEnumType.accepted)
+                return call_result.GetReport(
+                    status=enums.GenericDeviceModelStatusEnumType.accepted
+                )
 
             @on("GetLog")
             def on_get_log(self, request_id: int, **kwargs):
@@ -104,7 +109,9 @@ class Ocpp201Adapter:
                     if isinstance(obj, datatypes.VariableType):
                         return obj
                     if isinstance(obj, dict):
-                        return datatypes.VariableType(name=obj.get("name"), instance=obj.get("instance"))
+                        return datatypes.VariableType(
+                            name=obj.get("name"), instance=obj.get("instance")
+                        )
                     return datatypes.VariableType(name="Unknown")
 
                 for item in get_variable_data:
@@ -129,7 +136,11 @@ class Ocpp201Adapter:
                 return call_result.GetVariables(get_variable_result=results)
 
         url = self.cfg.ocpp201_url
-        headers = {"Authorization": _basic_auth_header(self.cfg.station_name, self.cfg.station_password)}
+        headers = {
+            "Authorization": _basic_auth_header(
+                self.cfg.station_name, self.cfg.station_password
+            )
+        }
 
         async with websockets.connect(
             url,
@@ -197,7 +208,9 @@ class Ocpp201Adapter:
             type=enums.IdTokenEnumType.central,
         )
         auth_res = await _call("Authorize", call.Authorize(id_token=id_token))
-        print(f"[OCPP/PoC] Authorize is SoT, response.id_token_info={getattr(auth_res, 'id_token_info', None)}")
+        print(
+            f"[OCPP/PoC] Authorize is SoT, response.id_token_info={getattr(auth_res, 'id_token_info', None)}"
+        )
 
         await _call(
             "StatusNotification(Available)",
@@ -278,7 +291,11 @@ class Ocpp16Adapter:
         # NOTE: Implementation will be expanded after OCPP 2.0.1 is stable.
         # For Phase-1 we keep this adapter as a placeholder that can connect and stay alive.
         url = self.cfg.ocpp16_url
-        headers = {"Authorization": _basic_auth_header(self.cfg.station_name, self.cfg.station_password)}
+        headers = {
+            "Authorization": _basic_auth_header(
+                self.cfg.station_name, self.cfg.station_password
+            )
+        }
 
         async with websockets.connect(
             url,
@@ -291,12 +308,12 @@ class Ocpp16Adapter:
             runner = asyncio.create_task(cp.start())
             try:
                 if self.cfg.poc_mode:
-                    print("[OCPP/PoC] OCPP 1.6J PoC not implemented yet (Phase-1 priority is 2.0.1).")
+                    print(
+                        "[OCPP/PoC] OCPP 1.6J PoC not implemented yet (Phase-1 priority is 2.0.1)."
+                    )
                     return
                 await asyncio.Future()  # run forever
             finally:
                 runner.cancel()
                 with contextlib.suppress(asyncio.CancelledError):
                     await runner
-
-

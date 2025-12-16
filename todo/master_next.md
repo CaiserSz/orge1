@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-15 06:20:00
+**Son Güncelleme:** 2025-12-16 04:45:00
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -30,6 +30,38 @@
   - Tahmini Süre: 30-60 dakika
   - Durum: 📋 Bekliyor
   - Detaylar: ngrok hataları 2025-12-08 civarı journal’da.
+
+### Öncelik 0: Standart İhlali (2025-12-16) - `api/event_detector.py` Satır Limiti Aşıldı
+
+- [ ] **Görev:** `api/event_detector.py` modüllere böl (maksimum sınır aşıldı)
+  - Açıklama: `python3 scripts/standards_auto_check.py` raporuna göre dosya 543 satır (Limit: 500). Maksimum sınır aşıldığı için acil refactor gerekiyor. OCPP çalışmasına paralel ama bağımsız ele alınmalı (mevcut davranış korunarak sadece modülerleştirme).
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 1-2 saat
+  - Durum: 🔴 Maksimum sınır aşıldı
+  - Detaylar: Rapor zamanı: 2025-12-16 04:40
+
+### Öncelik 3: Standart Uyarıları (2025-12-16) - Uyarı Eşiği Yakın Dosyalar
+
+- [ ] **Görev:** `api/logging_config.py` modüllere bölme planı
+  - Açıklama: `standards_auto_check` raporu dosya 407 satır (Limit: 500). Uyarı eşiğine yakın; uygun zamanda modüllere bölünmeli.
+  - Öncelik: 3 (Orta/Düşük)
+  - Tahmini Süre: 1-2 saat
+  - Durum: 🟡 Uyarı eşiği yakın
+  - Detaylar: Rapor zamanı: 2025-12-16 04:40
+
+- [ ] **Görev:** `api/config.py` modüllere bölme planı
+  - Açıklama: `standards_auto_check` raporu dosya 416 satır (Limit: 500). Uyarı eşiğine yakın; config alanları kategori bazlı ayrılabilir.
+  - Öncelik: 3 (Orta/Düşük)
+  - Tahmini Süre: 1-2 saat
+  - Durum: 🟡 Uyarı eşiği yakın
+  - Detaylar: Rapor zamanı: 2025-12-16 04:40
+
+- [ ] **Görev:** `tests/test_event_detector.py` test suite’e bölme planı
+  - Açıklama: `standards_auto_check` raporu dosya 467 satır (Limit: 500). Uyarı eşiğine yakın; entegrasyon/unit ayrımıyla bölünebilir.
+  - Öncelik: 3 (Orta/Düşük)
+  - Tahmini Süre: 1-2 saat
+  - Durum: 🟡 Uyarı eşiği yakın
+  - Detaylar: Rapor zamanı: 2025-12-16 04:40
 
 
 ### Öncelik 1: EV Gerçek Test Bulguları (2025-12-13) - Güç/Enerji Tutarlılığı ve UI Stabilitesi

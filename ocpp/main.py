@@ -22,7 +22,6 @@ import asyncio
 import os
 import sys
 from dataclasses import dataclass
-from typing import Optional
 
 from handlers import Ocpp16Adapter, Ocpp201Adapter
 
@@ -127,15 +126,12 @@ async def _run_primary_then_fallback(cfg: OcppRuntimeConfig) -> None:
     - In PoC mode, the adapter runs the PoC sequence then exits.
     """
 
-    primary_exc: Optional[BaseException] = None
-
     if cfg.primary == "201":
         try:
             adapter = Ocpp201Adapter(cfg)
             await adapter.run()
             return
         except BaseException as e:
-            primary_exc = e
             sys.stderr.write(f"[OCPP] Primary (2.0.1) failed: {e}\n")
             sys.stderr.flush()
 
@@ -149,7 +145,6 @@ async def _run_primary_then_fallback(cfg: OcppRuntimeConfig) -> None:
         await adapter.run()
         return
     except BaseException as e:
-        primary_exc = e
         sys.stderr.write(f"[OCPP] Primary (1.6J) failed: {e}\n")
         sys.stderr.flush()
 
@@ -163,7 +158,9 @@ def main(argv: list[str]) -> int:
 
     # Safety: this runner is isolated. It must not be started implicitly.
     print("[OCPP] Station client starting (isolated process)")
-    print(f"[OCPP] station_name={cfg.station_name} primary={cfg.primary} poc={cfg.poc_mode}")
+    print(
+        f"[OCPP] station_name={cfg.station_name} primary={cfg.primary} poc={cfg.poc_mode}"
+    )
     print(f"[OCPP] url_201={cfg.ocpp201_url}")
     print(f"[OCPP] url_16={cfg.ocpp16_url}")
 

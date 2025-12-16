@@ -27,5 +27,3 @@ class StationIdentity:
     vendor_name: str
     model: str
     firmware_version: str
-
-
