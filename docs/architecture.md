@@ -1,8 +1,8 @@
 # Sistem Mimarisi - AC Charger
 
 **Oluşturulma Tarihi:** 2025-12-09 22:40:00
-**Son Güncelleme:** 2025-12-09 22:40:00
-**Version:** 1.0.0
+**Son Güncelleme:** 2025-12-16 05:05:00
+**Version:** 1.1.0
 
 ---
 
@@ -16,6 +16,31 @@
 - **OCPP Versiyonları:** RPi hem OCPP 2.0.1 hem de OCPP 1.6J destekli olarak CSMS (Central System Management System) ile haberleşebilecektir
 - **Çift Versiyon Desteği:** Sistem her iki OCPP versiyonunu da destekleyecek şekilde tasarlanacaktır
 - **CSMS Entegrasyonu:** Merkezi sistem yönetimi ile haberleşme OCPP protokolü üzerinden yapılacaktır
+
+---
+
+## OCPP Katmanı (Phase-1 Uygulaması - 2025-12-16)
+
+### Amaç
+Mevcut çalışan sistem (FastAPI + ESP32 bridge + session/event) bozulmadan, istasyonun CSMS ile **OCPP 2.0.1 (primary)** ve **OCPP 1.6J (fallback)** üzerinden haberleşebilmesini sağlamak.
+
+### Tasarım Prensipleri (SSOT)
+- **İzolasyon:** OCPP, mevcut `api/` servisinden ayrı bir proses olarak çalışır. ESP32 seri porta dokunmaz.
+- **Tek transport + iki adapter:** WebSocket connect/reconnect + BasicAuth + subprotocol ortak; protokol mantığı ayrı adapter’larda.
+- **Token SoT:** Token geçerliliği için **Authorize sonucu tek kaynak** kabul edilir. TransactionEvent response’unda token status beklenmez.
+- **Enerji SoT:** CSMS enerji hesabı için **kümülatif import** register kullanılır. Measurand: `Energy.Active.Import.Register`.
+
+### Modül/Entry Point
+- **Runner:** `ocpp/main.py`
+  - `--poc`: Phase‑1 smoke-test akışı (Boot → Authorize(TEST001) → Status → TransactionEvent → MeterValues)
+  - `--once`: Boot + Status + 1 Heartbeat gönderip çıkar (daemon olmayan hızlı test)
+  - Default: daemon mode (Boot + Status + periyodik Heartbeat + reconnect/backoff)
+- **Adapters:** `ocpp/handlers.py`
+  - `Ocpp201Adapter`: OCPP 2.0.1 (v201)
+  - `Ocpp16Adapter`: OCPP 1.6J (v16) minimal fallback
+
+### CSMS Bağlantı Parametreleri (Tek Kaynak)
+Detaylar için: `docs/csms/CSMS_CONNECTION_PARAMETERS.md`
 
 #### API ve Endpoint'ler (2025-12-08 16:31:39)
 

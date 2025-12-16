@@ -2,8 +2,8 @@
 OCPP Station Adapters (Phase-1)
 
 Created: 2025-12-16 01:20
-Last Modified: 2025-12-16 01:20
-Version: 0.1.0
+Last Modified: 2025-12-16 05:00
+Version: 0.2.0
 Description:
   Implements the Phase-1 approach:
   - Single transport behavior per adapter (websocket connect/reconnect, auth header, subprotocol)
@@ -47,6 +47,21 @@ def _basic_auth_header(station_name: str, password: str) -> str:
 
 def _ssl_if_needed(url: str) -> Optional[ssl.SSLContext]:
     return ssl.create_default_context() if url.lower().startswith("wss://") else None
+
+
+def _is_retryable_ws_error(exc: BaseException) -> bool:
+    """
+    Decide whether a connection error is retryable.
+
+    Phase-1: be conservative; retry on most websocket/network errors.
+    """
+    return isinstance(exc, Exception)
+
+
+async def _sleep_backoff(attempt: int) -> None:
+    # Exponential backoff: 1s, 2s, 4s, ... (cap at 30s)
+    delay = min(30.0, float(2 ** max(0, attempt)))
+    await asyncio.sleep(delay)
 
 
 class Ocpp201Adapter:
@@ -142,25 +157,48 @@ class Ocpp201Adapter:
             )
         }
 
-        async with websockets.connect(
-            url,
-            subprotocols=["ocpp2.0.1"],
-            additional_headers=headers,
-            ssl=_ssl_if_needed(url),
-            open_timeout=10,
-        ) as ws:
-            cp = StationCP(self.cfg.station_name, ws)
-            runner = asyncio.create_task(cp.start())
+        attempt = 0
+        while True:
             try:
-                if self.cfg.poc_mode:
-                    await self._run_poc(cp, call=call, datatypes=datatypes, enums=enums)
-                    return
-                # Phase-1 default: connect and stay running (no implicit actions).
-                await asyncio.Future()  # run forever
-            finally:
-                runner.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await runner
+                async with websockets.connect(
+                    url,
+                    subprotocols=["ocpp2.0.1"],
+                    additional_headers=headers,
+                    ssl=_ssl_if_needed(url),
+                    open_timeout=10,
+                ) as ws:
+                    cp = StationCP(self.cfg.station_name, ws)
+                    runner = asyncio.create_task(cp.start())
+                    try:
+                        if self.cfg.poc_mode:
+                            await self._run_poc(
+                                cp, call=call, datatypes=datatypes, enums=enums
+                            )
+                            return
+
+                        if self.cfg.once_mode:
+                            await self._run_once(
+                                cp, call=call, datatypes=datatypes, enums=enums
+                            )
+                            return
+
+                        await self._run_daemon(
+                            cp, call=call, datatypes=datatypes, enums=enums
+                        )
+                    finally:
+                        runner.cancel()
+                        with contextlib.suppress(asyncio.CancelledError):
+                            await runner
+
+                # Normal websocket close: reset attempt and reconnect.
+                attempt = 0
+                await _sleep_backoff(attempt=0)
+            except BaseException as e:
+                if not _is_retryable_ws_error(e):
+                    raise
+                attempt += 1
+                print(f"[OCPP] v201 reconnect attempt={attempt} error={e}")
+                await _sleep_backoff(attempt=attempt)
 
     async def _run_poc(self, cp: Any, *, call: Any, datatypes: Any, enums: Any) -> None:
         """
@@ -272,6 +310,87 @@ class Ocpp201Adapter:
             getattr(ended_res, "id_token_info", None),
         )
 
+    async def _run_once(
+        self, cp: Any, *, call: Any, datatypes: Any, enums: Any
+    ) -> None:
+        """
+        Non-daemon smoke test:
+        - Send BootNotification
+        - Send StatusNotification(Available)
+        - Send one Heartbeat
+        Then exit.
+        """
+        interval = await self._send_boot(
+            cp, call=call, datatypes=datatypes, enums=enums
+        )
+        await self._send_initial_status(cp, call=call, enums=enums)
+        await self._send_heartbeat(cp, call=call)
+        print(f"[OCPP] v201 once-mode complete (boot_interval={interval})")
+
+    async def _run_daemon(
+        self, cp: Any, *, call: Any, datatypes: Any, enums: Any
+    ) -> None:
+        """
+        Daemon mode:
+        - BootNotification (gets interval)
+        - Initial StatusNotification(Available)
+        - Periodic Heartbeat based on interval (or override)
+        - Keep connection open
+        """
+        interval = await self._send_boot(
+            cp, call=call, datatypes=datatypes, enums=enums
+        )
+        await self._send_initial_status(cp, call=call, enums=enums)
+
+        hb_interval = int(getattr(self.cfg, "heartbeat_override_seconds", 0) or 0)
+        if hb_interval <= 0:
+            hb_interval = int(getattr(interval, "interval", interval) or 300)
+        hb_interval = max(10, hb_interval)
+        print(f"[OCPP] v201 daemon heartbeat_interval={hb_interval}s")
+
+        while True:
+            await asyncio.sleep(hb_interval)
+            await self._send_heartbeat(cp, call=call)
+
+    async def _send_boot(
+        self, cp: Any, *, call: Any, datatypes: Any, enums: Any
+    ) -> Any:
+        boot_res = await cp.call(
+            call.BootNotification(
+                charging_station=datatypes.ChargingStationType(
+                    vendor_name=self.identity.vendor_name,
+                    model=self.identity.model,
+                    serial_number=self.identity.station_name,
+                    firmware_version=self.identity.firmware_version,
+                ),
+                reason=enums.BootReasonEnumType.power_up,
+            ),
+            suppress=False,
+            unique_id=str(uuid.uuid4()),
+        )
+        print(
+            f"[OCPP] v201 BootNotification status={getattr(boot_res, 'status', None)} interval={getattr(boot_res, 'interval', None)}"
+        )
+        return boot_res
+
+    async def _send_initial_status(self, cp: Any, *, call: Any, enums: Any) -> None:
+        await cp.call(
+            call.StatusNotification(
+                timestamp=_utc_now_iso(),
+                connector_status=enums.ConnectorStatusEnumType.available,
+                evse_id=1,
+                connector_id=1,
+            ),
+            suppress=False,
+            unique_id=str(uuid.uuid4()),
+        )
+        print("[OCPP] v201 StatusNotification(Available) sent")
+
+    async def _send_heartbeat(self, cp: Any, *, call: Any) -> None:
+        # Heartbeat has no payload in v201
+        await cp.call(call.Heartbeat(), suppress=False, unique_id=str(uuid.uuid4()))
+        print(f"[OCPP] v201 Heartbeat sent utc={_utc_now_iso()}")
+
 
 class Ocpp16Adapter:
     """OCPP 1.6J (v16) station adapter (fallback). Phase-1 keeps it minimal."""
@@ -286,7 +405,7 @@ class Ocpp16Adapter:
         )
 
     async def run(self) -> None:
-        from ocpp.v16 import ChargePoint
+        from ocpp.v16 import ChargePoint, call
 
         # NOTE: Implementation will be expanded after OCPP 2.0.1 is stable.
         # For Phase-1 we keep this adapter as a placeholder that can connect and stay alive.
@@ -312,7 +431,32 @@ class Ocpp16Adapter:
                         "[OCPP/PoC] OCPP 1.6J PoC not implemented yet (Phase-1 priority is 2.0.1)."
                     )
                     return
-                await asyncio.Future()  # run forever
+                if self.cfg.once_mode:
+                    # Minimal 1.6J smoke-test: BootNotification + Heartbeat then exit.
+                    boot = await cp.call(
+                        call.BootNotification(
+                            charge_point_model=self.identity.model,
+                            charge_point_vendor=self.identity.vendor_name,
+                        ),
+                        suppress=False,
+                        unique_id=str(uuid.uuid4()),
+                    )
+                    print(
+                        f"[OCPP] v16 BootNotification status={boot.status} interval={boot.interval}"
+                    )
+
+                    hb = await cp.call(
+                        call.Heartbeat(), suppress=False, unique_id=str(uuid.uuid4())
+                    )
+                    print(f"[OCPP] v16 Heartbeat current_time={hb.current_time}")
+                    return
+
+                # Daemon placeholder: keep connection alive, send heartbeat at fixed interval.
+                while True:
+                    await asyncio.sleep(300)
+                    await cp.call(
+                        call.Heartbeat(), suppress=False, unique_id=str(uuid.uuid4())
+                    )
             finally:
                 runner.cancel()
                 with contextlib.suppress(asyncio.CancelledError):

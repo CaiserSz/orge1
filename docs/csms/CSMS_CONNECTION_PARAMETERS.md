@@ -1,7 +1,7 @@
 # CSMS ↔ Station Connection Parameters (OCPP 2.0.1 + 1.6j)
 
 **Oluşturulma:** 2025-12-15
-**Son Güncelleme:** 2025-12-15 02:40
+**Son Güncelleme:** 2025-12-16 05:10
 **Durum:** ✅ Aktif
 
 ## 1) CSMS URL nedir? (gerçek mi / simülatör mü?)
@@ -54,4 +54,34 @@ En basit başlangıç için öneri:
 
 İlk teslimatta 2.0.1’i hedefleyip, paralelde 1.6j’yi minimum uyumluluk için açık tutuyoruz.
 
+---
+
+## Phase-1 Net Parametreler (2025-12-16)
+
+### Station adı (SoT)
+- `ORGE_AC_001`
+
+### URL’ler (WS/WSS)
+- OCPP 2.0.1:
+  - `wss://lixhium.xyz/ocpp/ORGE_AC_001` (subprotocol: `ocpp2.0.1`)
+- OCPP 1.6J (fallback):
+  - `wss://lixhium.xyz/ocpp16/ORGE_AC_001` (subprotocol: `ocpp1.6`)
+
+### Phase-1 station password (geçici)
+- `temp_password_123`
+- Not: İlk BootNotification ile auto-provisioning sonrası CSMS kalıcı password üretebilir (rotation).
+
+### Test kimlik (SoT)
+- OCPP 2.0.1: `idToken.idToken="TEST001"` ve `type="Central"`
+- OCPP 1.6J: `idTag="TEST001"`
+
+### Enerji ölçümü (SoT)
+- Beklenen enerji: **import** (şebekeden araca aktarılan)
+- Measurand: `Energy.Active.Import.Register`
+- Değer: **kümülatif / monotonic artan** sayaç (kWh)
+- CSMS hesabı: transaction enerji = `meter_end - meter_start`
+
+### Phase-1 policy notu
+- Token geçerliliği için **Authorize sonucu tek kaynak** kabul edilir.
+- TransactionEvent response’unda `id_token_info` dönmeyebilir (policy uyumu).
 

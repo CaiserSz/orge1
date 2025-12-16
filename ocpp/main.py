@@ -2,8 +2,8 @@
 OCPP Station Client Runner (Phase-1)
 
 Created: 2025-12-16 01:20
-Last Modified: 2025-12-16 01:20
-Version: 0.1.0
+Last Modified: 2025-12-16 04:55
+Version: 0.2.0
 Description:
   OCPP station client entrypoint for Raspberry Pi (Python runtime).
   - Primary: OCPP 2.0.1 (v201)
@@ -42,10 +42,13 @@ class OcppRuntimeConfig:
 
     primary: str  # "201" or "16"
     poc_mode: bool
+    once_mode: bool
 
     vendor_name: str
     model: str
     id_token: str  # TEST001 (Phase-1)
+
+    heartbeat_override_seconds: int
 
 
 def _env(name: str, default: str) -> str:
@@ -82,9 +85,13 @@ def _build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
         ocpp16_url=ocpp16_url,
         primary=primary,
         poc_mode=bool(args.poc),
+        once_mode=bool(args.once),
         vendor_name=args.vendor_name or _env("OCPP_VENDOR", "ORGE"),
         model=args.model or _env("OCPP_MODEL", "AC-1"),
         id_token=args.id_token or _env("OCPP_TEST_ID_TOKEN", "TEST001"),
+        heartbeat_override_seconds=int(
+            args.heartbeat_seconds or _env("OCPP_HEARTBEAT_SECONDS", "0")
+        ),
     )
 
 
@@ -112,6 +119,16 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         "--poc",
         action="store_true",
         help="Run Phase-1 PoC message sequence and exit (smoke test).",
+    )
+    p.add_argument(
+        "--once",
+        action="store_true",
+        help="Connect, send Boot+Status(+1 Heartbeat), then exit (non-daemon smoke test).",
+    )
+    p.add_argument(
+        "--heartbeat-seconds",
+        default=None,
+        help="Override Heartbeat interval seconds (0=use CSMS BootNotification interval).",
     )
     return p.parse_args(argv)
 
@@ -159,7 +176,7 @@ def main(argv: list[str]) -> int:
     # Safety: this runner is isolated. It must not be started implicitly.
     print("[OCPP] Station client starting (isolated process)")
     print(
-        f"[OCPP] station_name={cfg.station_name} primary={cfg.primary} poc={cfg.poc_mode}"
+        f"[OCPP] station_name={cfg.station_name} primary={cfg.primary} poc={cfg.poc_mode} once={cfg.once_mode}"
     )
     print(f"[OCPP] url_201={cfg.ocpp201_url}")
     print(f"[OCPP] url_16={cfg.ocpp16_url}")
