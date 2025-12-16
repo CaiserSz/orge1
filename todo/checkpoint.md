@@ -1,8 +1,8 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-14 21:56:00
-**Version:** 1.9.0
+**Son Güncelleme:** 2025-12-16 05:10:00
+**Version:** 1.10.0
 
 ---
 
@@ -14,16 +14,27 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251214-033
-**Tarih:** 2025-12-14 03:50:00
-**Durum:** ✅ RL/LOCK telemetri açıklaması + uyarılar + test
-- `/api/status`:
-  - `data.telemetry` bloğu eklendi (RL/LOCK için normalize boolean alanlar + açıklama).
-  - CHARGING/PAUSED iken RL/LOCK=0 ise `data.warnings` altında uyarı kodları eklenir.
-- Test Sonucu:
-  - `./env/bin/pytest` → ✅ 546 passed, 4 skipped, 6 warnings
-  - `./env/bin/pytest tests/test_api_endpoints.py` → ✅ 12 passed
-  - `python3 scripts/code_quality_auto_check.py` → ✅ başarılı
+**Checkpoint ID:** CP-20251216-036
+**Tarih:** 2025-12-16 05:10:00
+**Durum:** ✅ OCPP Phase‑1 daemon + local API read‑only polling + SSOT güncellemeleri
+- OCPP (station client):
+  - `ocpp/phase1` branch açıldı; stabil geri dönüş noktası: `v2.5.11-pre-ocpp` tag.
+  - OCPP 2.0.1 primary, 1.6J fallback (tek transport + iki adapter).
+  - CSMS PoC doğrulandı: `wss://lixhium.xyz/ocpp/ORGE_AC_001` + `ocpp2.0.1` + BasicAuth.
+  - Daemon mode: Boot + Status(Available) + Heartbeat + reconnect/backoff.
+  - Phase‑1.5: Local API read‑only polling:
+    - `/api/station/status` → OCPP StatusNotification
+    - `/api/meter/reading` → MeterValues (`Energy.Active.Import.Register`, kümülatif import kWh)
+- SSOT:
+  - `docs/architecture.md` OCPP katmanı + local polling bölümü güncellendi.
+  - `docs/csms/CSMS_CONNECTION_PARAMETERS.md` Phase‑1 net parametreler eklendi.
+  - `project_info_20251208_145614.md` CSMS doküman linki eklendi.
+- Test/teyit:
+  - `./env/bin/pytest` → ✅ geçti
+  - `python3 scripts/todo_auto_check.py` → ✅ geçti
+  - `python3 scripts/workspace_auto_check.py` → ✅ geçti
+  - `python3 scripts/code_quality_auto_check.py` → ✅ geçti
+  - Not: `python3 scripts/standards_auto_check.py` raporundaki (pre-existing) uyarılar `master_next.md` içine eklendi.
 
 ### Güncel Checkpoint: CP-20251214-034 (2025-12-14 19:30:00)
 **Durum:** ✅ Log büyümesi kontrol altına alındı + /test polling optimizasyonu (saha doğrulama)

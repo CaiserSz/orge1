@@ -2,8 +2,8 @@
 OCPP Station Client Runner (Phase-1)
 
 Created: 2025-12-16 01:20
-Last Modified: 2025-12-16 04:55
-Version: 0.2.0
+Last Modified: 2025-12-16 05:25
+Version: 0.3.0
 Description:
   OCPP station client entrypoint for Raspberry Pi (Python runtime).
   - Primary: OCPP 2.0.1 (v201)
@@ -50,10 +50,24 @@ class OcppRuntimeConfig:
 
     heartbeat_override_seconds: int
 
+    # Read-only local API polling (Phase-1.5)
+    local_api_base_url: str
+    local_poll_enabled: bool
+    local_poll_interval_seconds: int
+
 
 def _env(name: str, default: str) -> str:
     val = os.getenv(name)
     return val if val is not None and val != "" else default
+
+
+def _parse_bool(value: str, *, default: bool) -> bool:
+    raw = (value or "").strip().lower()
+    if raw in ("1", "true", "yes", "y", "on"):
+        return True
+    if raw in ("0", "false", "no", "n", "off"):
+        return False
+    return default
 
 
 def _build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
@@ -92,6 +106,22 @@ def _build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
         heartbeat_override_seconds=int(
             args.heartbeat_seconds or _env("OCPP_HEARTBEAT_SECONDS", "0")
         ),
+        local_api_base_url=(
+            args.local_api_base_url
+            or _env("OCPP_LOCAL_API_BASE_URL", "http://localhost:8000")
+        ).rstrip("/"),
+        local_poll_enabled=_parse_bool(
+            (
+                args.local_poll_enabled
+                if args.local_poll_enabled is not None
+                else _env("OCPP_LOCAL_POLL_ENABLED", "true")
+            ),
+            default=True,
+        ),
+        local_poll_interval_seconds=int(
+            args.local_poll_interval_seconds
+            or _env("OCPP_LOCAL_POLL_INTERVAL_SECONDS", "10")
+        ),
     )
 
 
@@ -129,6 +159,22 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         "--heartbeat-seconds",
         default=None,
         help="Override Heartbeat interval seconds (0=use CSMS BootNotification interval).",
+    )
+
+    p.add_argument(
+        "--local-api-base-url",
+        default=None,
+        help="Read-only local API base URL (default: http://localhost:8000).",
+    )
+    p.add_argument(
+        "--local-poll-enabled",
+        default=None,
+        help="Enable read-only local API polling (true/false). Default true.",
+    )
+    p.add_argument(
+        "--local-poll-interval-seconds",
+        default=None,
+        help="Local API polling interval seconds (default: 10).",
     )
     return p.parse_args(argv)
 
@@ -180,6 +226,9 @@ def main(argv: list[str]) -> int:
     )
     print(f"[OCPP] url_201={cfg.ocpp201_url}")
     print(f"[OCPP] url_16={cfg.ocpp16_url}")
+    print(
+        f"[OCPP] local_poll_enabled={cfg.local_poll_enabled} local_api_base_url={cfg.local_api_base_url} local_poll_interval_seconds={cfg.local_poll_interval_seconds}"
+    )
 
     asyncio.run(_run_primary_then_fallback(cfg))
     return 0

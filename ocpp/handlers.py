@@ -2,8 +2,8 @@
 OCPP Station Adapters (Phase-1)
 
 Created: 2025-12-16 01:20
-Last Modified: 2025-12-16 05:00
-Version: 0.2.0
+Last Modified: 2025-12-16 05:35
+Version: 0.3.0
 Description:
   Implements the Phase-1 approach:
   - Single transport behavior per adapter (websocket connect/reconnect, auth header, subprotocol)
@@ -20,7 +20,10 @@ from __future__ import annotations
 import asyncio
 import base64
 import contextlib
+import json
 import ssl
+import urllib.error
+import urllib.request
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Optional
@@ -62,6 +65,38 @@ async def _sleep_backoff(attempt: int) -> None:
     # Exponential backoff: 1s, 2s, 4s, ... (cap at 30s)
     delay = min(30.0, float(2 ** max(0, attempt)))
     await asyncio.sleep(delay)
+
+
+def _safe_float(value: Any) -> Optional[float]:
+    try:
+        if value is None:
+            return None
+        return float(value)
+    except Exception:
+        return None
+
+
+def _http_get_json_sync(url: str, *, timeout_seconds: float) -> Optional[dict]:
+    """
+    Blocking HTTP GET that returns parsed JSON (dict) or None.
+
+    Used via asyncio.to_thread to avoid blocking the event loop.
+    """
+    try:
+        req = urllib.request.Request(url, method="GET")
+        with urllib.request.urlopen(req, timeout=timeout_seconds) as resp:
+            body = resp.read()
+        return json.loads(body.decode("utf-8"))
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError):
+        return None
+    except Exception:
+        return None
+
+
+async def _http_get_json(url: str, *, timeout_seconds: float = 2.0) -> Optional[dict]:
+    return await asyncio.to_thread(
+        _http_get_json_sync, url, timeout_seconds=timeout_seconds
+    )
 
 
 class Ocpp201Adapter:
@@ -348,9 +383,96 @@ class Ocpp201Adapter:
         hb_interval = max(10, hb_interval)
         print(f"[OCPP] v201 daemon heartbeat_interval={hb_interval}s")
 
-        while True:
-            await asyncio.sleep(hb_interval)
-            await self._send_heartbeat(cp, call=call)
+        async def _heartbeat_loop() -> None:
+            while True:
+                await asyncio.sleep(hb_interval)
+                await self._send_heartbeat(cp, call=call)
+
+        async def _local_poll_loop() -> None:
+            if not bool(getattr(self.cfg, "local_poll_enabled", True)):
+                return
+
+            base = str(
+                getattr(self.cfg, "local_api_base_url", "http://localhost:8000")
+            ).rstrip("/")
+            poll_s = int(getattr(self.cfg, "local_poll_interval_seconds", 10) or 10)
+            poll_s = max(5, poll_s)
+
+            station_status_url = f"{base}/api/station/status"
+            meter_reading_url = f"{base}/api/meter/reading"
+
+            # We already send initial StatusNotification(Available) at daemon start.
+            last_connector_status: Optional[Any] = (
+                enums.ConnectorStatusEnumType.available
+            )
+            last_energy_kwh: Optional[float] = None
+
+            print(f"[OCPP] local API polling enabled base={base} interval={poll_s}s")
+
+            while True:
+                try:
+                    station_payload = await _http_get_json(
+                        station_status_url, timeout_seconds=2.0
+                    )
+                    connector_status = (
+                        self._derive_connector_status_from_station_payload(
+                            station_payload, enums=enums
+                        )
+                    )
+                    if (
+                        connector_status is not None
+                        and connector_status != last_connector_status
+                    ):
+                        await self._send_status_notification(
+                            cp,
+                            call=call,
+                            enums=enums,
+                            connector_status=connector_status,
+                        )
+                        last_connector_status = connector_status
+
+                    meter_payload = await _http_get_json(
+                        meter_reading_url, timeout_seconds=2.0
+                    )
+                    energy_kwh = self._extract_energy_import_kwh_from_meter_payload(
+                        meter_payload
+                    )
+                    if energy_kwh is not None:
+                        if (
+                            last_energy_kwh is not None
+                            and energy_kwh + 1e-6 < last_energy_kwh
+                        ):
+                            print(
+                                f"[OCPP] meter energy non-monotonic: new={energy_kwh} < last={last_energy_kwh} (skipped)"
+                            )
+                        elif (
+                            last_energy_kwh is None
+                            or abs(energy_kwh - last_energy_kwh) >= 0.01
+                        ):
+                            await self._send_energy_meter_values(
+                                cp,
+                                call=call,
+                                datatypes=datatypes,
+                                enums=enums,
+                                energy_import_kwh=energy_kwh,
+                            )
+                            last_energy_kwh = energy_kwh
+                except Exception as e:
+                    print(f"[OCPP] local poll error: {e}")
+
+                await asyncio.sleep(poll_s)
+
+        hb_task = asyncio.create_task(_heartbeat_loop())
+        poll_task = asyncio.create_task(_local_poll_loop())
+        done, pending = await asyncio.wait(
+            {hb_task, poll_task}, return_when=asyncio.FIRST_EXCEPTION
+        )
+        for task in pending:
+            task.cancel()
+        for task in done:
+            exc = task.exception()
+            if exc:
+                raise exc
 
     async def _send_boot(
         self, cp: Any, *, call: Any, datatypes: Any, enums: Any
@@ -390,6 +512,129 @@ class Ocpp201Adapter:
         # Heartbeat has no payload in v201
         await cp.call(call.Heartbeat(), suppress=False, unique_id=str(uuid.uuid4()))
         print(f"[OCPP] v201 Heartbeat sent utc={_utc_now_iso()}")
+
+    def _derive_connector_status_from_station_payload(
+        self, payload: Optional[dict], *, enums: Any
+    ) -> Optional[Any]:
+        """
+        Map local `/api/station/status` JSON -> OCPP v201 ConnectorStatusEnumType.
+
+        We prefer `data.status.state_name` if present; otherwise fall back to
+        `data.status.availability`.
+        """
+        if not payload or not isinstance(payload, dict):
+            return None
+        data = payload.get("data")
+        if not isinstance(data, dict):
+            return None
+        status = data.get("status")
+        if not isinstance(status, dict):
+            return None
+
+        state_name = status.get("state_name")
+        availability = status.get("availability")
+
+        state_name_s = str(state_name).upper() if state_name is not None else ""
+        availability_s = str(availability).lower() if availability is not None else ""
+
+        if state_name_s in {"FAULT_HARD", "HARDFAULT_END"}:
+            return enums.ConnectorStatusEnumType.faulted
+        if state_name_s in {"CHARGING", "PAUSED"}:
+            return enums.ConnectorStatusEnumType.occupied
+        if state_name_s in {"READY", "EV_CONNECTED"}:
+            return enums.ConnectorStatusEnumType.reserved
+        if state_name_s in {"CABLE_DETECT"}:
+            return enums.ConnectorStatusEnumType.occupied
+        if state_name_s in {"IDLE"}:
+            return enums.ConnectorStatusEnumType.available
+
+        if availability_s == "fault":
+            return enums.ConnectorStatusEnumType.faulted
+        if availability_s == "busy":
+            return enums.ConnectorStatusEnumType.occupied
+        if availability_s == "reserved":
+            return enums.ConnectorStatusEnumType.reserved
+        if availability_s == "available":
+            return enums.ConnectorStatusEnumType.available
+
+        return enums.ConnectorStatusEnumType.unavailable
+
+    def _extract_energy_import_kwh_from_meter_payload(
+        self, payload: Optional[dict]
+    ) -> Optional[float]:
+        """
+        Extract kWh (kümülatif import) from `/api/meter/reading`.
+
+        Expected APIResponse schema:
+          { success: bool, data: { totals: { energy_import_kwh: float, ... }, energy_kwh: float, ... } }
+        """
+        if not payload or not isinstance(payload, dict):
+            return None
+        data = payload.get("data")
+        if not isinstance(data, dict):
+            return None
+
+        totals = data.get("totals")
+        if isinstance(totals, dict):
+            v = _safe_float(totals.get("energy_import_kwh"))
+            if v is not None:
+                return v
+            v = _safe_float(totals.get("energy_kwh"))
+            if v is not None:
+                return v
+            v = _safe_float(totals.get("energy_total_kwh"))
+            if v is not None:
+                return v
+
+        return _safe_float(data.get("energy_kwh"))
+
+    async def _send_status_notification(
+        self,
+        cp: Any,
+        *,
+        call: Any,
+        enums: Any,
+        connector_status: Any,
+    ) -> None:
+        await cp.call(
+            call.StatusNotification(
+                timestamp=_utc_now_iso(),
+                connector_status=connector_status,
+                evse_id=1,
+                connector_id=1,
+            ),
+            suppress=False,
+            unique_id=str(uuid.uuid4()),
+        )
+        print(f"[OCPP] v201 StatusNotification sent status={connector_status}")
+
+    async def _send_energy_meter_values(
+        self,
+        cp: Any,
+        *,
+        call: Any,
+        datatypes: Any,
+        enums: Any,
+        energy_import_kwh: float,
+    ) -> None:
+        meter_value = datatypes.MeterValueType(
+            timestamp=_utc_now_iso(),
+            sampled_value=[
+                datatypes.SampledValueType(
+                    value=float(energy_import_kwh),
+                    measurand=enums.MeasurandEnumType.energy_active_import_register,
+                    unit_of_measure=datatypes.UnitOfMeasureType(
+                        unit=enums.StandardizedUnitsOfMeasureType.kwh
+                    ),
+                )
+            ],
+        )
+        await cp.call(
+            call.MeterValues(evse_id=1, meter_value=[meter_value]),
+            suppress=False,
+            unique_id=str(uuid.uuid4()),
+        )
+        print(f"[OCPP] v201 MeterValues energy_import_kwh={energy_import_kwh}")
 
 
 class Ocpp16Adapter:

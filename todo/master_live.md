@@ -10,6 +10,7 @@
   - Durum: 🔄 Devam ediyor
   - Kapsam: Tek transport + iki adapter (Primary: OCPP 2.0.1, Fallback: OCPP 1.6j)
   - CSMS: `lixhium.xyz` (BasicAuth + ocpp2.0.1 / ocpp1.6)
+  - İlerleme: Daemon mode (Boot/Status/Heartbeat + reconnect) + local API read-only polling (station status + meter values) ✅
   - Not: Mevcut API/ESP32/session sistemi bozulmayacak; OCPP ayrı proses olarak ilerleyecek.
 
 - Şu anda başka aktif görev yok. Son tamamlanan işler:
