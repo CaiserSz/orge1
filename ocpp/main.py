@@ -2,8 +2,8 @@
 OCPP Station Client Runner (Phase-1)
 
 Created: 2025-12-16 01:20
-Last Modified: 2025-12-16 05:25
-Version: 0.3.0
+Last Modified: 2025-12-16 06:10
+Version: 0.4.0
 Description:
   OCPP station client entrypoint for Raspberry Pi (Python runtime).
   - Primary: OCPP 2.0.1 (v201)
@@ -19,11 +19,84 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import os
 import sys
+import uuid
 from dataclasses import dataclass
+from typing import Any
 
-from handlers import Ocpp16Adapter, Ocpp201Adapter
+import websockets
+from handlers import Ocpp201Adapter
+from states import StationIdentity, basic_auth_header, ssl_if_needed
+
+
+class Ocpp16Adapter:
+    """OCPP 1.6J (v16) station adapter (fallback). Phase-1 keeps it minimal."""
+
+    def __init__(self, cfg: Any):
+        self.cfg = cfg
+        self.identity = StationIdentity(
+            station_name=cfg.station_name,
+            vendor_name=cfg.vendor_name,
+            model=cfg.model,
+            firmware_version="ocpp-phase1",
+        )
+
+    async def run(self) -> None:
+        from ocpp.v16 import ChargePoint, call
+
+        url = self.cfg.ocpp16_url
+        headers = {
+            "Authorization": basic_auth_header(
+                self.cfg.station_name, self.cfg.station_password
+            )
+        }
+
+        async with websockets.connect(
+            url,
+            subprotocols=["ocpp1.6"],
+            additional_headers=headers,
+            ssl=ssl_if_needed(url),
+            open_timeout=10,
+        ) as ws:
+            cp = ChargePoint(self.cfg.station_name, ws)
+            runner = asyncio.create_task(cp.start())
+            try:
+                if self.cfg.poc_mode:
+                    print(
+                        "[OCPP/PoC] OCPP 1.6J PoC not implemented yet (Phase-1 priority is 2.0.1)."
+                    )
+                    return
+
+                if self.cfg.once_mode:
+                    boot = await cp.call(
+                        call.BootNotification(
+                            charge_point_model=self.identity.model,
+                            charge_point_vendor=self.identity.vendor_name,
+                        ),
+                        suppress=False,
+                        unique_id=str(uuid.uuid4()),
+                    )
+                    print(
+                        f"[OCPP] v16 BootNotification status={boot.status} interval={boot.interval}"
+                    )
+
+                    hb = await cp.call(
+                        call.Heartbeat(), suppress=False, unique_id=str(uuid.uuid4())
+                    )
+                    print(f"[OCPP] v16 Heartbeat current_time={hb.current_time}")
+                    return
+
+                while True:
+                    await asyncio.sleep(300)
+                    await cp.call(
+                        call.Heartbeat(), suppress=False, unique_id=str(uuid.uuid4())
+                    )
+            finally:
+                runner.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await runner
 
 
 @dataclass(frozen=True)

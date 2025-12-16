@@ -2,54 +2,42 @@
 OCPP Station Adapters (Phase-1)
 
 Created: 2025-12-16 01:20
-Last Modified: 2025-12-16 05:35
-Version: 0.3.0
+Last Modified: 2025-12-16 06:05
+Version: 0.4.0
 Description:
   Implements the Phase-1 approach:
   - Single transport behavior per adapter (websocket connect/reconnect, auth header, subprotocol)
-  - Separate protocol adapters:
-      * OCPP 2.0.1 (v201) adapter (primary)
-      * OCPP 1.6J (v16) adapter (fallback)
-
-NOTE:
-  This module must remain isolated from the existing FastAPI/ESP32 runtime.
+  - OCPP 2.0.1 (v201) adapter (primary)
 """
 
 from __future__ import annotations
 
 import asyncio
-import base64
 import contextlib
-import json
-import ssl
-import urllib.error
-import urllib.request
 import uuid
-from datetime import datetime, timezone
 from typing import Any, Optional
 
 import websockets
-from states import StationIdentity
+from states import (LocalApiPoller, LocalApiPollerConfig, StationIdentity,
+                    basic_auth_header, run_poc_v201, ssl_if_needed,
+                    utc_now_iso)
 
 from ocpp.routing import on
 
 
 def _utc_now_iso() -> str:
-    return (
-        datetime.now(timezone.utc)
-        .replace(microsecond=0)
-        .isoformat()
-        .replace("+00:00", "Z")
-    )
+    # Backward compatible alias (kept to minimize diffs inside this file).
+    return utc_now_iso()
 
 
 def _basic_auth_header(station_name: str, password: str) -> str:
-    raw = f"{station_name}:{password}".encode("utf-8")
-    return "Basic " + base64.b64encode(raw).decode("ascii")
+    # Backward compatible alias
+    return basic_auth_header(station_name, password)
 
 
-def _ssl_if_needed(url: str) -> Optional[ssl.SSLContext]:
-    return ssl.create_default_context() if url.lower().startswith("wss://") else None
+def _ssl_if_needed(url: str):
+    # Backward compatible alias
+    return ssl_if_needed(url)
 
 
 def _is_retryable_ws_error(exc: BaseException) -> bool:
@@ -67,36 +55,11 @@ async def _sleep_backoff(attempt: int) -> None:
     await asyncio.sleep(delay)
 
 
-def _safe_float(value: Any) -> Optional[float]:
-    try:
-        if value is None:
-            return None
-        return float(value)
-    except Exception:
-        return None
-
-
-def _http_get_json_sync(url: str, *, timeout_seconds: float) -> Optional[dict]:
-    """
-    Blocking HTTP GET that returns parsed JSON (dict) or None.
-
-    Used via asyncio.to_thread to avoid blocking the event loop.
-    """
-    try:
-        req = urllib.request.Request(url, method="GET")
-        with urllib.request.urlopen(req, timeout=timeout_seconds) as resp:
-            body = resp.read()
-        return json.loads(body.decode("utf-8"))
-    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError):
-        return None
-    except Exception:
-        return None
-
-
-async def _http_get_json(url: str, *, timeout_seconds: float = 2.0) -> Optional[dict]:
-    return await asyncio.to_thread(
-        _http_get_json_sync, url, timeout_seconds=timeout_seconds
-    )
+#
+# NOTE:
+# HTTP/json parsing helpers moved to `ocpp/states.py` to keep this file within
+# size standards. Local API polling is now implemented via `LocalApiPoller`.
+#
 
 
 class Ocpp201Adapter:
@@ -206,8 +169,13 @@ class Ocpp201Adapter:
                     runner = asyncio.create_task(cp.start())
                     try:
                         if self.cfg.poc_mode:
-                            await self._run_poc(
-                                cp, call=call, datatypes=datatypes, enums=enums
+                            await run_poc_v201(
+                                cp,
+                                identity=self.identity,
+                                id_token=self.cfg.id_token,
+                                call=call,
+                                datatypes=datatypes,
+                                enums=enums,
                             )
                             return
 
@@ -234,116 +202,6 @@ class Ocpp201Adapter:
                 attempt += 1
                 print(f"[OCPP] v201 reconnect attempt={attempt} error={e}")
                 await _sleep_backoff(attempt=attempt)
-
-    async def _run_poc(self, cp: Any, *, call: Any, datatypes: Any, enums: Any) -> None:
-        """
-        Phase-1 PoC message sequence:
-        BootNotification → Authorize(TEST001) → StatusNotification →
-        TransactionEvent(started/ended) → MeterValues(Energy.Active.Import.Register)
-        """
-
-        def _energy_mv(kwh: float) -> Any:
-            return datatypes.MeterValueType(
-                timestamp=_utc_now_iso(),
-                sampled_value=[
-                    datatypes.SampledValueType(
-                        value=kwh,
-                        measurand=enums.MeasurandEnumType.energy_active_import_register,
-                        unit_of_measure=datatypes.UnitOfMeasureType(
-                            unit=enums.StandardizedUnitsOfMeasureType.kwh
-                        ),
-                    )
-                ],
-            )
-
-        async def _call(label: str, payload: Any) -> Any:
-            unique_id = str(uuid.uuid4())
-            ts = _utc_now_iso()
-            res = await cp.call(payload, suppress=False, unique_id=unique_id)
-            print(f"[OCPP/PoC] {label} utc={ts} unique_id={unique_id} result={res}")
-            return res
-
-        await _call(
-            "BootNotification",
-            call.BootNotification(
-                charging_station=datatypes.ChargingStationType(
-                    vendor_name=self.identity.vendor_name,
-                    model=self.identity.model,
-                    serial_number=self.identity.station_name,
-                    firmware_version=self.identity.firmware_version,
-                ),
-                reason=enums.BootReasonEnumType.power_up,
-            ),
-        )
-
-        id_token = datatypes.IdTokenType(
-            id_token=self.cfg.id_token,
-            type=enums.IdTokenEnumType.central,
-        )
-        auth_res = await _call("Authorize", call.Authorize(id_token=id_token))
-        print(
-            f"[OCPP/PoC] Authorize is SoT, response.id_token_info={getattr(auth_res, 'id_token_info', None)}"
-        )
-
-        await _call(
-            "StatusNotification(Available)",
-            call.StatusNotification(
-                timestamp=_utc_now_iso(),
-                connector_status=enums.ConnectorStatusEnumType.available,
-                evse_id=1,
-                connector_id=1,
-            ),
-        )
-
-        tx_id = str(uuid.uuid4())
-        evse = datatypes.EVSEType(id=1, connector_id=1)
-
-        started_res = await _call(
-            "TransactionEvent(Started)",
-            call.TransactionEvent(
-                event_type=enums.TransactionEventEnumType.started,
-                timestamp=_utc_now_iso(),
-                trigger_reason=enums.TriggerReasonEnumType.authorized,
-                seq_no=1,
-                transaction_info=datatypes.TransactionType(transaction_id=tx_id),
-                evse=evse,
-                id_token=id_token,
-                meter_value=[_energy_mv(1000.00)],
-            ),
-        )
-        print(
-            "[OCPP/PoC] TransactionEvent response id_token_info expected None, got:",
-            getattr(started_res, "id_token_info", None),
-        )
-
-        await _call(
-            "MeterValues(Energy.Active.Import.Register)",
-            call.MeterValues(
-                evse_id=1,
-                meter_value=[_energy_mv(1000.10)],
-            ),
-        )
-
-        ended_res = await _call(
-            "TransactionEvent(Ended)",
-            call.TransactionEvent(
-                event_type=enums.TransactionEventEnumType.ended,
-                timestamp=_utc_now_iso(),
-                trigger_reason=enums.TriggerReasonEnumType.ev_departed,
-                seq_no=2,
-                transaction_info=datatypes.TransactionType(
-                    transaction_id=tx_id,
-                    stopped_reason=enums.ReasonEnumType.ev_disconnected,
-                ),
-                evse=evse,
-                id_token=id_token,
-                meter_value=[_energy_mv(1000.20)],
-            ),
-        )
-        print(
-            "[OCPP/PoC] TransactionEvent(Ended) response id_token_info expected None, got:",
-            getattr(ended_res, "id_token_info", None),
-        )
 
     async def _run_once(
         self, cp: Any, *, call: Any, datatypes: Any, enums: Any
@@ -396,71 +254,137 @@ class Ocpp201Adapter:
                 getattr(self.cfg, "local_api_base_url", "http://localhost:8000")
             ).rstrip("/")
             poll_s = int(getattr(self.cfg, "local_poll_interval_seconds", 10) or 10)
-            poll_s = max(5, poll_s)
 
-            station_status_url = f"{base}/api/station/status"
-            meter_reading_url = f"{base}/api/meter/reading"
-
-            # We already send initial StatusNotification(Available) at daemon start.
-            last_connector_status: Optional[Any] = (
-                enums.ConnectorStatusEnumType.available
+            poller = LocalApiPoller(
+                LocalApiPollerConfig(base_url=base, poll_interval_seconds=poll_s)
             )
-            last_energy_kwh: Optional[float] = None
 
-            print(f"[OCPP] local API polling enabled base={base} interval={poll_s}s")
+            async def _on_status_change(label: str) -> None:
+                # label: available/occupied/reserved/faulted/unavailable
+                connector_status = getattr(
+                    enums.ConnectorStatusEnumType,
+                    label,
+                    enums.ConnectorStatusEnumType.unavailable,
+                )
+                await self._send_status_notification(
+                    cp, call=call, enums=enums, connector_status=connector_status
+                )
 
-            while True:
-                try:
-                    station_payload = await _http_get_json(
-                        station_status_url, timeout_seconds=2.0
-                    )
-                    connector_status = (
-                        self._derive_connector_status_from_station_payload(
-                            station_payload, enums=enums
+            async def _on_energy_update(energy_kwh: float) -> None:
+                await self._send_energy_meter_values(
+                    cp,
+                    call=call,
+                    datatypes=datatypes,
+                    enums=enums,
+                    energy_import_kwh=energy_kwh,
+                )
+
+            id_token = datatypes.IdTokenType(
+                id_token=getattr(self.cfg, "id_token", "TEST001"),
+                type=enums.IdTokenEnumType.central,
+            )
+            evse = datatypes.EVSEType(id=1, connector_id=1)
+
+            async def _on_session_started(
+                session_id: str, energy_kwh: Optional[float]
+            ) -> None:
+                # Token SoT: Authorize is the only source of truth.
+                await cp.call(
+                    call.Authorize(id_token=id_token),
+                    suppress=False,
+                    unique_id=str(uuid.uuid4()),
+                )
+
+                meter_values = None
+                if energy_kwh is not None:
+                    meter_values = [
+                        datatypes.MeterValueType(
+                            timestamp=_utc_now_iso(),
+                            sampled_value=[
+                                datatypes.SampledValueType(
+                                    value=float(energy_kwh),
+                                    measurand=enums.MeasurandEnumType.energy_active_import_register,
+                                    unit_of_measure=datatypes.UnitOfMeasureType(
+                                        unit=enums.StandardizedUnitsOfMeasureType.kwh
+                                    ),
+                                )
+                            ],
                         )
-                    )
-                    if (
-                        connector_status is not None
-                        and connector_status != last_connector_status
-                    ):
-                        await self._send_status_notification(
-                            cp,
-                            call=call,
-                            enums=enums,
-                            connector_status=connector_status,
+                    ]
+
+                await cp.call(
+                    call.TransactionEvent(
+                        event_type=enums.TransactionEventEnumType.started,
+                        timestamp=_utc_now_iso(),
+                        trigger_reason=enums.TriggerReasonEnumType.authorized,
+                        seq_no=1,
+                        transaction_info=datatypes.TransactionType(
+                            transaction_id=session_id,
+                        ),
+                        meter_value=meter_values,
+                        evse=evse,
+                        id_token=id_token,
+                    ),
+                    suppress=False,
+                    unique_id=str(uuid.uuid4()),
+                )
+                print(f"[OCPP] v201 TransactionEvent(Started) tx_id={session_id}")
+
+            async def _on_session_ended(
+                session_id: str,
+                energy_kwh: Optional[float],
+                session_status: Optional[str],
+            ) -> None:
+                stopped_reason = enums.ReasonEnumType.other
+                if str(session_status).upper() == "COMPLETED":
+                    stopped_reason = enums.ReasonEnumType.ev_disconnected
+                elif str(session_status).upper() == "CANCELLED":
+                    stopped_reason = enums.ReasonEnumType.remote
+
+                meter_values = None
+                if energy_kwh is not None:
+                    meter_values = [
+                        datatypes.MeterValueType(
+                            timestamp=_utc_now_iso(),
+                            sampled_value=[
+                                datatypes.SampledValueType(
+                                    value=float(energy_kwh),
+                                    measurand=enums.MeasurandEnumType.energy_active_import_register,
+                                    unit_of_measure=datatypes.UnitOfMeasureType(
+                                        unit=enums.StandardizedUnitsOfMeasureType.kwh
+                                    ),
+                                )
+                            ],
                         )
-                        last_connector_status = connector_status
+                    ]
 
-                    meter_payload = await _http_get_json(
-                        meter_reading_url, timeout_seconds=2.0
-                    )
-                    energy_kwh = self._extract_energy_import_kwh_from_meter_payload(
-                        meter_payload
-                    )
-                    if energy_kwh is not None:
-                        if (
-                            last_energy_kwh is not None
-                            and energy_kwh + 1e-6 < last_energy_kwh
-                        ):
-                            print(
-                                f"[OCPP] meter energy non-monotonic: new={energy_kwh} < last={last_energy_kwh} (skipped)"
-                            )
-                        elif (
-                            last_energy_kwh is None
-                            or abs(energy_kwh - last_energy_kwh) >= 0.01
-                        ):
-                            await self._send_energy_meter_values(
-                                cp,
-                                call=call,
-                                datatypes=datatypes,
-                                enums=enums,
-                                energy_import_kwh=energy_kwh,
-                            )
-                            last_energy_kwh = energy_kwh
-                except Exception as e:
-                    print(f"[OCPP] local poll error: {e}")
+                await cp.call(
+                    call.TransactionEvent(
+                        event_type=enums.TransactionEventEnumType.ended,
+                        timestamp=_utc_now_iso(),
+                        trigger_reason=enums.TriggerReasonEnumType.ev_departed,
+                        seq_no=2,
+                        transaction_info=datatypes.TransactionType(
+                            transaction_id=session_id,
+                            stopped_reason=stopped_reason,
+                        ),
+                        meter_value=meter_values,
+                        evse=evse,
+                        id_token=id_token,
+                    ),
+                    suppress=False,
+                    unique_id=str(uuid.uuid4()),
+                )
+                print(
+                    f"[OCPP] v201 TransactionEvent(Ended) tx_id={session_id} status={session_status}"
+                )
 
-                await asyncio.sleep(poll_s)
+            await poller.run(
+                on_status_change=_on_status_change,
+                on_energy_update=_on_energy_update,
+                on_session_started=_on_session_started,
+                on_session_ended=_on_session_ended,
+            )
 
         hb_task = asyncio.create_task(_heartbeat_loop())
         poll_task = asyncio.create_task(_local_poll_loop())
@@ -513,81 +437,6 @@ class Ocpp201Adapter:
         await cp.call(call.Heartbeat(), suppress=False, unique_id=str(uuid.uuid4()))
         print(f"[OCPP] v201 Heartbeat sent utc={_utc_now_iso()}")
 
-    def _derive_connector_status_from_station_payload(
-        self, payload: Optional[dict], *, enums: Any
-    ) -> Optional[Any]:
-        """
-        Map local `/api/station/status` JSON -> OCPP v201 ConnectorStatusEnumType.
-
-        We prefer `data.status.state_name` if present; otherwise fall back to
-        `data.status.availability`.
-        """
-        if not payload or not isinstance(payload, dict):
-            return None
-        data = payload.get("data")
-        if not isinstance(data, dict):
-            return None
-        status = data.get("status")
-        if not isinstance(status, dict):
-            return None
-
-        state_name = status.get("state_name")
-        availability = status.get("availability")
-
-        state_name_s = str(state_name).upper() if state_name is not None else ""
-        availability_s = str(availability).lower() if availability is not None else ""
-
-        if state_name_s in {"FAULT_HARD", "HARDFAULT_END"}:
-            return enums.ConnectorStatusEnumType.faulted
-        if state_name_s in {"CHARGING", "PAUSED"}:
-            return enums.ConnectorStatusEnumType.occupied
-        if state_name_s in {"READY", "EV_CONNECTED"}:
-            return enums.ConnectorStatusEnumType.reserved
-        if state_name_s in {"CABLE_DETECT"}:
-            return enums.ConnectorStatusEnumType.occupied
-        if state_name_s in {"IDLE"}:
-            return enums.ConnectorStatusEnumType.available
-
-        if availability_s == "fault":
-            return enums.ConnectorStatusEnumType.faulted
-        if availability_s == "busy":
-            return enums.ConnectorStatusEnumType.occupied
-        if availability_s == "reserved":
-            return enums.ConnectorStatusEnumType.reserved
-        if availability_s == "available":
-            return enums.ConnectorStatusEnumType.available
-
-        return enums.ConnectorStatusEnumType.unavailable
-
-    def _extract_energy_import_kwh_from_meter_payload(
-        self, payload: Optional[dict]
-    ) -> Optional[float]:
-        """
-        Extract kWh (kümülatif import) from `/api/meter/reading`.
-
-        Expected APIResponse schema:
-          { success: bool, data: { totals: { energy_import_kwh: float, ... }, energy_kwh: float, ... } }
-        """
-        if not payload or not isinstance(payload, dict):
-            return None
-        data = payload.get("data")
-        if not isinstance(data, dict):
-            return None
-
-        totals = data.get("totals")
-        if isinstance(totals, dict):
-            v = _safe_float(totals.get("energy_import_kwh"))
-            if v is not None:
-                return v
-            v = _safe_float(totals.get("energy_kwh"))
-            if v is not None:
-                return v
-            v = _safe_float(totals.get("energy_total_kwh"))
-            if v is not None:
-                return v
-
-        return _safe_float(data.get("energy_kwh"))
-
     async def _send_status_notification(
         self,
         cp: Any,
@@ -637,72 +486,8 @@ class Ocpp201Adapter:
         print(f"[OCPP] v201 MeterValues energy_import_kwh={energy_import_kwh}")
 
 
-class Ocpp16Adapter:
-    """OCPP 1.6J (v16) station adapter (fallback). Phase-1 keeps it minimal."""
-
-    def __init__(self, cfg: Any):
-        self.cfg = cfg
-        self.identity = StationIdentity(
-            station_name=cfg.station_name,
-            vendor_name=cfg.vendor_name,
-            model=cfg.model,
-            firmware_version="ocpp-phase1",
-        )
-
-    async def run(self) -> None:
-        from ocpp.v16 import ChargePoint, call
-
-        # NOTE: Implementation will be expanded after OCPP 2.0.1 is stable.
-        # For Phase-1 we keep this adapter as a placeholder that can connect and stay alive.
-        url = self.cfg.ocpp16_url
-        headers = {
-            "Authorization": _basic_auth_header(
-                self.cfg.station_name, self.cfg.station_password
-            )
-        }
-
-        async with websockets.connect(
-            url,
-            subprotocols=["ocpp1.6"],
-            additional_headers=headers,
-            ssl=_ssl_if_needed(url),
-            open_timeout=10,
-        ) as ws:
-            cp = ChargePoint(self.cfg.station_name, ws)
-            runner = asyncio.create_task(cp.start())
-            try:
-                if self.cfg.poc_mode:
-                    print(
-                        "[OCPP/PoC] OCPP 1.6J PoC not implemented yet (Phase-1 priority is 2.0.1)."
-                    )
-                    return
-                if self.cfg.once_mode:
-                    # Minimal 1.6J smoke-test: BootNotification + Heartbeat then exit.
-                    boot = await cp.call(
-                        call.BootNotification(
-                            charge_point_model=self.identity.model,
-                            charge_point_vendor=self.identity.vendor_name,
-                        ),
-                        suppress=False,
-                        unique_id=str(uuid.uuid4()),
-                    )
-                    print(
-                        f"[OCPP] v16 BootNotification status={boot.status} interval={boot.interval}"
-                    )
-
-                    hb = await cp.call(
-                        call.Heartbeat(), suppress=False, unique_id=str(uuid.uuid4())
-                    )
-                    print(f"[OCPP] v16 Heartbeat current_time={hb.current_time}")
-                    return
-
-                # Daemon placeholder: keep connection alive, send heartbeat at fixed interval.
-                while True:
-                    await asyncio.sleep(300)
-                    await cp.call(
-                        call.Heartbeat(), suppress=False, unique_id=str(uuid.uuid4())
-                    )
-            finally:
-                runner.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await runner
+#
+# NOTE:
+# OCPP 1.6J adapter moved to `ocpp/main.py` to keep this module within size
+# standards without creating new files/folders.
+#

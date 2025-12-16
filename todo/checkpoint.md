@@ -1,8 +1,8 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-16 05:10:00
-**Version:** 1.10.0
+**Son Güncelleme:** 2025-12-16 06:20:00
+**Version:** 1.11.0
 
 ---
 
@@ -14,17 +14,21 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251216-036
-**Tarih:** 2025-12-16 05:10:00
-**Durum:** ✅ OCPP Phase‑1 daemon + local API read‑only polling + SSOT güncellemeleri
+**Checkpoint ID:** CP-20251216-037
+**Tarih:** 2025-12-16 06:20:00
+**Durum:** ✅ OCPP Phase‑1.6: local session → TransactionEvent(Started/Ended) + refactor (dosya boyutu uyumu)
 - OCPP (station client):
   - `ocpp/phase1` branch açıldı; stabil geri dönüş noktası: `v2.5.11-pre-ocpp` tag.
   - OCPP 2.0.1 primary, 1.6J fallback (tek transport + iki adapter).
   - CSMS PoC doğrulandı: `wss://lixhium.xyz/ocpp/ORGE_AC_001` + `ocpp2.0.1` + BasicAuth.
   - Daemon mode: Boot + Status(Available) + Heartbeat + reconnect/backoff.
-  - Phase‑1.5: Local API read‑only polling:
+  - Phase‑1.5/1.6: Local API read‑only polling:
     - `/api/station/status` → OCPP StatusNotification
     - `/api/meter/reading` → MeterValues (`Energy.Active.Import.Register`, kümülatif import kWh)
+    - `/api/sessions/current` → Authorize(TEST001) + TransactionEvent(Started/Ended) (tx_id=`session_id`)
+  - Refactor:
+    - `ocpp/handlers.py` ≤ 500 satır hedefi için helper/poller/poc kodları `ocpp/states.py` içine taşındı.
+    - OCPP 1.6J fallback adapter `ocpp/main.py` içine alındı (yeni dosya yok).
 - SSOT:
   - `docs/architecture.md` OCPP katmanı + local polling bölümü güncellendi.
   - `docs/csms/CSMS_CONNECTION_PARAMETERS.md` Phase‑1 net parametreler eklendi.

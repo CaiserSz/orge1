@@ -1,8 +1,8 @@
 # Sistem Mimarisi - AC Charger
 
 **Oluşturulma Tarihi:** 2025-12-09 22:40:00
-**Son Güncelleme:** 2025-12-16 05:40:00
-**Version:** 1.1.1
+**Son Güncelleme:** 2025-12-16 06:15:00
+**Version:** 1.1.2
 
 ---
 
@@ -37,12 +37,13 @@ Mevcut çalışan sistem (FastAPI + ESP32 bridge + session/event) bozulmadan, is
   - Default: daemon mode (Boot + Status + periyodik Heartbeat + reconnect/backoff)
 - **Adapters:** `ocpp/handlers.py`
   - `Ocpp201Adapter`: OCPP 2.0.1 (v201)
-  - `Ocpp16Adapter`: OCPP 1.6J (v16) minimal fallback
+  - Not: OCPP 1.6J (v16) fallback adapter `ocpp/main.py` içinde tutulur (dosya boyut standardı nedeniyle).
 
 ### Read-only Local API Polling (Phase-1.5)
 Daemon modda OCPP client, ESP32’ye dokunmadan **yalnızca local API’den okuyarak** CSMS’e durum/enerji yansıtır:
 - Status kaynağı: `GET /api/station/status` → `state_name/availability` → `ConnectorStatusEnumType` mapping
 - Enerji kaynağı: `GET /api/meter/reading` → `totals.energy_import_kwh` (yoksa `energy_kwh`) → `MeterValues(Energy.Active.Import.Register)`
+- Session kaynağı: `GET /api/sessions/current` → `session_id/status` → `Authorize(TEST001)` + `TransactionEvent(Started/Ended)` (tx_id = `session_id`)
 - Monotonic guard: enerji geri giderse CSMS’e gönderim yapılmaz (loglanır).
 
 ### CSMS Bağlantı Parametreleri (Tek Kaynak)
