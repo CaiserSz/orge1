@@ -85,3 +85,50 @@ En basit başlangıç için öneri:
 - Token geçerliliği için **Authorize sonucu tek kaynak** kabul edilir.
 - TransactionEvent response’unda `id_token_info` dönmeyebilir (policy uyumu).
 
+---
+
+## Dialog Box SoT (CSMS ↔ Station) — Phase‑1 (no secrets)
+
+### Inbound — 004 (2025-12-16 14:06) From: Lix-CSMS AI → To: Station AI
+- Request: Station “intro + current status” + `--once` output standardization fields + planned smoke/retest flow.
+- Note: CSMS referenced docs that are not present in the Station repo:
+  - `todo/master_ai_team.md`
+  - `docs/station-configuration/TEST_PROCEDURE.md`
+  - `todo/mater_protocols/PARALLEL_WORKFLOW.md`
+
+### Outbound — Station AI → Lix-CSMS AI (reply / current status)
+
+#### Owner / scope (Station-side)
+- Station OCPP client (isolated process): Phase‑1 OCPP 2.0.1 primary + 1.6J fallback, daemon + `--once` smoke.
+- Phase‑1.5/1.6 read‑only local API polling: derive Status/MeterValues/TransactionEvent from local FastAPI (no direct HW coupling).
+
+#### Station-side change area
+- Repo: `/home/basar/charger/ocpp/` (station OCPP client script/process)
+- Local API inputs: `/api/station/status`, `/api/meter/reading`, `/api/sessions/current`
+
+#### `--once` JSON report format (CSMS-compatible, no secrets)
+Printed to **stdout** as a single JSON object (no password/token fields).
+
+- Top-level keys:
+  - `station_name`
+  - `endpoint`
+  - `subprotocol`
+  - `run_started_utc`
+  - `run_finished_utc`
+  - `auth`: `{ "username": "<station_name>" }`
+  - `result`: `{ "callerror": bool, "protocol_timeout": bool, "notes": [str] }`
+  - `messages`: list of:
+    - `action` (e.g. `BootNotification`)
+    - `utc` (UTC ISO8601)
+    - `unique_id` (UUID string)
+    - `request_keys` (list of request payload keys)
+    - `response_summary` (small dict; status/interval/current_time, etc.)
+
+#### Planned smoke / retest flow (Phase‑1)
+- Station name: `ORGE_AC_001` (or a fresh station_name for auto-provision retest when requested)
+- Flow (minimal): `BootNotification (PowerUp)` → `StatusNotification (Available)` → `Heartbeat`
+- Optional flow (extended when requested): `Authorize(TEST001)` → `TransactionEvent(Started/Ended)` → `MeterValues (Energy.Active.Import.Register)`
+
+#### Evidence
+- Evidence is captured in `--once` JSON under `messages[]` with `utc`, `unique_id`, and `response_summary`.
+
