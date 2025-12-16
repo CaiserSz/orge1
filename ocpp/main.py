@@ -2,8 +2,8 @@
 OCPP Station Client Runner (Phase-1)
 
 Created: 2025-12-16 01:20
-Last Modified: 2025-12-16 06:10
-Version: 0.4.0
+Last Modified: 2025-12-16 15:57
+Version: 0.4.1
 Description:
   OCPP station client entrypoint for Raspberry Pi (Python runtime).
   - Primary: OCPP 2.0.1 (v201)
@@ -20,15 +20,176 @@ from __future__ import annotations
 import argparse
 import asyncio
 import contextlib
+import json
 import os
 import sys
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, fields, is_dataclass
 from typing import Any
 
 import websockets
 from handlers import Ocpp201Adapter
-from states import StationIdentity, basic_auth_header, ssl_if_needed
+from states import (
+    StationIdentity,
+    basic_auth_header,
+    serial_number_for_station_name,
+    ssl_if_needed,
+    utc_now_iso,
+)
+
+
+def _dataclass_field_names(obj: Any) -> list[str]:
+    return sorted([f.name for f in fields(obj)]) if is_dataclass(obj) else []
+
+
+def _response_summary(obj: Any) -> dict[str, Any]:
+    if obj is None:
+        return {}
+    out: dict[str, Any] = {}
+    for key in ("status", "interval", "current_time"):
+        if hasattr(obj, key):
+            val = getattr(obj, key, None)
+            if val is not None:
+                out[key] = val
+    return out
+
+
+async def _run_once_json(cfg: Any) -> dict[str, Any]:
+    # `--once` MUST output a single JSON object and MUST NOT include secrets.
+    started_utc = utc_now_iso()
+    finished_utc = started_utc
+    messages: list[dict[str, Any]] = []
+    notes: list[str] = []
+    callerror = False
+    protocol_timeout = False
+
+    subprotocol = "ocpp2.0.1" if cfg.primary == "201" else "ocpp1.6"
+    url = cfg.ocpp201_url if cfg.primary == "201" else cfg.ocpp16_url
+    headers = {
+        "Authorization": basic_auth_header(cfg.station_name, cfg.station_password)
+    }
+
+    async def _send(cp: Any, req: Any, action: str) -> None:
+        uid = str(uuid.uuid4())
+        ts = utc_now_iso()
+        res = await cp.call(req, suppress=False, unique_id=uid)
+        messages.append(
+            {
+                "action": action,
+                "utc": ts,
+                "unique_id": uid,
+                "request_summary": {"payload_keys": _dataclass_field_names(req)},
+                "response_summary": _response_summary(res),
+            }
+        )
+
+    try:
+        async with websockets.connect(
+            url,
+            subprotocols=[subprotocol],
+            additional_headers=headers,
+            ssl=ssl_if_needed(url),
+            open_timeout=10,
+        ) as ws:
+            if cfg.primary == "201":
+                from ocpp.routing import on
+                from ocpp.v201 import ChargePoint, call, call_result, enums
+                from ocpp.v201 import datatypes as dt
+
+                class StationCP(ChargePoint):
+                    @on("GetBaseReport")
+                    def on_get_base_report(
+                        self, request_id: int, report_base: str, **kwargs
+                    ):
+                        return call_result.GetBaseReport(
+                            status=enums.GenericDeviceModelStatusEnumType.accepted
+                        )
+
+                cp: Any = StationCP(cfg.station_name, ws)
+                runner = asyncio.create_task(cp.start())
+                try:
+                    await _send(
+                        cp,
+                        call.BootNotification(
+                            charging_station=dt.ChargingStationType(
+                                vendor_name=cfg.vendor_name,
+                                model=cfg.model,
+                                serial_number=serial_number_for_station_name(
+                                    cfg.station_name
+                                ),
+                                firmware_version="ocpp-phase1",
+                            ),
+                            reason=enums.BootReasonEnumType.power_up,
+                        ),
+                        "BootNotification",
+                    )
+                    await _send(
+                        cp,
+                        call.StatusNotification(
+                            timestamp=utc_now_iso(),
+                            connector_status=enums.ConnectorStatusEnumType.available,
+                            evse_id=1,
+                            connector_id=1,
+                        ),
+                        "StatusNotification",
+                    )
+                    await _send(cp, call.Heartbeat(), "Heartbeat")
+                finally:
+                    runner.cancel()
+                    with contextlib.suppress(asyncio.CancelledError):
+                        await runner
+            else:
+                from ocpp.v16 import ChargePoint, call
+
+                cp = ChargePoint(cfg.station_name, ws)
+                runner = asyncio.create_task(cp.start())
+                try:
+                    await _send(
+                        cp,
+                        call.BootNotification(
+                            charge_point_model=cfg.model,
+                            charge_point_vendor=cfg.vendor_name,
+                        ),
+                        "BootNotification",
+                    )
+                    await _send(
+                        cp,
+                        call.StatusNotification(
+                            connector_id=1,
+                            error_code="NoError",
+                            status="Available",
+                            timestamp=utc_now_iso(),
+                        ),
+                        "StatusNotification",
+                    )
+                    await _send(cp, call.Heartbeat(), "Heartbeat")
+                finally:
+                    runner.cancel()
+                    with contextlib.suppress(asyncio.CancelledError):
+                        await runner
+    except asyncio.TimeoutError as exc:
+        protocol_timeout = True
+        callerror = True
+        notes.append(f"timeout: {exc}")
+    except BaseException as exc:
+        callerror = True
+        notes.append(f"error: {exc}")
+
+    finished_utc = utc_now_iso()
+    return {
+        "station_name": cfg.station_name,
+        "endpoint": url,
+        "subprotocol": subprotocol,
+        "run_started_utc": started_utc,
+        "run_finished_utc": finished_utc,
+        "auth": {"username": cfg.station_name},
+        "result": {
+            "callerror": bool(callerror),
+            "protocol_timeout": bool(protocol_timeout),
+            "notes": notes,
+        },
+        "messages": messages,
+    }
 
 
 class Ocpp16Adapter:
@@ -293,6 +454,15 @@ def main(argv: list[str]) -> int:
     cfg = _build_config(args)
 
     # Safety: this runner is isolated. It must not be started implicitly.
+    if cfg.once_mode and not cfg.poc_mode:
+        # IMPORTANT:
+        # `--once` MUST output exactly one JSON object to stdout (CSMS ops tooling).
+        # Do not print any other lines here.
+        report = asyncio.run(_run_once_json(cfg))
+
+        print(json.dumps(report, ensure_ascii=False, sort_keys=True))
+        return 2 if report.get("result", {}).get("callerror") else 0
+
     print("[OCPP] Station client starting (isolated process)")
     print(
         f"[OCPP] station_name={cfg.station_name} primary={cfg.primary} poc={cfg.poc_mode} once={cfg.once_mode}"
