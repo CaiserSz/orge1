@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-16 10:07:00
+**Son Güncelleme:** 2025-12-16 15:10:34
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -623,6 +623,18 @@
   - Öncelik: 1 (Yüksek - CSMS tarafı bug)
   - Tahmini Süre: 15-30 dk
   - Durum: 🧱 Bloklayıcı (CSMS fix gerekli)
+
+- [ ] **Görev:** OCPP modül adı çakışması: repo `ocpp/` vs pip `ocpp` paketi (import hatası riski)
+  - Açıklama: `python-ocpp` paketi `ocpp` adıyla geliyor; repo’da da `ocpp/` klasörü var. `import ocpp.states` gibi importlar yanlış pakete gidebilir ve `ModuleNotFoundError` üretebilir. Kısa vadede import rehberi/snippet standardı (örn. `sys.path` ile `/home/basar/charger/ocpp` ekleyip `import states` kullanma) netleştirilmeli. Orta vadede klasör adı değişimi değerlendirilebilir (örn. `station_ocpp/`) ancak “yeni klasör/dosya” kuralı nedeniyle planlı yapılmalı.
+  - Öncelik: 2 (Orta/Yüksek)
+  - Tahmini Süre: 15-30 dk
+  - Durum: 📋 Bekliyor
+
+- [ ] **Görev:** `ocpp/main.py --once` log formatını CSMS operasyon ihtiyacına uygun genişlet (UTC + unique_id + response)
+  - Açıklama: CSMS DB doğrulaması için Boot/Status/Heartbeat mesajları için UTC timestamp + unique_id + response bilgileri isteniyor. Şu an `--once` minimal log basıyor; gerektiğinde tek komutla kanıt üretmek için log formatı genişletilebilir.
+  - Öncelik: 2 (Orta/Yüksek)
+  - Tahmini Süre: 15-30 dk
+  - Durum: 📋 Bekliyor
 
 ---
 
