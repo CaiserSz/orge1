@@ -2,8 +2,8 @@
 OCPP Station State Helpers (Phase-1)
 
 Created: 2025-12-16 01:20
-Last Modified: 2025-12-16 05:45
-Version: 0.2.0
+Last Modified: 2025-12-16 07:22
+Version: 0.2.1
 Description:
   Shared datatypes and helper utilities for the station OCPP client.
   This module intentionally contains helpers to keep `ocpp/handlers.py` within
@@ -88,6 +88,19 @@ async def http_get_json(url: str, *, timeout_seconds: float = 2.0) -> Optional[d
     return await asyncio.to_thread(
         _http_get_json_sync, url, timeout_seconds=timeout_seconds
     )
+
+
+def serial_number_for_station_name(station_name: str) -> str:
+    """
+    OCPP v201 `chargingStation.serialNumber` has a max length constraint.
+
+    Phase-1: derive it from station_name but truncate to keep python-ocpp
+    schema validators happy.
+    """
+    s = (station_name or "").strip()
+    if not s:
+        return "UNKNOWN"
+    return s[:25]
 
 
 def derive_connector_status_label_from_station_payload(
@@ -358,7 +371,7 @@ async def run_poc_v201(
             charging_station=datatypes.ChargingStationType(
                 vendor_name=identity.vendor_name,
                 model=identity.model,
-                serial_number=identity.station_name,
+                serial_number=serial_number_for_station_name(identity.station_name),
                 firmware_version=identity.firmware_version,
             ),
             reason=enums.BootReasonEnumType.power_up,

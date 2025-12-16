@@ -582,6 +582,12 @@
   - Bağımlılıklar: API katmanının stabil olması, OCPP 1.6J implementasyonu (OCPP 2.0.1 için), OCPP implementasyonu (CSMS için)
   - Durum: 📋 Bekliyor
 
+- [ ] **Görev:** CSMS Admin UI BasicAuth erişimi (station-side doğrulama için)
+  - Açıklama: `https://lixhium.xyz/` admin UI `Basic realm="CSMS Admin UI"` ile korunuyor. Station BasicAuth credentials (ör. `STATION_NAME:password`) UI için geçerli değil. Station AI’ın “stations list / last_seen / connected_at” doğrulaması yapabilmesi için admin kullanıcı/parola sağlanmalı veya UI kontrolü CSMS AI tarafından yapılmalı.
+  - Öncelik: 2 (Yüksek - doğrulama/operasyonel ihtiyaç)
+  - Tahmini Süre: 10-15 dk
+  - Durum: 📋 Bekliyor
+
 ---
 
 ## Faz 4: Meter ve Monitoring

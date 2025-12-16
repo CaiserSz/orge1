@@ -2,8 +2,8 @@
 OCPP Station Adapters (Phase-1)
 
 Created: 2025-12-16 01:20
-Last Modified: 2025-12-16 06:05
-Version: 0.4.0
+Last Modified: 2025-12-16 07:22
+Version: 0.4.1
 Description:
   Implements the Phase-1 approach:
   - Single transport behavior per adapter (websocket connect/reconnect, auth header, subprotocol)
@@ -412,7 +412,7 @@ class Ocpp201Adapter:
                 charging_station=datatypes.ChargingStationType(
                     vendor_name=self.identity.vendor_name,
                     model=self.identity.model,
-                    serial_number=self.identity.station_name,
+                    serial_number=self.identity.station_name[:25],
                     firmware_version=self.identity.firmware_version,
                 ),
                 reason=enums.BootReasonEnumType.power_up,
