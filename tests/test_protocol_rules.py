@@ -182,7 +182,9 @@ class TestOcppStateHelpers:
                 }
             }
 
-        assert ocpp_states.derive_connector_status_label_from_station_payload(None) is None
+        assert (
+            ocpp_states.derive_connector_status_label_from_station_payload(None) is None
+        )
         assert (
             ocpp_states.derive_connector_status_label_from_station_payload(
                 _payload("IDLE", None)
@@ -248,7 +250,10 @@ class TestOcppStateHelpers:
         )
 
     def test_extract_current_session(self, ocpp_states):
-        assert ocpp_states.extract_current_session_from_sessions_current_payload(None) is None
+        assert (
+            ocpp_states.extract_current_session_from_sessions_current_payload(None)
+            is None
+        )
         assert (
             ocpp_states.extract_current_session_from_sessions_current_payload(
                 {"session": None}
@@ -319,11 +324,7 @@ class TestOcppStateHelpers:
             {"data": {"totals": {"energy_import_kwh": 1.0}}},
             {"session": {"session_id": "S1", "status": "ACTIVE"}},
             # Iteration-2: status->available, energy decreases (monotonic guard), session None -> ended
-            {
-                "data": {
-                    "status": {"state_name": "IDLE", "availability": "available"}
-                }
-            },
+            {"data": {"status": {"state_name": "IDLE", "availability": "available"}}},
             {"data": {"totals": {"energy_import_kwh": 0.5}}},
             {"session": None},
         ]
@@ -332,7 +333,9 @@ class TestOcppStateHelpers:
             assert "http://localhost:8000" in url
             return responses.pop(0)
 
-        monkeypatch.setattr(ocpp_states, "http_get_json", fake_http_get_json, raising=True)
+        monkeypatch.setattr(
+            ocpp_states, "http_get_json", fake_http_get_json, raising=True
+        )
 
         sleep_calls = {"n": 0}
 
@@ -371,7 +374,9 @@ class TestOcppStateHelpers:
         async def fake_http_get_json(url: str, timeout_seconds: float = 2.0):
             raise RuntimeError("boom")
 
-        monkeypatch.setattr(ocpp_states, "http_get_json", fake_http_get_json, raising=True)
+        monkeypatch.setattr(
+            ocpp_states, "http_get_json", fake_http_get_json, raising=True
+        )
 
         async def fake_sleep(seconds: float):
             raise asyncio.CancelledError()

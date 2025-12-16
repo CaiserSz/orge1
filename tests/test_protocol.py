@@ -316,4 +316,3 @@ class TestProtocolStatusMessage:
         assert (
             status_message["update_interval_seconds"] == 5
         ), "update_interval_seconds 5 değil"
-

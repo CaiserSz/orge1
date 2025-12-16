@@ -186,7 +186,9 @@ class TestMeterEndpoints:
             def connect(self):
                 return True
 
-        monkeypatch.setattr(meter_module, "get_meter", lambda: FakeMeter(), raising=True)
+        monkeypatch.setattr(
+            meter_module, "get_meter", lambda: FakeMeter(), raising=True
+        )
 
         res = client.get("/api/meter/status")
         assert res.status_code == 200
@@ -220,7 +222,9 @@ class TestMeterEndpoints:
             def read_all(self):
                 return reading
 
-        monkeypatch.setattr(meter_module, "get_meter", lambda: FakeMeter(), raising=True)
+        monkeypatch.setattr(
+            meter_module, "get_meter", lambda: FakeMeter(), raising=True
+        )
 
         res = client.get("/api/meter/status")
         assert res.status_code == 200
@@ -244,7 +248,9 @@ class TestMeterEndpoints:
             def read_all(self):
                 return reading
 
-        monkeypatch.setattr(meter_module, "get_meter", lambda: FakeMeter(), raising=True)
+        monkeypatch.setattr(
+            meter_module, "get_meter", lambda: FakeMeter(), raising=True
+        )
 
         res = client.get("/api/meter/status")
         assert res.status_code == 200
@@ -265,7 +271,9 @@ class TestMeterEndpoints:
             def read_all(self):
                 raise RuntimeError("read failed")
 
-        monkeypatch.setattr(meter_module, "get_meter", lambda: FakeMeter(), raising=True)
+        monkeypatch.setattr(
+            meter_module, "get_meter", lambda: FakeMeter(), raising=True
+        )
 
         res = client.get("/api/meter/status")
         assert res.status_code == 200
@@ -298,7 +306,9 @@ class TestMeterEndpoints:
             def connect(self):
                 return True
 
-        monkeypatch.setattr(meter_module, "get_meter", lambda: FakeMeter(), raising=True)
+        monkeypatch.setattr(
+            meter_module, "get_meter", lambda: FakeMeter(), raising=True
+        )
 
         res = client.get("/api/meter/reading")
         assert res.status_code == 200
@@ -331,7 +341,9 @@ class TestMeterEndpoints:
             def read_all(self):
                 return reading
 
-        monkeypatch.setattr(meter_module, "get_meter", lambda: FakeMeter(), raising=True)
+        monkeypatch.setattr(
+            meter_module, "get_meter", lambda: FakeMeter(), raising=True
+        )
 
         res = client.get("/api/meter/reading")
         assert res.status_code == 200
@@ -353,7 +365,9 @@ class TestMeterEndpoints:
             def read_all(self):
                 return reading
 
-        monkeypatch.setattr(meter_module, "get_meter", lambda: FakeMeter(), raising=True)
+        monkeypatch.setattr(
+            meter_module, "get_meter", lambda: FakeMeter(), raising=True
+        )
 
         res = client.get("/api/meter/reading")
         assert res.status_code == 200
