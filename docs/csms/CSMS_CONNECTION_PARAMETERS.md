@@ -252,3 +252,25 @@ Amaç: hızlı debug + SSOT + minimum “kayıp bilgi”.
 - TransactionEvent için beklediğiniz minimum alanlar/policy nedir? (id_token_info dönmeme, reason mapping, meter_start/stop, seq_no)
 - Prod ortamda “station kayıt/aktiflik” için UI dışında tek doğrulama endpoint/log formatı öneriniz var mı?
 
+---
+
+## Phase‑1.1 Evidence — `--once` single-run (no secrets)
+
+Run summary (UTC):
+- `run_started_utc`: 2025-12-17T21:55:43Z
+- `run_finished_utc`: 2025-12-17T21:55:48Z
+- `station_name`: ORGE_AC_001
+- `endpoint`: wss://lixhium.xyz/ocpp/ORGE_AC_001
+- `subprotocol`: ocpp2.0.1
+- `result`: callerror=false, protocol_timeout=false
+
+Messages (UTC + unique_id + status):
+- BootNotification @ 2025-12-17T21:55:45Z
+  - unique_id: 841c05f9-696c-44fd-9dbe-5099b5123dc0
+  - status: Accepted, interval: 300, current_time: 2025-12-17T21:55:47.732341+00:00
+- StatusNotification(Available, evse=1, connector=1) @ 2025-12-17T21:55:47Z
+  - unique_id: a0299d77-a79f-4c3a-b1b8-fd8d406044c7
+- Heartbeat @ 2025-12-17T21:55:47Z
+  - unique_id: 5f9bd0be-0cdd-4a72-bce5-f8f733e87c35
+  - current_time: 2025-12-17T21:55:47.943809+00:00
+
