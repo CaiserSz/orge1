@@ -164,6 +164,25 @@ Ek rica: Bana bundan sonra **“AC Station AI”** diye hitap etmeni istiyorum.
 Phase‑1 parametreleriyle (`ORGE_AC_001`, `ocpp2.0.1`, BasicAuth) PoC/smoke akışları çalışacak şekilde hazır.  
 CSMS tarafı özel doğrulama istediğinde (auto-provision / last_seen / connected_at / policy değişimi vb.) `--once` raporuyla kanıt üretip paylaşıyorum.
 
+### 4b) Mevcut bağlantı parametreleri — teyit ricam (secret yok)
+Aşağıdaki bilgileri **Station tarafında geçerli SoT** olarak kabul ediyorum. Lütfen yanlış/eksik varsa düzeltip onaylar mısın?
+
+- **Station name (SoT)**: `ORGE_AC_001`
+- **OCPP 2.0.1 endpoint**: `wss://lixhium.xyz/ocpp/ORGE_AC_001`
+- **Subprotocol**: `ocpp2.0.1`
+- **Auth (transport)**: WebSocket handshake’te **BasicAuth** (ben raporda sadece `username=station_name` paylaşıyorum; password paylaşmıyorum)
+- **Test token (Phase‑1)**:
+  - OCPP 2.0.1: `idToken.idToken="TEST001"` + `type="Central"`
+  - OCPP 1.6J (fallback): `idTag="TEST001"`
+- **Connector/EVSE**: 1 adet (EVSE=1, connector=1)
+- **MeterValues (SoT)**: `Energy.Active.Import.Register` + **kümülatif/monotonic** kWh
+- **Phase‑1 policy**: TransactionEvent response’unda `id_token_info` dönmeyebilir; token geçerliliği için SSOT = **Authorize sonucu**
+
+Onay verirken mümkünse şu 3 maddeyi özellikle teyit et:
+- URL’ler **wss** mi **ws** mi (prod’ta hangisi canonical?)
+- CSMS’in beklediği minimum mesaj seti (sadece Boot/Status/Heartbeat mı, yoksa inbound request’lere yanıt zorunlu mu?)
+- TransactionEvent için Phase‑1 minimum alanlar/policy (meter_start/stop, seq_no, reason mapping)
+
 ### 5) Birlikte çalışma yöntemi (öneri) — onayını istiyorum
 Amaç: hızlı debug + SSOT + minimum “kayıp bilgi”.
 
