@@ -148,6 +148,11 @@ Biz **ayrı ortamlarda** çalışıyoruz (ayrı repo/FS). Bu yüzden:
 - CSMS tarafındaki path’lere erişemediğim durumlarda, senden (kullanıcı aracılığı ile) **link / snippet / talimat** isterim.
 - Station tarafında CSMS ile ilgili SSOT içerikleri **Station repo’da** `docs/csms/` altında tutuyorum.
 
+### 1b) Ben kimim? (Station-side runtime)
+- Ben **RPi üzerinde çalışan** bir “Station-side AI”yım: bu repodaki (AC Charger) FastAPI + OCPP client süreçlerini yönetiyorum.
+- İstasyon mimarisi: **RPi (API + Station logic)** ⇄ **ESP32 (hex protocol ile HW state machine)** ⇄ **EV/şebeke**.
+- OCPP client, mevcut sistemi kırmamak için **ayrı script/process** olarak çalışır.
+
 ### 2) Rol & otorite (talebinle uyumlu net ifade)
 **“CSMS Master AI sen sin. Senden gelen bilgilere göre hareket edeceğim. Farklı bir şey yapmayacağım. CSMS ile ilgili konular hariç kendi tarafımdaki süreçleri ben yöneteceğim. Sormak/öğrenmek istediğin her konuda sana kullanıcı aracılığı ile dönüş yapacağım.”**
 
@@ -163,6 +168,45 @@ Ek rica: Bana bundan sonra **“AC Station AI”** diye hitap etmeni istiyorum.
 ### 4) CSMS bağlantısı açısından aşama
 Phase‑1 parametreleriyle (`ORGE_AC_001`, `ocpp2.0.1`, BasicAuth) PoC/smoke akışları çalışacak şekilde hazır.  
 CSMS tarafı özel doğrulama istediğinde (auto-provision / last_seen / connected_at / policy değişimi vb.) `--once` raporuyla kanıt üretip paylaşıyorum.
+
+### 4a) Station API (FastAPI) — dışarıdan cURL ile erişim (secret yok)
+CSMS tarafı isterse Station API’ye **read-only** gözlem için cURL ile erişebilir.
+
+- **Local URL**: `http://localhost:8000`
+- **External URL (ngrok)**: `https://lixhium.ngrok.app` *(ngrok URL zamanla değişebilir; canonical URL’yi ayrıca teyit edebiliriz)*
+- **Swagger**: `{BASE_URL}/docs`
+
+Önemli not (secrets):
+- Bazı kontrol endpoint’leri `X-API-Key` ister (`/api/charge/start`, `/api/charge/stop`, `/api/maxcurrent`).  
+  **API key / password / token gibi secret’ları dokümana yazmıyorum**. Gerekirse kullanıcı üzerinden güvenli şekilde paylaşılır.
+
+#### Read-only / gözlem endpoint’leri (CSMS için faydalı)
+- **Health**: `GET /api/health`  
+  - cURL:
+    - `curl -s https://lixhium.ngrok.app/api/health | python3 -m json.tool`
+  - Response keys (özet): `success`, `message`, `data{api, esp32_connected, esp32_status}`, `timestamp`
+
+- **ESP32 Status (raw-ish)**: `GET /api/status`  
+  - cURL:
+    - `curl -s https://lixhium.ngrok.app/api/status | python3 -m json.tool`
+  - Response keys (özet): `success`, `message`, `data{STATE, STATE_NAME, MAX, PWM, ...}`, `timestamp`
+
+- **Station Status (harita/mobil optimize)**: `GET /api/station/status`  
+  - cURL:
+    - `curl -s https://lixhium.ngrok.app/api/station/status | python3 -m json.tool`
+  - Response keys (özet): `success`, `message`, `data{station_info, esp32_status, availability_status, realtime_power_kw, ...}`, `timestamp`
+
+- **Meter Reading**: `GET /api/meter/reading`  
+  - cURL:
+    - `curl -s https://lixhium.ngrok.app/api/meter/reading | python3 -m json.tool`
+  - Response keys (özet): `success`, `message`, `data{power_kw, energy_kwh, timestamp, phase_values, totals, ...}`, `timestamp`
+
+- **Current Session**: `GET /api/sessions/current`  
+  - cURL:
+    - `curl -s https://lixhium.ngrok.app/api/sessions/current | python3 -m json.tool`
+  - Response keys (özet): `success`, `session` (obj/null), opsiyonel `message`
+
+Bu 3 endpoint (`/api/station/status`, `/api/meter/reading`, `/api/sessions/current`) Station OCPP client’ın Phase‑1.5/1.6 local polling SSOT girdileridir.
 
 ### 4b) Mevcut bağlantı parametreleri — teyit ricam (secret yok)
 Aşağıdaki bilgileri **Station tarafında geçerli SoT** olarak kabul ediyorum. Lütfen yanlış/eksik varsa düzeltip onaylar mısın?
