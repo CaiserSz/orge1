@@ -2,8 +2,8 @@
 OCPP Station Client Runner (Phase-1)
 
 Created: 2025-12-16 01:20
-Last Modified: 2025-12-16 15:57
-Version: 0.4.1
+Last Modified: 2025-12-18 00:20
+Version: 0.5.0
 Description:
   OCPP station client entrypoint for Raspberry Pi (Python runtime).
   - Primary: OCPP 2.0.1 (v201)
@@ -24,6 +24,7 @@ import json
 import os
 import sys
 import uuid
+import subprocess
 from dataclasses import dataclass, fields, is_dataclass
 from typing import Any
 
@@ -54,11 +55,33 @@ def _response_summary(obj: Any) -> dict[str, Any]:
     return out
 
 
+def _git_commit_short() -> str | None:
+    try:
+        out = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+        return out or None
+    except Exception:
+        return None
+
+
+def _dist_version(dist_name: str) -> str | None:
+    try:
+        import importlib.metadata as md
+
+        return md.version(dist_name)
+    except Exception:
+        return None
+
+
 async def _run_once_json(cfg: Any) -> dict[str, Any]:
     # `--once` MUST output a single JSON object and MUST NOT include secrets.
     started_utc = utc_now_iso()
     finished_utc = started_utc
     messages: list[dict[str, Any]] = []
+    inbound: list[dict[str, Any]] = []
     notes: list[str] = []
     callerror = False
     protocol_timeout = False
@@ -83,6 +106,37 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
             }
         )
 
+    async def _send_safe(cp: Any, req: Any, action: str) -> Any:
+        """
+        Send a CALL and always append a message entry.
+        Returns response on success. Raises on error (after recording).
+        """
+        uid = str(uuid.uuid4())
+        ts = utc_now_iso()
+        try:
+            res = await cp.call(req, suppress=False, unique_id=uid)
+            messages.append(
+                {
+                    "action": action,
+                    "utc": ts,
+                    "unique_id": uid,
+                    "request_keys": _dataclass_field_names(req),
+                    "response_summary": _response_summary(res),
+                }
+            )
+            return res
+        except Exception as exc:
+            messages.append(
+                {
+                    "action": action,
+                    "utc": ts,
+                    "unique_id": uid,
+                    "request_keys": _dataclass_field_names(req),
+                    "response_summary": {"error": str(exc)},
+                }
+            )
+            raise
+
     try:
         async with websockets.connect(
             url,
@@ -97,6 +151,60 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
                 from ocpp.v201 import datatypes as dt
 
                 class StationCP(ChargePoint):
+                    def __init__(self, *args: Any, **kwargs: Any):
+                        super().__init__(*args, **kwargs)
+                        self._inbound_by_uid: dict[str, dict[str, Any]] = {}
+
+                    async def route_message(self, raw_msg: str):
+                        # Best-effort: capture inbound CALL action + unique_id for evidence.
+                        try:
+                            msg = json.loads(raw_msg)
+                            if (
+                                isinstance(msg, list)
+                                and len(msg) >= 4
+                                and int(msg[0]) == 2
+                                and isinstance(msg[1], str)
+                                and isinstance(msg[2], str)
+                            ):
+                                uid = msg[1]
+                                action = msg[2]
+                                entry = {
+                                    "direction": "inbound",
+                                    "utc": utc_now_iso(),
+                                    "unique_id": uid,
+                                    "action": action,
+                                    "response_type": None,
+                                    "callerror": None,
+                                }
+                                inbound.append(entry)
+                                self._inbound_by_uid[uid] = entry
+                        except Exception:
+                            pass
+                        return await super().route_message(raw_msg)
+
+                    async def _send(self, message: str):
+                        # Capture responses to inbound CALLs (CALLRESULT / CALLERROR).
+                        try:
+                            msg = json.loads(message)
+                            if isinstance(msg, list) and len(msg) >= 3:
+                                msg_type = int(msg[0])
+                                uid = msg[1] if isinstance(msg[1], str) else None
+                                if uid and uid in self._inbound_by_uid:
+                                    entry = self._inbound_by_uid[uid]
+                                    if msg_type == 3:
+                                        entry["response_type"] = "CallResult"
+                                        entry["callerror"] = False
+                                    elif msg_type == 4:
+                                        entry["response_type"] = "CallError"
+                                        entry["callerror"] = True
+                                        # [4, uniqueId, errorCode, errorDescription, errorDetails]
+                                        if len(msg) >= 5:
+                                            entry["error_code"] = msg[2]
+                                            entry["error_description"] = msg[3]
+                        except Exception:
+                            pass
+                        return await super()._send(message)
+
                     @on("GetBaseReport")
                     def on_get_base_report(
                         self, request_id: int, report_base: str, **kwargs
@@ -104,6 +212,88 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
                         return call_result.GetBaseReport(
                             status=enums.GenericDeviceModelStatusEnumType.accepted
                         )
+
+                    @on("GetReport")
+                    def on_get_report(self, **kwargs):
+                        # Minimal safe response (Phase-1): we don't generate report data here.
+                        return call_result.GetReport(
+                            status=enums.GenericDeviceModelStatusEnumType.not_supported
+                        )
+
+                    @on("GetLog")
+                    def on_get_log(self, **kwargs):
+                        # Minimal safe response (Phase-1): do not generate/download log files here.
+                        return call_result.GetLog(
+                            status=enums.LogStatusEnumType.rejected, filename=""
+                        )
+
+                    @on("GetVariables")
+                    def on_get_variables(self, get_variable_data: list, **kwargs):
+                        results: list[dt.GetVariableResultType] = []
+                        for item in get_variable_data:
+                            if hasattr(item, "component") and hasattr(item, "variable"):
+                                component = item.component
+                                variable = item.variable
+                                attr_type = getattr(item, "attribute_type", None)
+                            else:
+                                component = (
+                                    item.get("component")
+                                    if isinstance(item, dict)
+                                    else None
+                                )
+                                variable = (
+                                    item.get("variable")
+                                    if isinstance(item, dict)
+                                    else None
+                                )
+                                attr_type = (
+                                    item.get("attribute_type")
+                                    if isinstance(item, dict)
+                                    else None
+                                )
+                            results.append(
+                                dt.GetVariableResultType(
+                                    attribute_status=enums.GetVariableStatusEnumType.unknown_component,
+                                    component=component,
+                                    variable=variable,
+                                    attribute_type=attr_type,
+                                )
+                            )
+                        return call_result.GetVariables(get_variable_result=results)
+
+                    @on("SetVariables")
+                    def on_set_variables(self, set_variable_data: list, **kwargs):
+                        results: list[dt.SetVariableResultType] = []
+                        for item in set_variable_data:
+                            if hasattr(item, "component") and hasattr(item, "variable"):
+                                component = item.component
+                                variable = item.variable
+                                attr_type = getattr(item, "attribute_type", None)
+                            else:
+                                component = (
+                                    item.get("component")
+                                    if isinstance(item, dict)
+                                    else None
+                                )
+                                variable = (
+                                    item.get("variable")
+                                    if isinstance(item, dict)
+                                    else None
+                                )
+                                attr_type = (
+                                    item.get("attribute_type")
+                                    if isinstance(item, dict)
+                                    else None
+                                )
+                            results.append(
+                                dt.SetVariableResultType(
+                                    attribute_status=enums.SetVariableStatusEnumType.rejected,
+                                    component=component,
+                                    variable=variable,
+                                    attribute_type=attr_type,
+                                )
+                            )
+                        return call_result.SetVariables(set_variable_result=results)
 
                 cp: Any = StationCP(cfg.station_name, ws)
                 runner = asyncio.create_task(cp.start())
@@ -133,6 +323,148 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
                         ),
                         "StatusNotification",
                     )
+                    # Phase-1.x minimum evidence: always emit at least one Heartbeat early.
+                    await _send(cp, call.Heartbeat(), "Heartbeat")
+                    # Phase-1.2 extended single-run evidence (enabled via --poc + --once).
+                    if cfg.poc_mode:
+                        seq_no = 1
+                        # Keep transactionId short (CSMS/lib constraints vary); stable for this run.
+                        tx_id = uuid.uuid4().hex  # 32 chars
+
+                        id_token = dt.IdTokenType(
+                            id_token=cfg.id_token,
+                            type=enums.IdTokenEnumType.central,
+                        )
+
+                        # Authorize(TEST001)
+                        auth_req = call.Authorize(id_token=id_token)
+                        auth_res = await _send_safe(cp, auth_req, "Authorize")
+                        auth_summary = _response_summary(auth_res)
+                        # Some CSMS policies may omit id_token_info in responses.
+                        auth_has_id_token_info = bool(
+                            getattr(auth_res, "id_token_info", None) is not None
+                        )
+                        auth_summary["id_token_info_present"] = auth_has_id_token_info
+                        if auth_has_id_token_info:
+                            iti = getattr(auth_res, "id_token_info", None)
+                            if isinstance(iti, dict):
+                                auth_summary["id_token_status"] = iti.get("status")
+                            else:
+                                auth_summary["id_token_status"] = getattr(
+                                    iti, "status", None
+                                )
+                        # Replace the last Authorize entry with enriched summary.
+                        if messages and messages[-1].get("action") == "Authorize":
+                            messages[-1]["response_summary"] = auth_summary
+
+                        # TransactionEvent Started
+                        started_ts = utc_now_iso()
+                        started_req = call.TransactionEvent(
+                            event_type=enums.TransactionEventEnumType.started,
+                            timestamp=started_ts,
+                            trigger_reason=enums.TriggerReasonEnumType.authorized,
+                            seq_no=seq_no,
+                            transaction_info=dt.TransactionType(transaction_id=tx_id),
+                            evse=dt.EVSEType(id=1, connector_id=1),
+                            id_token=id_token,
+                        )
+                        await _send_safe(cp, started_req, "TransactionEvent(Started)")
+                        seq_no += 1
+
+                        # MeterValues (3 samples, monotonic kWh)
+                        energy_values: list[float] = []
+                        base_kwh = 1000.0
+                        for i in range(3):
+                            if i > 0:
+                                await asyncio.sleep(5)
+                            kwh = base_kwh + (i + 1) * 0.01
+                            energy_values.append(kwh)
+
+                            mv_ts = utc_now_iso()
+                            mv_req = call.MeterValues(
+                                evse_id=1,
+                                meter_value=[
+                                    dt.MeterValueType(
+                                        timestamp=mv_ts,
+                                        sampled_value=[
+                                            dt.SampledValueType(
+                                                value=kwh,
+                                                context=enums.ReadingContextEnumType.sample_periodic,
+                                                measurand=enums.MeasurandEnumType.energy_active_import_register,
+                                                unit_of_measure=dt.UnitOfMeasureType(
+                                                    unit="kWh"
+                                                ),
+                                            )
+                                        ],
+                                    )
+                                ],
+                            )
+                            await _send_safe(cp, mv_req, f"MeterValues[{i+1}]")
+
+                            # Optional: TransactionEvent Updated after 2nd sample
+                            if i == 1:
+                                upd_ts = utc_now_iso()
+                                upd_req = call.TransactionEvent(
+                                    event_type=enums.TransactionEventEnumType.updated,
+                                    timestamp=upd_ts,
+                                    trigger_reason=enums.TriggerReasonEnumType.meter_value_periodic,
+                                    seq_no=seq_no,
+                                    transaction_info=dt.TransactionType(
+                                        transaction_id=tx_id,
+                                        charging_state=enums.ChargingStateEnumType.charging,
+                                    ),
+                                    evse=dt.EVSEType(id=1, connector_id=1),
+                                    id_token=id_token,
+                                    meter_value=mv_req.meter_value,
+                                )
+                                await _send_safe(
+                                    cp, upd_req, "TransactionEvent(Updated)"
+                                )
+                                seq_no += 1
+
+                        # TransactionEvent Ended (final meter + stoppedReason)
+                        ended_ts = utc_now_iso()
+                        final_kwh = energy_values[-1] if energy_values else base_kwh
+                        ended_req = call.TransactionEvent(
+                            event_type=enums.TransactionEventEnumType.ended,
+                            timestamp=ended_ts,
+                            trigger_reason=enums.TriggerReasonEnumType.stop_authorized,
+                            seq_no=seq_no,
+                            transaction_info=dt.TransactionType(
+                                transaction_id=tx_id,
+                                stopped_reason=enums.ReasonEnumType.local,
+                            ),
+                            evse=dt.EVSEType(id=1, connector_id=1),
+                            id_token=id_token,
+                            meter_value=[
+                                dt.MeterValueType(
+                                    timestamp=ended_ts,
+                                    sampled_value=[
+                                        dt.SampledValueType(
+                                            value=final_kwh,
+                                            context=enums.ReadingContextEnumType.transaction_end,
+                                            measurand=enums.MeasurandEnumType.energy_active_import_register,
+                                            unit_of_measure=dt.UnitOfMeasureType(
+                                                unit="kWh"
+                                            ),
+                                        )
+                                    ],
+                                )
+                            ],
+                        )
+                        await _send_safe(cp, ended_req, "TransactionEvent(Ended)")
+
+                        # Local validations (evidence for Phase-1.2)
+                        monotonic_energy_ok = all(
+                            energy_values[i] < energy_values[i + 1]
+                            for i in range(len(energy_values) - 1)
+                        )
+                        notes.append(
+                            f"phase12: transaction_id={tx_id} seq_no_start=1 seq_no_end={seq_no}"
+                        )
+                        notes.append(
+                            f"phase12: meter_kwh={energy_values} monotonic_ok={monotonic_energy_ok}"
+                        )
                     await _send(cp, call.Heartbeat(), "Heartbeat")
                 finally:
                     runner.cancel()
@@ -187,6 +519,14 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
             "callerror": bool(callerror),
             "protocol_timeout": bool(protocol_timeout),
             "notes": notes,
+            "build": {
+                "station_build_commit": _git_commit_short(),
+                "ocpp_lib_version": _dist_version("ocpp"),
+                "websockets_version": getattr(websockets, "__version__", None),
+                "runtime_mode": "once",
+                "phase": "phase-1.2" if bool(cfg.poc_mode) else "phase-1.1",
+            },
+            "inbound_calls": inbound,
         },
         "messages": messages,
     }
@@ -454,7 +794,7 @@ def main(argv: list[str]) -> int:
     cfg = _build_config(args)
 
     # Safety: this runner is isolated. It must not be started implicitly.
-    if cfg.once_mode and not cfg.poc_mode:
+    if cfg.once_mode:
         # IMPORTANT:
         # `--once` MUST output exactly one JSON object to stdout (CSMS ops tooling).
         # Do not print any other lines here.
