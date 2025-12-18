@@ -92,6 +92,34 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
         "Authorization": basic_auth_header(cfg.station_name, cfg.station_password)
     }
 
+    def _final_report(*, finished: str) -> dict[str, Any]:
+        return {
+            "station_name": cfg.station_name,
+            "endpoint": url,
+            "subprotocol": subprotocol,
+            "run_started_utc": started_utc,
+            "run_finished_utc": finished,
+            "auth": {"username": cfg.station_name},
+            "result": {
+                "callerror": bool(callerror),
+                "protocol_timeout": bool(protocol_timeout),
+                "notes": notes,
+                "build": {
+                    "station_build_commit": _git_commit_short(),
+                    "ocpp_lib_version": _dist_version("ocpp"),
+                    "websockets_version": getattr(websockets, "__version__", None),
+                    "runtime_mode": "once",
+                    "phase": (
+                        "phase-1.4"
+                        if bool(getattr(cfg, "poc_remote_start_enabled", False))
+                        else ("phase-1.3" if bool(cfg.poc_mode) else "phase-1.1")
+                    ),
+                },
+                "inbound_calls": inbound,
+            },
+            "messages": messages,
+        }
+
     async def _send(cp: Any, req: Any, action: str) -> None:
         uid = str(uuid.uuid4())
         ts = utc_now_iso()
@@ -159,6 +187,12 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
                         self._remote_stop_event = asyncio.Event()
                         self._remote_stop_transaction_id: str | None = None
                         self._remote_stop_seen_utc: str | None = None
+                        # Phase-1.4: remote start mapping signal
+                        self._remote_start_event = asyncio.Event()
+                        self._remote_start_seen_utc: str | None = None
+                        self._remote_start_id_token: dt.IdTokenType | None = None
+                        self._remote_start_id: int | None = None
+                        self._remote_start_evse_id: int | None = None
 
                     async def route_message(self, raw_msg: str):
                         # Best-effort: capture inbound CALL action + unique_id for evidence.
@@ -312,6 +346,30 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
                             status=enums.RequestStartStopStatusEnumType.accepted
                         )
 
+                    @on("RequestStartTransaction")
+                    def on_request_start_transaction(
+                        self,
+                        id_token: dt.IdTokenType,
+                        remote_start_id: int,
+                        evse_id: int | None = None,
+                        **kwargs,
+                    ):
+                        # Phase-1.4 mapping: this inbound call is treated as Remote start source.
+                        self._remote_start_seen_utc = utc_now_iso()
+                        self._remote_start_id_token = id_token
+                        self._remote_start_id = remote_start_id
+                        self._remote_start_evse_id = evse_id
+                        self._remote_start_event.set()
+
+                        # Return Accepted; provide transactionId if caller wants determinism.
+                        tx_id = None
+                        if getattr(cfg, "poc_transaction_id", ""):
+                            tx_id = cfg.poc_transaction_id
+                        return call_result.RequestStartTransaction(
+                            status=enums.RequestStartStopStatusEnumType.accepted,
+                            transaction_id=tx_id,
+                        )
+
                 cp: Any = StationCP(cfg.station_name, ws)
                 runner = asyncio.create_task(cp.start())
                 try:
@@ -344,38 +402,101 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
                     await _send(cp, call.Heartbeat(), "Heartbeat")
                     # Phase-1.2 extended single-run evidence (enabled via --poc + --once).
                     if cfg.poc_mode:
-                        seq_no = 1
-                        # Keep transactionId short (CSMS/lib constraints vary); stable for this run.
-                        tx_id = (cfg.poc_transaction_id or uuid.uuid4().hex).strip()
-                        if not tx_id:
-                            tx_id = uuid.uuid4().hex
-                        tx_id = tx_id[:36]
-
-                        id_token = dt.IdTokenType(
-                            id_token=cfg.id_token,
-                            type=enums.IdTokenEnumType.central,
-                        )
-
-                        # Authorize(TEST001)
-                        auth_req = call.Authorize(id_token=id_token)
-                        auth_res = await _send_safe(cp, auth_req, "Authorize")
-                        auth_summary = _response_summary(auth_res)
-                        # Some CSMS policies may omit id_token_info in responses.
-                        auth_has_id_token_info = bool(
-                            getattr(auth_res, "id_token_info", None) is not None
-                        )
-                        auth_summary["id_token_info_present"] = auth_has_id_token_info
-                        if auth_has_id_token_info:
-                            iti = getattr(auth_res, "id_token_info", None)
-                            if isinstance(iti, dict):
-                                auth_summary["id_token_status"] = iti.get("status")
-                            else:
-                                auth_summary["id_token_status"] = getattr(
-                                    iti, "status", None
+                        # Phase-1.4 (A) Remote Start evidence: wait for inbound RequestStartTransaction.
+                        if bool(getattr(cfg, "poc_remote_start_enabled", False)):
+                            wait_s = int(
+                                getattr(cfg, "poc_remote_start_wait_seconds", 120)
+                            )
+                            notes.append(
+                                f"phase14: waiting_for=RequestStartTransaction timeout_seconds={wait_s}"
+                            )
+                            try:
+                                await asyncio.wait_for(
+                                    cp._remote_start_event.wait(), timeout=wait_s
                                 )
-                        # Replace the last Authorize entry with enriched summary.
-                        if messages and messages[-1].get("action") == "Authorize":
-                            messages[-1]["response_summary"] = auth_summary
+                            except asyncio.TimeoutError:
+                                callerror = True
+                                notes.append(
+                                    "phase14: timeout waiting for RequestStartTransaction"
+                                )
+                                raise
+
+                            # Build TransactionEvent(Started) driven by RemoteStart.
+                            remote_start_id = cp._remote_start_id
+                            remote_start_seen_utc = cp._remote_start_seen_utc
+                            remote_start_evse_id = cp._remote_start_evse_id or 1
+                            remote_start_id_token = cp._remote_start_id_token
+
+                            tx_id = (cfg.poc_transaction_id or "").strip()
+                            if not tx_id:
+                                tx_id = (
+                                    f"RS_{remote_start_id}"
+                                    if remote_start_id
+                                    else uuid.uuid4().hex
+                                )
+                            tx_id = tx_id[:36]
+
+                            started_ts = utc_now_iso()
+                            started_req = call.TransactionEvent(
+                                event_type=enums.TransactionEventEnumType.started,
+                                timestamp=started_ts,
+                                trigger_reason=enums.TriggerReasonEnumType.remote_start,
+                                seq_no=1,
+                                transaction_info=dt.TransactionType(
+                                    transaction_id=tx_id
+                                ),
+                                evse=dt.EVSEType(
+                                    id=int(remote_start_evse_id), connector_id=1
+                                ),
+                                id_token=remote_start_id_token,
+                            )
+                            await _send_safe(
+                                cp, started_req, "TransactionEvent(Started)"
+                            )
+                            notes.append(
+                                "phase14: started_trigger_reason=RemoteStart "
+                                f"tx_id={tx_id} remote_start_id={remote_start_id} "
+                                f"seen_utc={remote_start_seen_utc}"
+                            )
+                            # Minimal Phase-1.4(A): finish after Started evidence.
+                            await _send(cp, call.Heartbeat(), "Heartbeat")
+                            return _final_report(finished=utc_now_iso())
+                        else:
+
+                            seq_no = 1
+                            # Keep transactionId short (CSMS/lib constraints vary); stable for this run.
+                            tx_id = (cfg.poc_transaction_id or uuid.uuid4().hex).strip()
+                            if not tx_id:
+                                tx_id = uuid.uuid4().hex
+                            tx_id = tx_id[:36]
+
+                            id_token = dt.IdTokenType(
+                                id_token=cfg.id_token,
+                                type=enums.IdTokenEnumType.central,
+                            )
+
+                            # Authorize(TEST001)
+                            auth_req = call.Authorize(id_token=id_token)
+                            auth_res = await _send_safe(cp, auth_req, "Authorize")
+                            auth_summary = _response_summary(auth_res)
+                            # Some CSMS policies may omit id_token_info in responses.
+                            auth_has_id_token_info = bool(
+                                getattr(auth_res, "id_token_info", None) is not None
+                            )
+                            auth_summary["id_token_info_present"] = (
+                                auth_has_id_token_info
+                            )
+                            if auth_has_id_token_info:
+                                iti = getattr(auth_res, "id_token_info", None)
+                                if isinstance(iti, dict):
+                                    auth_summary["id_token_status"] = iti.get("status")
+                                else:
+                                    auth_summary["id_token_status"] = getattr(
+                                        iti, "status", None
+                                    )
+                            # Replace the last Authorize entry with enriched summary.
+                            if messages and messages[-1].get("action") == "Authorize":
+                                messages[-1]["response_summary"] = auth_summary
 
                         # TransactionEvent Started
                         started_ts = utc_now_iso()
@@ -597,29 +718,7 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
         callerror = True
         notes.append(f"error: {exc}")
 
-    finished_utc = utc_now_iso()
-    return {
-        "station_name": cfg.station_name,
-        "endpoint": url,
-        "subprotocol": subprotocol,
-        "run_started_utc": started_utc,
-        "run_finished_utc": finished_utc,
-        "auth": {"username": cfg.station_name},
-        "result": {
-            "callerror": bool(callerror),
-            "protocol_timeout": bool(protocol_timeout),
-            "notes": notes,
-            "build": {
-                "station_build_commit": _git_commit_short(),
-                "ocpp_lib_version": _dist_version("ocpp"),
-                "websockets_version": getattr(websockets, "__version__", None),
-                "runtime_mode": "once",
-                "phase": "phase-1.3" if bool(cfg.poc_mode) else "phase-1.1",
-            },
-            "inbound_calls": inbound,
-        },
-        "messages": messages,
-    }
+    return _final_report(finished=utc_now_iso())
 
 
 class Ocpp16Adapter:
@@ -729,6 +828,10 @@ class OcppRuntimeConfig:
     # Optional fixed transactionId for PoC runs (helps CSMS trigger RequestStopTransaction).
     poc_transaction_id: str
 
+    # Phase-1.4 PoC: wait for CSMS RequestStartTransaction and emit TransactionEvent(Started)
+    poc_remote_start_enabled: bool
+    poc_remote_start_wait_seconds: int
+
 
 def _env(name: str, default: str) -> str:
     val = os.getenv(name)
@@ -806,6 +909,11 @@ def _build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
         poc_transaction_id=(
             args.poc_transaction_id or _env("OCPP_POC_TRANSACTION_ID", "")
         ).strip(),
+        poc_remote_start_enabled=bool(args.poc_remote_start),
+        poc_remote_start_wait_seconds=int(
+            args.poc_remote_start_wait_seconds
+            or _env("OCPP_POC_REMOTE_START_WAIT_SECONDS", "120")
+        ),
     )
 
 
@@ -858,6 +966,22 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         help=(
             "Phase-1.3 PoC: optional fixed transactionId to use for the run. "
             "This makes it easy for CSMS to send RequestStopTransaction(transactionId=...)."
+        ),
+    )
+    p.add_argument(
+        "--poc-remote-start",
+        action="store_true",
+        help=(
+            "Phase-1.4 PoC: wait for inbound RequestStartTransaction and emit "
+            "TransactionEvent(Started) with triggerReason=RemoteStart, then exit."
+        ),
+    )
+    p.add_argument(
+        "--poc-remote-start-wait-seconds",
+        default=None,
+        help=(
+            "Phase-1.4 PoC: max seconds to wait for inbound RequestStartTransaction "
+            "before failing the run. Default 120."
         ),
     )
     p.add_argument(
