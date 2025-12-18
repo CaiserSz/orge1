@@ -1,11 +1,26 @@
 # Tamamlanan Görevler
 
 **Oluşturulma Tarihi:** 2025-12-08 18:20:00
-**Son Güncelleme:** 2025-12-14 03:30:00
+**Son Güncelleme:** 2025-12-18 20:30:00
 
 ---
 
 ## Tamamlanan Görevler Listesi
+
+### 2025-12-18
+
+#### ✅ OCPP Phase‑1.3 Remote Stop Mapping Kanıtı (20:23:33)
+- **Görev:** CSMS inbound `RequestStopTransaction` ile Remote stop kaynağını yakala ve `TransactionEvent(Ended)` mapping’ini üret
+- **Açıklama:** Phase‑1.3 kapsamında stoppedReason mapping tamamlandı. CSMS’ten gelen `RequestStopTransaction(transactionId=REMOTE_TX_001)` inbound call görüldü; Ended event’inde `stoppedReason=Remote`, `triggerReason=RemoteStop` üretildi.
+- **Kanıt (UTC):**
+  - `run_started_utc`: 2025-12-18T20:23:17Z
+  - `run_finished_utc`: 2025-12-18T20:23:33Z
+  - `callerror=false`, `protocol_timeout=false`
+  - inbound: `RequestStopTransaction` (unique_id: 4627e557-14c1-4add-b921-6fb70d00328a)
+  - Started unique_id: 209ac0cb-e22e-49fe-b1bc-8ecc1f59db83
+  - Ended unique_id: e9b00b35-df30-4ed5-914d-ce9b3442c3b7
+- **Komut (secret redacted):**
+  - `./env/bin/python ocpp/main.py --primary 201 --once --poc --poc-remote-stop-wait-seconds 120 --poc-transaction-id REMOTE_TX_001 --ocpp201-url wss://lixhium.xyz/ocpp/ORGE_AC_001 --ocpp16-url wss://lixhium.xyz/ocpp16/ORGE_AC_001 --station-name ORGE_AC_001 --station-password ****** --id-token TEST001`
 
 ### 2025-12-14
 

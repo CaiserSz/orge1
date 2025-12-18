@@ -1,8 +1,8 @@
 # Proje Durumu ve İlerleme Takibi
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-14 03:50:00
-**Version:** 1.8.4
+**Son Güncelleme:** 2025-12-18 20:30:00
+**Version:** 1.8.5
 
 ---
 
@@ -12,6 +12,7 @@
 **Sonraki Faz:** Faz 7 - Production Deployment ve Mobil Uygulama Entegrasyonu
 **Proje Sağlığı:** ✅ Mükemmel (Skor: 9.6/10)
 **Son Aktif Çalışma:** `/api/status` RL/LOCK telemetri açıklaması ve uyarılar (Tamamlandı - 2025-12-14 03:50:00)
+**CSMS/OCPP Durumu:** ✅ Phase‑1.3 tamamlandı (Remote stop: RequestStopTransaction → RemoteStop kanıtı alındı)
 **İstasyon Durumu:** ✅ Production-Ready (2025-12-10 15:40:00)
 **Checkpoint Tag:** v1.0.0-test-complete
 

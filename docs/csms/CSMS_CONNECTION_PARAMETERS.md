@@ -309,3 +309,32 @@ Bu varyant için CSMS’in aktif session sırasında `RequestStopTransaction` g�
   - inbound_calls içinde `RequestStopTransaction` görünür
   - `ended_stopped_reason=Remote`, `trigger_reason=RemoteStop`
 
+#### Evidence C (Success) — 2025-12-18
+
+Run summary (UTC):
+- `run_started_utc`: 2025-12-18T20:23:17Z
+- `run_finished_utc`: 2025-12-18T20:23:33Z
+- `station_name`: ORGE_AC_001
+- `endpoint`: wss://lixhium.xyz/ocpp/ORGE_AC_001
+- `subprotocol`: ocpp2.0.1
+- `build.station_build_commit`: 2b3cba6
+- `result`: callerror=false, protocol_timeout=false
+
+Command (secret redacted):
+- `./env/bin/python ocpp/main.py --primary 201 --once --poc --poc-remote-stop-wait-seconds 120 --poc-transaction-id REMOTE_TX_001 --ocpp201-url wss://lixhium.xyz/ocpp/ORGE_AC_001 --ocpp16-url wss://lixhium.xyz/ocpp16/ORGE_AC_001 --station-name ORGE_AC_001 --station-password ****** --id-token TEST001`
+
+Messages (UTC + unique_id):
+- TransactionEvent(Started) @ 2025-12-18T20:23:22Z
+  - unique_id: 209ac0cb-e22e-49fe-b1bc-8ecc1f59db83
+- TransactionEvent(Ended) @ 2025-12-18T20:23:32Z
+  - unique_id: e9b00b35-df30-4ed5-914d-ce9b3442c3b7
+
+Inbound calls (evidence):
+- RequestStopTransaction @ 2025-12-18T20:23:22Z
+  - unique_id: 4627e557-14c1-4add-b921-6fb70d00328a
+  - response_type: CallResult
+
+Mapping evidence (notes):
+- `phase13: stop_source=remote inbound=RequestStopTransaction tx_id=REMOTE_TX_001 seen_utc=2025-12-18T20:23:22Z`
+- `phase13: ended_stopped_reason=Remote trigger_reason=RemoteStop`
+

@@ -1,8 +1,8 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-16 16:29:34
-**Version:** 1.12.0
+**Son Güncelleme:** 2025-12-18 20:30:00
+**Version:** 1.13.0
 
 ---
 
@@ -14,19 +14,22 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251216-038
-**Tarih:** 2025-12-16 16:29:34
-**Durum:** ✅ CSMS post-migration ops: `--once` JSON raporu + kritik standart ihlali kapatma
+**Checkpoint ID:** CP-20251218-039
+**Tarih:** 2025-12-18 20:30:00
+**Durum:** ✅ OCPP Phase‑1.3 kapanış: Remote(C) kanıtı alındı (RequestStopTransaction → RemoteStop)
 - OCPP (station client):
-  - `ocpp/main.py --once` artık stdout’a **tek** CSMS-uyumlu JSON rapor basıyor (secret yok; sadece `auth.username`).
-  - `messages[]` alanı CSMS şemasıyla hizalı: `action, utc, unique_id, request_keys, response_summary`.
-  - Smoke run (Boot → Status → Heartbeat) ile JSON çıktısı üretildi ve doğrulandı.
-- Standart/kalite:
-  - `api/event_detector.py` satır limiti düzeltildi: **543 → 476** (yeni dosya oluşturmadan, davranış korunarak).
+  - Phase‑1.3 stop source mapping tamamlandı:
+    - Default: `EVDisconnected` / `EVDeparted`
+    - Local (simulated): `Local` / `StopAuthorized`
+    - Remote: inbound `RequestStopTransaction` → `Remote` / `RemoteStop`
+  - Remote(C) kanıt koşumu (tx_id=`REMOTE_TX_001`) başarıyla tamamlandı:
+    - inbound: `RequestStopTransaction` görüldü (CallResult)
+    - Ended: `stoppedReason=Remote`, `triggerReason=RemoteStop`
+    - `callerror=false`, `protocol_timeout=false`
+- SSOT:
+  - `docs/csms/CSMS_CONNECTION_PARAMETERS.md` Phase‑1.3 Evidence C (Success) eklendi.
 - Test/teyit:
-  - `python3 -m py_compile api/event_detector.py` → ✅ geçti
-  - `pytest tests/test_event_detector.py` → ✅ 20/20 geçti
-  - `python3 scripts/todo_auto_check.py` → ✅ geçti
+  - Kanıt, `--once` tek JSON stdout raporu ile alındı (secret yok).
 
 ### Önceki Checkpoint: CP-20251216-037 (2025-12-16 06:20:00)
 **Durum:** ✅ OCPP Phase‑1.6: local session → TransactionEvent(Started/Ended) + refactor (dosya boyutu uyumu)
