@@ -346,7 +346,10 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
                     if cfg.poc_mode:
                         seq_no = 1
                         # Keep transactionId short (CSMS/lib constraints vary); stable for this run.
-                        tx_id = uuid.uuid4().hex  # 32 chars
+                        tx_id = (cfg.poc_transaction_id or uuid.uuid4().hex).strip()
+                        if not tx_id:
+                            tx_id = uuid.uuid4().hex
+                        tx_id = tx_id[:36]
 
                         id_token = dt.IdTokenType(
                             id_token=cfg.id_token,
@@ -723,6 +726,8 @@ class OcppRuntimeConfig:
     poc_stop_source: str
     # Optional wait window before ending the transaction to allow inbound remote stop.
     poc_remote_stop_wait_seconds: int
+    # Optional fixed transactionId for PoC runs (helps CSMS trigger RequestStopTransaction).
+    poc_transaction_id: str
 
 
 def _env(name: str, default: str) -> str:
@@ -798,6 +803,9 @@ def _build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
             args.poc_remote_stop_wait_seconds
             or _env("OCPP_POC_REMOTE_STOP_WAIT_SECONDS", "0")
         ),
+        poc_transaction_id=(
+            args.poc_transaction_id or _env("OCPP_POC_TRANSACTION_ID", "")
+        ).strip(),
     )
 
 
@@ -842,6 +850,14 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         help=(
             "Phase-1.3 PoC: optionally wait this many seconds before TransactionEvent(Ended) "
             "to allow inbound RequestStopTransaction. Default 0."
+        ),
+    )
+    p.add_argument(
+        "--poc-transaction-id",
+        default=None,
+        help=(
+            "Phase-1.3 PoC: optional fixed transactionId to use for the run. "
+            "This makes it easy for CSMS to send RequestStopTransaction(transactionId=...)."
         ),
     )
     p.add_argument(
