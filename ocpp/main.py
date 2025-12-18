@@ -110,7 +110,10 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
                     "runtime_mode": "once",
                     "phase": (
                         "phase-1.4"
-                        if bool(getattr(cfg, "poc_remote_start_enabled", False))
+                        if bool(
+                            getattr(cfg, "poc_remote_start_enabled", False)
+                            or getattr(cfg, "poc_runbook_enabled", False)
+                        )
                         else ("phase-1.3" if bool(cfg.poc_mode) else "phase-1.1")
                     ),
                 },
@@ -192,6 +195,9 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
                         self._remote_start_id_token: dt.IdTokenType | None = None
                         self._remote_start_id: int | None = None
                         self._remote_start_evse_id: int | None = None
+                        # Phase-1.4(B): SetChargingProfile evidence
+                        self._set_charging_profile_event = asyncio.Event()
+                        self._last_profile_summary: dict[str, Any] | None = None
 
                     async def route_message(self, raw_msg: str):
                         # Best-effort: capture inbound CALL action + unique_id for evidence.
@@ -369,6 +375,49 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
                             transaction_id=tx_id,
                         )
 
+                    @on("SetChargingProfile")
+                    def on_set_charging_profile(
+                        self,
+                        charging_profile: dt.ChargingProfileType,
+                        evse_id: int | None = None,
+                        **kwargs,
+                    ):
+                        # Phase-1.4(B): accept and record a short summary for evidence.
+                        summary: dict[str, Any] = {"evse_id": evse_id}
+                        try:
+                            # dt.ChargingProfileType is dataclass-like in python-ocpp
+                            summary["stack_level"] = getattr(
+                                charging_profile, "stack_level", None
+                            )
+                            summary["charging_profile_purpose"] = getattr(
+                                charging_profile, "charging_profile_purpose", None
+                            )
+                            summary["charging_profile_kind"] = getattr(
+                                charging_profile, "charging_profile_kind", None
+                            )
+                            sched = getattr(charging_profile, "charging_schedule", None)
+                            if sched and isinstance(sched, list) and sched:
+                                s0 = sched[0]
+                                summary["rate_unit"] = getattr(
+                                    s0, "charging_rate_unit", None
+                                )
+                                periods = (
+                                    getattr(s0, "charging_schedule_period", None) or []
+                                )
+                                if periods:
+                                    p0 = periods[0]
+                                    summary["period_start"] = getattr(
+                                        p0, "start_period", None
+                                    )
+                                    summary["period_limit"] = getattr(p0, "limit", None)
+                        except Exception:
+                            pass
+                        self._last_profile_summary = summary
+                        self._set_charging_profile_event.set()
+                        return call_result.SetChargingProfile(
+                            status=enums.ChargingProfileStatusEnumType.accepted
+                        )
+
                 cp: Any = StationCP(cfg.station_name, ws)
                 runner = asyncio.create_task(cp.start())
                 try:
@@ -399,9 +448,148 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
                     )
                     # Phase-1.x minimum evidence: always emit at least one Heartbeat early.
                     await _send(cp, call.Heartbeat(), "Heartbeat")
-                    # Phase-1.2 extended single-run evidence (enabled via --poc + --once).
+                    # Phase-1.x PoC evidence (enabled via --poc + --once).
                     if cfg.poc_mode:
-                        # Phase-1.4 (A) Remote Start evidence: wait for inbound RequestStartTransaction.
+                        # Phase-1.4 (A/B/C) Runbook:
+                        # A) Wait for inbound RequestStartTransaction → send TransactionEvent(Started) (RemoteStart)
+                        # B) Wait for inbound SetChargingProfile → record summary
+                        # C) Wait for inbound RequestStopTransaction → send TransactionEvent(Ended) (Remote/RemoteStop)
+                        if bool(getattr(cfg, "poc_runbook_enabled", False)):
+                            start_wait_s = int(
+                                getattr(cfg, "poc_remote_start_wait_seconds", 120)
+                            )
+                            profile_wait_s = int(
+                                getattr(cfg, "poc_runbook_wait_profile_seconds", 120)
+                            )
+                            stop_wait_s = int(
+                                getattr(cfg, "poc_runbook_wait_stop_seconds", 120)
+                            )
+                            notes.append(
+                                "phase14: runbook enabled "
+                                f"start_wait_s={start_wait_s} profile_wait_s={profile_wait_s} stop_wait_s={stop_wait_s}"
+                            )
+
+                            # A) Wait for RequestStartTransaction inbound
+                            try:
+                                await asyncio.wait_for(
+                                    cp._remote_start_event.wait(),
+                                    timeout=start_wait_s,
+                                )
+                            except asyncio.TimeoutError:
+                                callerror = True
+                                protocol_timeout = True
+                                notes.append(
+                                    "phase14: timeout waiting for RequestStartTransaction"
+                                )
+                                raise
+
+                            remote_start_id = cp._remote_start_id
+                            remote_start_seen_utc = cp._remote_start_seen_utc
+                            remote_start_evse_id = cp._remote_start_evse_id or 1
+                            remote_start_id_token = cp._remote_start_id_token
+
+                            tx_id = (cfg.poc_transaction_id or "").strip()
+                            if not tx_id:
+                                tx_id = (
+                                    f"RS_{remote_start_id}"
+                                    if remote_start_id
+                                    else uuid.uuid4().hex
+                                )
+                            tx_id = tx_id[:36]
+
+                            started_ts = utc_now_iso()
+                            started_req = call.TransactionEvent(
+                                event_type=enums.TransactionEventEnumType.started,
+                                timestamp=started_ts,
+                                trigger_reason=enums.TriggerReasonEnumType.remote_start,
+                                seq_no=1,
+                                transaction_info=dt.TransactionType(
+                                    transaction_id=tx_id
+                                ),
+                                evse=dt.EVSEType(
+                                    id=int(remote_start_evse_id), connector_id=1
+                                ),
+                                id_token=remote_start_id_token,
+                            )
+                            await _send_safe(
+                                cp, started_req, "TransactionEvent(Started)"
+                            )
+                            notes.append(
+                                "phase14: started_trigger_reason=RemoteStart "
+                                f"tx_id={tx_id} remote_start_id={remote_start_id} "
+                                f"seen_utc={remote_start_seen_utc}"
+                            )
+
+                            # B) Wait for SetChargingProfile inbound (required for runbook)
+                            try:
+                                await asyncio.wait_for(
+                                    cp._set_charging_profile_event.wait(),
+                                    timeout=profile_wait_s,
+                                )
+                            except asyncio.TimeoutError:
+                                callerror = True
+                                protocol_timeout = True
+                                notes.append(
+                                    "phase14: timeout waiting for SetChargingProfile"
+                                )
+                                raise
+
+                            if cp._last_profile_summary is not None:
+                                notes.append(
+                                    "phase14: set_charging_profile_summary="
+                                    + json.dumps(
+                                        cp._last_profile_summary,
+                                        ensure_ascii=False,
+                                        sort_keys=True,
+                                    )
+                                )
+
+                            # C) Wait for RequestStopTransaction inbound (required for runbook)
+                            try:
+                                await asyncio.wait_for(
+                                    cp._remote_stop_event.wait(),
+                                    timeout=stop_wait_s,
+                                )
+                            except asyncio.TimeoutError:
+                                callerror = True
+                                protocol_timeout = True
+                                notes.append(
+                                    "phase14: timeout waiting for RequestStopTransaction"
+                                )
+                                raise
+
+                            remote_stop_seen_utc = cp._remote_stop_seen_utc
+                            remote_stop_tx_id = cp._remote_stop_transaction_id
+                            notes.append(
+                                "phase14: stop_source=remote inbound=RequestStopTransaction "
+                                f"inbound_tx_id={remote_stop_tx_id} seen_utc={remote_stop_seen_utc}"
+                            )
+
+                            ended_ts = utc_now_iso()
+                            ended_req = call.TransactionEvent(
+                                event_type=enums.TransactionEventEnumType.ended,
+                                timestamp=ended_ts,
+                                trigger_reason=enums.TriggerReasonEnumType.remote_stop,
+                                seq_no=2,
+                                transaction_info=dt.TransactionType(
+                                    transaction_id=tx_id,
+                                    stopped_reason=enums.ReasonEnumType.remote,
+                                ),
+                                evse=dt.EVSEType(
+                                    id=int(remote_start_evse_id), connector_id=1
+                                ),
+                                id_token=remote_start_id_token,
+                            )
+                            await _send_safe(cp, ended_req, "TransactionEvent(Ended)")
+                            notes.append(
+                                "phase14: ended_stopped_reason=Remote "
+                                "trigger_reason=RemoteStop seq_no_end=2"
+                            )
+
+                            await _send(cp, call.Heartbeat(), "Heartbeat")
+                            return _final_report(finished=utc_now_iso())
+
+                        # Phase-1.4 (A) Remote Start only evidence: wait for inbound RequestStartTransaction.
                         if bool(getattr(cfg, "poc_remote_start_enabled", False)):
                             wait_s = int(
                                 getattr(cfg, "poc_remote_start_wait_seconds", 120)
@@ -831,6 +1019,12 @@ class OcppRuntimeConfig:
     poc_remote_start_enabled: bool
     poc_remote_start_wait_seconds: int
 
+    # Phase-1.4 runbook (A/B/C): after Started, optionally accept SetChargingProfile and wait for
+    # RequestStopTransaction, then emit TransactionEvent(Ended).
+    poc_runbook_enabled: bool
+    poc_runbook_wait_profile_seconds: int
+    poc_runbook_wait_stop_seconds: int
+
 
 def _env(name: str, default: str) -> str:
     val = os.getenv(name)
@@ -913,6 +1107,15 @@ def _build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
             args.poc_remote_start_wait_seconds
             or _env("OCPP_POC_REMOTE_START_WAIT_SECONDS", "120")
         ),
+        poc_runbook_enabled=bool(args.poc_runbook),
+        poc_runbook_wait_profile_seconds=int(
+            args.poc_runbook_wait_profile_seconds
+            or _env("OCPP_POC_RUNBOOK_WAIT_PROFILE_SECONDS", "120")
+        ),
+        poc_runbook_wait_stop_seconds=int(
+            args.poc_runbook_wait_stop_seconds
+            or _env("OCPP_POC_RUNBOOK_WAIT_STOP_SECONDS", "120")
+        ),
     )
 
 
@@ -982,6 +1185,24 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
             "Phase-1.4 PoC: max seconds to wait for inbound RequestStartTransaction "
             "before failing the run. Default 120."
         ),
+    )
+    p.add_argument(
+        "--poc-runbook",
+        action="store_true",
+        help=(
+            "Phase-1.4 runbook: A=RequestStartTransaction → Started(RemoteStart), "
+            "B=SetChargingProfile(Accepted), C=RequestStopTransaction → Ended(Remote/RemoteStop)."
+        ),
+    )
+    p.add_argument(
+        "--poc-runbook-wait-profile-seconds",
+        default=None,
+        help="Phase-1.4 runbook: max seconds to wait for SetChargingProfile after Started. Default 120.",
+    )
+    p.add_argument(
+        "--poc-runbook-wait-stop-seconds",
+        default=None,
+        help="Phase-1.4 runbook: max seconds to wait for RequestStopTransaction after Started. Default 120.",
     )
     p.add_argument(
         "--once",
