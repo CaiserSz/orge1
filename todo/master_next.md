@@ -8,6 +8,14 @@
 
 ## Öncelikli Görevler
 
+### Öncelik 2: CSMS canonical test komutu uyumsuzluğu (2025-12-18)
+
+- [ ] **Görev:** CSMS “canonical” test komutunu Station repo ile uyumlu hale getir (veya SSOT’ta ayrımı netleştir)
+  - Açıklama: CSMS repo’da mevcut olan `tests/unit/test_chargepoint_v201.py` dosyası Station repo’da yok; ayrıca Station repo’da `make test` target’ı bulunmuyor. Bu nedenle CSMS tarafının istediği `make test PYTEST_ARGS='-q tests/unit/test_chargepoint_v201.py'` komutu Station ortamında çalıştırılamıyor. İki repo için “canonical proof” yöntemleri SSOT’ta netleştirilmeli veya Station’a uygun bir Makefile target eklenmeli.
+  - Öncelik: 2 (Orta)
+  - Tahmini Süre: 30-60 dakika
+  - Durum: 📋 Bekliyor
+
 ### Öncelik 2: Test Coverage Boşlukları (2025-12-16) - Meter/OCPP/DB
 
 - [ ] **Görev:** `meter/read_meter.py` için unit test kapsamı ekle (helper + CRC + request/response parse)

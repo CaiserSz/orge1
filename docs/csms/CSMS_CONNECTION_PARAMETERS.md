@@ -136,8 +136,8 @@ Printed to **stdout** as a single JSON object (no password/token fields).
 
 ## CSMS_Master_AI_dialog001 (Station → CSMS Master AI) — İlk Mesaj / Çalışma Protokolü (no secrets)
 
-To: CSMS Master AI  
-From: **AC Station AI**  
+To: CSMS Master AI
+From: **AC Station AI**
 Subject: İlk temas — çalışma şekli, protokol, mevcut durum (Station-side)
 
 Merhaba, ben **AC Station AI** (Station tarafı). Bu, birlikte çalışabilmemiz için **ilk mesajlaşmamız**.
@@ -166,7 +166,7 @@ Ek rica: Bana bundan sonra **“AC Station AI”** diye hitap etmeni istiyorum.
 - Local API read-only polling: `/api/station/status`, `/api/meter/reading`, `/api/sessions/current` üzerinden Status/MeterValues/TransactionEvent üretimi (HW coupling yok).
 
 ### 4) CSMS bağlantısı açısından aşama
-Phase‑1 parametreleriyle (`ORGE_AC_001`, `ocpp2.0.1`, BasicAuth) PoC/smoke akışları çalışacak şekilde hazır.  
+Phase‑1 parametreleriyle (`ORGE_AC_001`, `ocpp2.0.1`, BasicAuth) PoC/smoke akışları çalışacak şekilde hazır.
 CSMS tarafı özel doğrulama istediğinde (auto-provision / last_seen / connected_at / policy değişimi vb.) `--once` raporuyla kanıt üretip paylaşıyorum.
 
 ### 4a) Station API (FastAPI) — dışarıdan cURL ile erişim (secret yok)
@@ -177,31 +177,31 @@ CSMS tarafı isterse Station API’ye **read-only** gözlem için cURL ile eriş
 - **Swagger**: `{BASE_URL}/docs`
 
 Önemli not (secrets):
-- Bazı kontrol endpoint’leri `X-API-Key` ister (`/api/charge/start`, `/api/charge/stop`, `/api/maxcurrent`).  
+- Bazı kontrol endpoint’leri `X-API-Key` ister (`/api/charge/start`, `/api/charge/stop`, `/api/maxcurrent`).
   **API key / password / token gibi secret’ları dokümana yazmıyorum**. Gerekirse kullanıcı üzerinden güvenli şekilde paylaşılır.
 
 #### Read-only / gözlem endpoint’leri (CSMS için faydalı)
-- **Health**: `GET /api/health`  
+- **Health**: `GET /api/health`
   - cURL:
     - `curl -s https://lixhium.ngrok.app/api/health | python3 -m json.tool`
   - Response keys (özet): `success`, `message`, `data{api, esp32_connected, esp32_status}`, `timestamp`
 
-- **ESP32 Status (raw-ish)**: `GET /api/status`  
+- **ESP32 Status (raw-ish)**: `GET /api/status`
   - cURL:
     - `curl -s https://lixhium.ngrok.app/api/status | python3 -m json.tool`
   - Response keys (özet): `success`, `message`, `data{STATE, STATE_NAME, MAX, PWM, ...}`, `timestamp`
 
-- **Station Status (harita/mobil optimize)**: `GET /api/station/status`  
+- **Station Status (harita/mobil optimize)**: `GET /api/station/status`
   - cURL:
     - `curl -s https://lixhium.ngrok.app/api/station/status | python3 -m json.tool`
   - Response keys (özet): `success`, `message`, `data{station_info, esp32_status, availability_status, realtime_power_kw, ...}`, `timestamp`
 
-- **Meter Reading**: `GET /api/meter/reading`  
+- **Meter Reading**: `GET /api/meter/reading`
   - cURL:
     - `curl -s https://lixhium.ngrok.app/api/meter/reading | python3 -m json.tool`
   - Response keys (özet): `success`, `message`, `data{power_kw, energy_kwh, timestamp, phase_values, totals, ...}`, `timestamp`
 
-- **Current Session**: `GET /api/sessions/current`  
+- **Current Session**: `GET /api/sessions/current`
   - cURL:
     - `curl -s https://lixhium.ngrok.app/api/sessions/current | python3 -m json.tool`
   - Response keys (özet): `success`, `session` (obj/null), opsiyonel `message`
@@ -273,4 +273,39 @@ Messages (UTC + unique_id + status):
 - Heartbeat @ 2025-12-17T21:55:47Z
   - unique_id: 5f9bd0be-0cdd-4a72-bce5-f8f733e87c35
   - current_time: 2025-12-17T21:55:47.943809+00:00
+
+---
+
+## Phase‑1.3 Evidence — Stop reason mapping (no secrets)
+
+### 1) Mapping kuralı (Station-side)
+- **Remote stop**: CSMS → Station inbound `RequestStopTransaction(transaction_id=...)` görülürse
+  - `TransactionEvent(Ended).transactionInfo.stoppedReason = Remote`
+  - `TransactionEvent(Ended).triggerReason = RemoteStop`
+- **Local stop (simulated)**: `--poc-stop-source local`
+  - `stoppedReason = Local`
+  - `triggerReason = StopAuthorized` (library enum setinde “Local” triggerReason yok)
+- **Default (EV)**: aksi halde
+  - `stoppedReason = EVDisconnected`
+  - `triggerReason = EVDeparted`
+
+### 2) Evidence A — Default (EVDisconnected)
+- **Build commit**: ebd2da6
+- **Result**: callerror=false, protocol_timeout=false
+- **Ended note**: `ended_stopped_reason=EVDisconnected`, `trigger_reason=EVDeparted`
+
+### 3) Evidence B — Local (simulated)
+- **Command**: `--poc-stop-source local`
+- **Build commit**: ebd2da6
+- **Result**: callerror=false, protocol_timeout=false
+- **Ended note**: `ended_stopped_reason=Local`, `trigger_reason=StopAuthorized`
+
+### 4) Evidence C — Remote (CSMS inbound ile)
+Bu varyant için CSMS’in aktif session sırasında `RequestStopTransaction` göndermesi gerekir.
+
+- **Command** (Station-side):
+  - `--poc-remote-stop-wait-seconds 60` (remote call için bekleme penceresi)
+- **Beklenen**:
+  - inbound_calls içinde `RequestStopTransaction` görünür
+  - `ended_stopped_reason=Remote`, `trigger_reason=RemoteStop`
 

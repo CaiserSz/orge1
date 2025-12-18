@@ -155,6 +155,10 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
                     def __init__(self, *args: Any, **kwargs: Any):
                         super().__init__(*args, **kwargs)
                         self._inbound_by_uid: dict[str, dict[str, Any]] = {}
+                        # Phase-1.3: remote stop mapping signal
+                        self._remote_stop_event = asyncio.Event()
+                        self._remote_stop_transaction_id: str | None = None
+                        self._remote_stop_seen_utc: str | None = None
 
                     async def route_message(self, raw_msg: str):
                         # Best-effort: capture inbound CALL action + unique_id for evidence.
@@ -296,6 +300,18 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
                             )
                         return call_result.SetVariables(set_variable_result=results)
 
+                    @on("RequestStopTransaction")
+                    def on_request_stop_transaction(
+                        self, transaction_id: str, **kwargs
+                    ):
+                        # Phase-1.3 mapping: this inbound call is treated as Remote stop source.
+                        self._remote_stop_transaction_id = transaction_id
+                        self._remote_stop_seen_utc = utc_now_iso()
+                        self._remote_stop_event.set()
+                        return call_result.RequestStopTransaction(
+                            status=enums.RequestStartStopStatusEnumType.accepted
+                        )
+
                 cp: Any = StationCP(cfg.station_name, ws)
                 runner = asyncio.create_task(cp.start())
                 try:
@@ -424,18 +440,82 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
                                 seq_no += 1
 
                         # TransactionEvent Ended (final meter + stoppedReason)
+                        # Phase-1.3: map stoppedReason to stop source signal
+                        remote_stop_seen = bool(
+                            getattr(cp, "_remote_stop_event", None)
+                            and cp._remote_stop_event.is_set()
+                        )
+                        remote_stop_tx_id = getattr(
+                            cp, "_remote_stop_transaction_id", None
+                        )
+                        remote_stop_seen_utc = getattr(
+                            cp, "_remote_stop_seen_utc", None
+                        )
+
+                        stop_source_cfg = (
+                            (cfg.poc_stop_source or "auto").strip().lower()
+                        )
+                        if stop_source_cfg not in {"auto", "evdisconnected", "local"}:
+                            stop_source_cfg = "auto"
+
+                        # Optional wait window to allow inbound RequestStopTransaction.
+                        if (
+                            not remote_stop_seen
+                            and stop_source_cfg == "auto"
+                            and int(getattr(cfg, "poc_remote_stop_wait_seconds", 0)) > 0
+                        ):
+                            wait_s = int(
+                                getattr(cfg, "poc_remote_stop_wait_seconds", 0)
+                            )
+                            try:
+                                await asyncio.wait_for(
+                                    cp._remote_stop_event.wait(), timeout=wait_s
+                                )
+                            except asyncio.TimeoutError:
+                                pass
+                            remote_stop_seen = cp._remote_stop_event.is_set()
+                            remote_stop_tx_id = getattr(
+                                cp, "_remote_stop_transaction_id", None
+                            )
+                            remote_stop_seen_utc = getattr(
+                                cp, "_remote_stop_seen_utc", None
+                            )
+
+                        if remote_stop_seen:
+                            ended_stopped_reason = enums.ReasonEnumType.remote
+                            ended_trigger_reason = (
+                                enums.TriggerReasonEnumType.remote_stop
+                            )
+                            notes.append(
+                                "phase13: stop_source=remote "
+                                f"inbound=RequestStopTransaction tx_id={remote_stop_tx_id} "
+                                f"seen_utc={remote_stop_seen_utc}"
+                            )
+                        elif stop_source_cfg == "local":
+                            ended_stopped_reason = enums.ReasonEnumType.local
+                            ended_trigger_reason = (
+                                enums.TriggerReasonEnumType.stop_authorized
+                            )
+                            notes.append("phase13: stop_source=local (simulated)")
+                        else:
+                            ended_stopped_reason = enums.ReasonEnumType.ev_disconnected
+                            ended_trigger_reason = (
+                                enums.TriggerReasonEnumType.ev_departed
+                            )
+                            notes.append(
+                                "phase13: stop_source=evdisconnected (default)"
+                            )
+
                         ended_ts = utc_now_iso()
                         final_kwh = energy_values[-1] if energy_values else base_kwh
                         ended_req = call.TransactionEvent(
                             event_type=enums.TransactionEventEnumType.ended,
                             timestamp=ended_ts,
-                            # Phase‑1.2 preference: default stop reason is EVDisconnected
-                            # (Local: local UI/button, Remote: CSMS remote stop).
-                            trigger_reason=enums.TriggerReasonEnumType.ev_departed,
+                            trigger_reason=ended_trigger_reason,
                             seq_no=seq_no,
                             transaction_info=dt.TransactionType(
                                 transaction_id=tx_id,
-                                stopped_reason=enums.ReasonEnumType.ev_disconnected,
+                                stopped_reason=ended_stopped_reason,
                             ),
                             evse=dt.EVSEType(id=1, connector_id=1),
                             id_token=id_token,
@@ -469,7 +549,8 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
                             f"phase12: meter_kwh={energy_values} monotonic_ok={monotonic_energy_ok}"
                         )
                         notes.append(
-                            "phase12: ended_stopped_reason=EVDisconnected trigger_reason=EVDeparted"
+                            f"phase13: ended_stopped_reason={ended_stopped_reason.value} "
+                            f"trigger_reason={ended_trigger_reason.value}"
                         )
                     await _send(cp, call.Heartbeat(), "Heartbeat")
                 finally:
@@ -530,7 +611,7 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
                 "ocpp_lib_version": _dist_version("ocpp"),
                 "websockets_version": getattr(websockets, "__version__", None),
                 "runtime_mode": "once",
-                "phase": "phase-1.2" if bool(cfg.poc_mode) else "phase-1.1",
+                "phase": "phase-1.3" if bool(cfg.poc_mode) else "phase-1.1",
             },
             "inbound_calls": inbound,
         },
@@ -635,6 +716,14 @@ class OcppRuntimeConfig:
     local_poll_enabled: bool
     local_poll_interval_seconds: int
 
+    # Phase-1.3 PoC controls (stop source mapping evidence)
+    # - auto: prefer Remote if RequestStopTransaction seen, else EVDisconnected
+    # - evdisconnected: force EVDisconnected
+    # - local: force Local (HMI/UI stop simulation)
+    poc_stop_source: str
+    # Optional wait window before ending the transaction to allow inbound remote stop.
+    poc_remote_stop_wait_seconds: int
+
 
 def _env(name: str, default: str) -> str:
     val = os.getenv(name)
@@ -702,6 +791,13 @@ def _build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
             args.local_poll_interval_seconds
             or _env("OCPP_LOCAL_POLL_INTERVAL_SECONDS", "10")
         ),
+        poc_stop_source=(args.poc_stop_source or _env("OCPP_POC_STOP_SOURCE", "auto"))
+        .strip()
+        .lower(),
+        poc_remote_stop_wait_seconds=int(
+            args.poc_remote_stop_wait_seconds
+            or _env("OCPP_POC_REMOTE_STOP_WAIT_SECONDS", "0")
+        ),
     )
 
 
@@ -729,6 +825,24 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         "--poc",
         action="store_true",
         help="Run Phase-1 PoC message sequence and exit (smoke test).",
+    )
+    p.add_argument(
+        "--poc-stop-source",
+        default=None,
+        choices=["auto", "evdisconnected", "local"],
+        help=(
+            "Phase-1.3 PoC: stoppedReason mapping evidence. "
+            "auto=Remote if inbound RequestStopTransaction seen, else EVDisconnected; "
+            "evdisconnected=force EVDisconnected; local=force Local."
+        ),
+    )
+    p.add_argument(
+        "--poc-remote-stop-wait-seconds",
+        default=None,
+        help=(
+            "Phase-1.3 PoC: optionally wait this many seconds before TransactionEvent(Ended) "
+            "to allow inbound RequestStopTransaction. Default 0."
+        ),
     )
     p.add_argument(
         "--once",
