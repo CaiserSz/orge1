@@ -79,7 +79,6 @@ def _dist_version(dist_name: str) -> str | None:
 async def _run_once_json(cfg: Any) -> dict[str, Any]:
     # `--once` MUST output a single JSON object and MUST NOT include secrets.
     started_utc = utc_now_iso()
-    finished_utc = started_utc
     messages: list[dict[str, Any]] = []
     inbound: list[dict[str, Any]] = []
     notes: list[str] = []
