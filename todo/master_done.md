@@ -1,7 +1,7 @@
 # Tamamlanan Görevler
 
 **Oluşturulma Tarihi:** 2025-12-08 18:20:00
-**Son Güncelleme:** 2025-12-18 20:30:00
+**Son Güncelleme:** 2025-12-18 22:20:00
 
 ---
 
@@ -21,6 +21,20 @@
   - Ended unique_id: e9b00b35-df30-4ed5-914d-ce9b3442c3b7
 - **Komut (secret redacted):**
   - `./env/bin/python ocpp/main.py --primary 201 --once --poc --poc-remote-stop-wait-seconds 120 --poc-transaction-id REMOTE_TX_001 --ocpp201-url wss://lixhium.xyz/ocpp/ORGE_AC_001 --ocpp16-url wss://lixhium.xyz/ocpp16/ORGE_AC_001 --station-name ORGE_AC_001 --station-password ****** --id-token TEST001`
+
+#### ✅ OCPP Phase‑1.4 Runbook A/B/C Kanıtı (22:13:22)
+- **Görev:** CSMS-controlled lifecycle kanıtı: A=RequestStartTransaction, B=SetChargingProfile, C=RequestStopTransaction
+- **Açıklama:** Tek `--once` koşumunda CSMS’ten gelen inbound call’lar ile Station TransactionEvent Started/Ended üretip mapping’leri doğruladı. A/B/C eksiksiz görüldü.
+- **Kanıt (UTC):**
+  - `run_started_utc`: 2025-12-18T22:13:08Z
+  - `run_finished_utc`: 2025-12-18T22:13:22Z
+  - `callerror=false`, `protocol_timeout=false`
+  - inbound: `RequestStartTransaction`, `SetChargingProfile`, `RequestStopTransaction`
+  - Started unique_id: 59d52948-bbd5-4da4-814d-4c4a60b56e54
+  - Ended unique_id: 98bd64dc-130e-4da4-a79c-4937c00bf347
+  - build commit: cceed2e
+- **Komut (secret redacted):**
+  - `./env/bin/python ocpp/main.py --primary 201 --once --poc --poc-runbook --poc-remote-start-wait-seconds 180 --poc-runbook-wait-profile-seconds 180 --poc-runbook-wait-stop-seconds 180 --poc-transaction-id REMOTE_TX_001 --ocpp201-url wss://lixhium.xyz/ocpp/ORGE_AC_001 --ocpp16-url wss://lixhium.xyz/ocpp16/ORGE_AC_001 --station-name ORGE_AC_001 --station-password ******`
 
 ### 2025-12-14
 

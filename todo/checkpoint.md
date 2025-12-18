@@ -1,8 +1,8 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-18 20:30:00
-**Version:** 1.13.0
+**Son Güncelleme:** 2025-12-18 22:20:00
+**Version:** 1.14.0
 
 ---
 
@@ -14,22 +14,17 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251218-039
-**Tarih:** 2025-12-18 20:30:00
-**Durum:** ✅ OCPP Phase‑1.3 kapanış: Remote(C) kanıtı alındı (RequestStopTransaction → RemoteStop)
+**Checkpoint ID:** CP-20251218-040
+**Tarih:** 2025-12-18 22:20:00
+**Durum:** ✅ OCPP Phase‑1.4 kapanış: Runbook A/B/C kanıtı alındı (Start → SetChargingProfile → Stop)
 - OCPP (station client):
-  - Phase‑1.3 stop source mapping tamamlandı:
-    - Default: `EVDisconnected` / `EVDeparted`
-    - Local (simulated): `Local` / `StopAuthorized`
-    - Remote: inbound `RequestStopTransaction` → `Remote` / `RemoteStop`
-  - Remote(C) kanıt koşumu (tx_id=`REMOTE_TX_001`) başarıyla tamamlandı:
-    - inbound: `RequestStopTransaction` görüldü (CallResult)
-    - Ended: `stoppedReason=Remote`, `triggerReason=RemoteStop`
+  - Phase‑1.4 runbook tek koşum kanıtı (tx_id=`REMOTE_TX_001`) başarıyla tamamlandı:
+    - inbound: `RequestStartTransaction`, `SetChargingProfile`, `RequestStopTransaction`
+    - Started: `triggerReason=RemoteStart`, `seqNo=1`
+    - Ended: `stoppedReason=Remote`, `triggerReason=RemoteStop`, `seqNo=2`
     - `callerror=false`, `protocol_timeout=false`
 - SSOT:
-  - `docs/csms/CSMS_CONNECTION_PARAMETERS.md` Phase‑1.3 Evidence C (Success) eklendi.
-- Test/teyit:
-  - Kanıt, `--once` tek JSON stdout raporu ile alındı (secret yok).
+  - `docs/csms/CSMS_CONNECTION_PARAMETERS.md` Phase‑1.4 Runbook evidence eklendi.
 
 ### Önceki Checkpoint: CP-20251216-037 (2025-12-16 06:20:00)
 **Durum:** ✅ OCPP Phase‑1.6: local session → TransactionEvent(Started/Ended) + refactor (dosya boyutu uyumu)

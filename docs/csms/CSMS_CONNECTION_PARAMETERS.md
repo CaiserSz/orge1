@@ -338,3 +338,49 @@ Mapping evidence (notes):
 - `phase13: stop_source=remote inbound=RequestStopTransaction tx_id=REMOTE_TX_001 seen_utc=2025-12-18T20:23:22Z`
 - `phase13: ended_stopped_reason=Remote trigger_reason=RemoteStop`
 
+---
+
+## Phase‑1.4 Evidence — CSMS‑controlled lifecycle (Runbook A/B/C) (no secrets)
+
+### Runbook hedefi
+- **A (RemoteStart)**: CSMS → Station `RequestStartTransaction` → Station `TransactionEvent(Started)` (`triggerReason=RemoteStart`)
+- **B (Policy/Config)**: CSMS → Station `SetChargingProfile` → Station CallResult `Accepted` + kısa profil özeti notu
+- **C (RemoteStop)**: CSMS → Station `RequestStopTransaction` → Station `TransactionEvent(Ended)` (`stoppedReason=Remote`, `triggerReason=RemoteStop`)
+
+### Evidence (Success) — 2025-12-18
+
+Run summary (UTC):
+- `run_started_utc`: 2025-12-18T22:13:08Z
+- `run_finished_utc`: 2025-12-18T22:13:22Z
+- `station_name`: ORGE_AC_001
+- `endpoint`: wss://lixhium.xyz/ocpp/ORGE_AC_001
+- `subprotocol`: ocpp2.0.1
+- `build.station_build_commit`: cceed2e
+- `result`: callerror=false, protocol_timeout=false
+
+Command (secret redacted):
+- `./env/bin/python ocpp/main.py --primary 201 --once --poc --poc-runbook --poc-remote-start-wait-seconds 180 --poc-runbook-wait-profile-seconds 180 --poc-runbook-wait-stop-seconds 180 --poc-transaction-id REMOTE_TX_001 --ocpp201-url wss://lixhium.xyz/ocpp/ORGE_AC_001 --ocpp16-url wss://lixhium.xyz/ocpp16/ORGE_AC_001 --station-name ORGE_AC_001 --station-password ******`
+
+Inbound calls (evidence):
+- RequestStartTransaction @ 2025-12-18T22:13:12Z
+  - response_type: CallResult
+- SetChargingProfile @ 2025-12-18T22:13:12Z
+  - response_type: CallResult (Accepted)
+- RequestStopTransaction @ 2025-12-18T22:13:22Z
+  - response_type: CallResult
+
+TransactionEvent evidence:
+- TransactionEvent(Started) @ 2025-12-18T22:13:12Z
+  - `triggerReason=RemoteStart`
+  - `transactionId=REMOTE_TX_001`
+  - `seqNo=1`
+- TransactionEvent(Ended) @ 2025-12-18T22:13:22Z
+  - `stoppedReason=Remote`
+  - `triggerReason=RemoteStop`
+  - `seqNo=2`
+
+Notes evidence:
+- `phase14: started_trigger_reason=RemoteStart ...`
+- `phase14: set_charging_profile_summary=...`
+- `phase14: ended_stopped_reason=Remote trigger_reason=RemoteStop seq_no_end=2`
+
