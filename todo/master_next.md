@@ -71,6 +71,13 @@
   - Durum: ✅ Tamamlandı (2025-12-16 16:25:35)
   - Detaylar: Önce 543 satırdı → şimdi 476 satır. İlgili test: `pytest tests/test_event_detector.py` (20/20 geçti).
 
+- [ ] **Görev:** `api/event_detector.py` satır limit regresyonunu düzelt (521 → <=500)
+  - Açıklama: 2025-12-18 `python3 scripts/standards_auto_check.py` raporu dosyayı tekrar 521 satır (Limit: 500) olarak raporluyor. Önceki iyileştirmeden sonra dosya büyümüş/regresyon oluşmuş; root cause bulunup yeniden standarda çekilmeli (yeni dosya oluşturmadan).
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 30-60 dakika
+  - Durum: 🔴 Maksimum sınır aşıldı
+  - Detaylar: Rapor zamanı: 2025-12-18
+
 ### Öncelik 3: Standart Uyarıları (2025-12-16) - Uyarı Eşiği Yakın Dosyalar
 
 - [ ] **Görev:** `api/logging_config.py` modüllere bölme planı
