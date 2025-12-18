@@ -22,9 +22,9 @@ import asyncio
 import contextlib
 import json
 import os
+import subprocess
 import sys
 import uuid
-import subprocess
 from dataclasses import dataclass, fields, is_dataclass
 from typing import Any
 
@@ -147,8 +147,9 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
         ) as ws:
             if cfg.primary == "201":
                 from ocpp.routing import on
-                from ocpp.v201 import ChargePoint, call, call_result, enums
+                from ocpp.v201 import ChargePoint, call, call_result
                 from ocpp.v201 import datatypes as dt
+                from ocpp.v201 import enums
 
                 class StationCP(ChargePoint):
                     def __init__(self, *args: Any, **kwargs: Any):
@@ -428,11 +429,13 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
                         ended_req = call.TransactionEvent(
                             event_type=enums.TransactionEventEnumType.ended,
                             timestamp=ended_ts,
-                            trigger_reason=enums.TriggerReasonEnumType.stop_authorized,
+                            # Phase‑1.2 preference: default stop reason is EVDisconnected
+                            # (Local: local UI/button, Remote: CSMS remote stop).
+                            trigger_reason=enums.TriggerReasonEnumType.ev_departed,
                             seq_no=seq_no,
                             transaction_info=dt.TransactionType(
                                 transaction_id=tx_id,
-                                stopped_reason=enums.ReasonEnumType.local,
+                                stopped_reason=enums.ReasonEnumType.ev_disconnected,
                             ),
                             evse=dt.EVSEType(id=1, connector_id=1),
                             id_token=id_token,
@@ -464,6 +467,9 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
                         )
                         notes.append(
                             f"phase12: meter_kwh={energy_values} monotonic_ok={monotonic_energy_ok}"
+                        )
+                        notes.append(
+                            "phase12: ended_stopped_reason=EVDisconnected trigger_reason=EVDeparted"
                         )
                     await _send(cp, call.Heartbeat(), "Heartbeat")
                 finally:
