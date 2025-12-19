@@ -1042,9 +1042,13 @@ def _parse_bool(value: str, *, default: bool) -> bool:
 
 def _build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
     station_name = args.station_name or _env("OCPP_STATION_NAME", "ORGE_AC_001")
-    station_password = args.station_password or _env(
-        "OCPP_STATION_PASSWORD", "temp_password_123"
-    )
+    station_password = (
+        args.station_password or os.getenv("OCPP_STATION_PASSWORD") or ""
+    ).strip()
+    if not station_password:
+        raise ValueError(
+            "Missing station password: provide --station-password or set OCPP_STATION_PASSWORD"
+        )
 
     # URLs can be ws:// or wss://
     ocpp201_url = args.ocpp201_url or _env(
