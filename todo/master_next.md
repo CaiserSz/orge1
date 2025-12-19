@@ -665,6 +665,13 @@
   - Tahmini Süre: 15-30 dk
   - Durum: 📋 Bekliyor
 
+- [ ] **Görev:** `ocpp/main.py` satır limiti aşımı için refactor planı (Phase‑1)
+  - Açıklama: `ocpp/main.py` şu an 1416 satır. Proje kod standartlarına göre bu dosya boyutu riskli (bakım/yan etki). “Yeni dosya/klasör oluşturma” kuralı nedeniyle kısa vadede mevcut `ocpp/states.py` gibi mevcut dosyalara taşıma/yeniden düzenleme stratejisi planlanmalı; orta vadede kural istisnasıyla modülerleşme değerlendirilebilir.
+  - Öncelik: 3 (Orta/Düşük)
+  - Tahmini Süre: 2-4 saat (plan + ilk taşıma)
+  - Durum: 🟡 Standart aşımı / refactor gerekli
+  - Detaylar: `wc -l ocpp/main.py` → 1416 (2025-12-19).
+
 ---
 
 ## Faz 4: Meter ve Monitoring

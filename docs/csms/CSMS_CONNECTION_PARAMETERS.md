@@ -404,3 +404,28 @@ CSMS-side (UI) response:
 Build / implementation notes:
 - Daemon inbound handler’lar: `RequestStartTransaction` (commit: `f10fcb8`), `RequestStopTransaction` (commit: `3655808`)
 
+---
+
+## Provisioning — Station-side OCPP ayarları (Phase‑1) (no secrets)
+
+Not: Bu repo’da ayrı bir “OCPP config dosyası” zorunluluğu yok; `ocpp/main.py` runtime config’i **CLI argümanları + env** ile alır.
+Phase‑1 provisioning için opsiyonel olarak secret‑free bir JSON config kullanılabilir:
+
+- **Config path (opsiyonel)**: `--config-path /path/to/ocpp_config.json` veya env: `OCPP_CONFIG_PATH=/path/to/ocpp_config.json`
+- **Config JSON (opsiyonel)**: `--config-json '{"station_name":"..."}'` veya env: `OCPP_CONFIG_JSON='{"station_name":"..."}'`
+- **Parola (zorunlu, secret)**: sadece `--station-password` veya env `OCPP_STATION_PASSWORD` ile verilir (**config JSON içinde tutulmaz**).
+
+Örnek secret‑free config JSON (password yok):
+```json
+{
+  "station_name": "ORGE_AC_001",
+  "ocpp201_url": "wss://lixhium.xyz/ocpp/ORGE_AC_001",
+  "ocpp16_url": "wss://lixhium.xyz/ocpp16/ORGE_AC_001",
+  "primary": "201",
+  "vendor_name": "ORGE",
+  "model": "AC-1",
+  "local_api_base_url": "http://localhost:8000",
+  "local_poll_enabled": true,
+  "local_poll_interval_seconds": 10
+}
+```

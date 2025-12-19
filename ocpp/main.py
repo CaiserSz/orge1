@@ -2,8 +2,8 @@
 OCPP Station Client Runner (Phase-1)
 
 Created: 2025-12-16 01:20
-Last Modified: 2025-12-18 00:20
-Version: 0.5.0
+Last Modified: 2025-12-19 20:35
+Version: 0.5.1
 Description:
   OCPP station client entrypoint for Raspberry Pi (Python runtime).
   - Primary: OCPP 2.0.1 (v201)
@@ -1040,8 +1040,76 @@ def _parse_bool(value: str, *, default: bool) -> bool:
     return default
 
 
+def _load_config_defaults_from_json(raw: str) -> dict[str, Any]:
+    try:
+        data = json.loads(raw)
+    except Exception as exc:
+        raise ValueError("Invalid JSON in --config-json / OCPP_CONFIG_JSON") from exc
+    if not isinstance(data, dict):
+        raise ValueError("OCPP config JSON must be a JSON object (dict)")
+    return data
+
+
+def _load_config_defaults_from_path(path: str) -> dict[str, Any]:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except FileNotFoundError as exc:
+        raise ValueError(f"OCPP config file not found: {path}") from exc
+    except Exception as exc:
+        raise ValueError(f"Failed to read OCPP config file: {path}") from exc
+    if not isinstance(data, dict):
+        raise ValueError("OCPP config file must contain a JSON object (dict)")
+    return data
+
+
+def _load_config_defaults(args: argparse.Namespace) -> dict[str, Any]:
+    """
+    Optional provisioning defaults (secret-free).
+
+    Supported sources (in increasing precedence):
+      - file path: --config-path or env OCPP_CONFIG_PATH
+      - inline JSON: --config-json or env OCPP_CONFIG_JSON
+
+    Notes:
+      - station password MUST NOT be provided via config JSON; use --station-password
+        or env OCPP_STATION_PASSWORD.
+      - Unknown keys are ignored.
+    """
+    merged: dict[str, Any] = {}
+
+    raw_path = (
+        getattr(args, "config_path", None) or os.getenv("OCPP_CONFIG_PATH") or ""
+    ).strip()
+    if raw_path:
+        merged.update(_load_config_defaults_from_path(raw_path))
+
+    raw_json = (
+        getattr(args, "config_json", None) or os.getenv("OCPP_CONFIG_JSON") or ""
+    ).strip()
+    if raw_json:
+        merged.update(_load_config_defaults_from_json(raw_json))
+
+    allowed = {f.name for f in fields(OcppRuntimeConfig)} - {"station_password"}
+    return {k: v for k, v in merged.items() if k in allowed}
+
+
+def _bool_default_str(value: Any, *, fallback: bool) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)) and value in (0, 1):
+        return "true" if bool(value) else "false"
+    if isinstance(value, str) and value.strip() != "":
+        return "true" if _parse_bool(value, default=fallback) else "false"
+    return "true" if fallback else "false"
+
+
 def _build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
-    station_name = args.station_name or _env("OCPP_STATION_NAME", "ORGE_AC_001")
+    defaults = _load_config_defaults(args)
+
+    station_name = args.station_name or _env(
+        "OCPP_STATION_NAME", str(defaults.get("station_name") or "ORGE_AC_001")
+    )
     station_password = (
         args.station_password or os.getenv("OCPP_STATION_PASSWORD") or ""
     ).strip()
@@ -1052,13 +1120,19 @@ def _build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
 
     # URLs can be ws:// or wss://
     ocpp201_url = args.ocpp201_url or _env(
-        "OCPP_201_URL", f"wss://lixhium.xyz/ocpp/{station_name}"
+        "OCPP_201_URL",
+        str(defaults.get("ocpp201_url") or f"wss://lixhium.xyz/ocpp/{station_name}"),
     )
     ocpp16_url = args.ocpp16_url or _env(
-        "OCPP_16_URL", f"wss://lixhium.xyz/ocpp16/{station_name}"
+        "OCPP_16_URL",
+        str(defaults.get("ocpp16_url") or f"wss://lixhium.xyz/ocpp16/{station_name}"),
     )
 
-    primary = (args.primary or _env("OCPP_PRIMARY", "201")).strip().lower()
+    primary = (
+        (args.primary or _env("OCPP_PRIMARY", str(defaults.get("primary") or "201")))
+        .strip()
+        .lower()
+    )
     if primary in {"2.0.1", "201", "v201", "ocpp201"}:
         primary = "201"
     elif primary in {"1.6", "1.6j", "16", "v16", "ocpp16"}:
@@ -1074,51 +1148,88 @@ def _build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
         primary=primary,
         poc_mode=bool(args.poc),
         once_mode=bool(args.once),
-        vendor_name=args.vendor_name or _env("OCPP_VENDOR", "ORGE"),
-        model=args.model or _env("OCPP_MODEL", "AC-1"),
-        id_token=args.id_token or _env("OCPP_TEST_ID_TOKEN", "TEST001"),
+        vendor_name=args.vendor_name
+        or _env("OCPP_VENDOR", str(defaults.get("vendor_name") or "ORGE")),
+        model=args.model or _env("OCPP_MODEL", str(defaults.get("model") or "AC-1")),
+        id_token=args.id_token
+        or _env("OCPP_TEST_ID_TOKEN", str(defaults.get("id_token") or "TEST001")),
         heartbeat_override_seconds=int(
-            args.heartbeat_seconds or _env("OCPP_HEARTBEAT_SECONDS", "0")
+            args.heartbeat_seconds
+            or _env(
+                "OCPP_HEARTBEAT_SECONDS",
+                str(defaults.get("heartbeat_override_seconds") or "0"),
+            )
         ),
         local_api_base_url=(
             args.local_api_base_url
-            or _env("OCPP_LOCAL_API_BASE_URL", "http://localhost:8000")
+            or _env(
+                "OCPP_LOCAL_API_BASE_URL",
+                str(defaults.get("local_api_base_url") or "http://localhost:8000"),
+            )
         ).rstrip("/"),
         local_poll_enabled=_parse_bool(
             (
                 args.local_poll_enabled
                 if args.local_poll_enabled is not None
-                else _env("OCPP_LOCAL_POLL_ENABLED", "true")
+                else _env(
+                    "OCPP_LOCAL_POLL_ENABLED",
+                    _bool_default_str(
+                        defaults.get("local_poll_enabled"), fallback=True
+                    ),
+                )
             ),
             default=True,
         ),
         local_poll_interval_seconds=int(
             args.local_poll_interval_seconds
-            or _env("OCPP_LOCAL_POLL_INTERVAL_SECONDS", "10")
+            or _env(
+                "OCPP_LOCAL_POLL_INTERVAL_SECONDS",
+                str(defaults.get("local_poll_interval_seconds") or "10"),
+            )
         ),
-        poc_stop_source=(args.poc_stop_source or _env("OCPP_POC_STOP_SOURCE", "auto"))
+        poc_stop_source=(
+            args.poc_stop_source
+            or _env(
+                "OCPP_POC_STOP_SOURCE", str(defaults.get("poc_stop_source") or "auto")
+            )
+        )
         .strip()
         .lower(),
         poc_remote_stop_wait_seconds=int(
             args.poc_remote_stop_wait_seconds
-            or _env("OCPP_POC_REMOTE_STOP_WAIT_SECONDS", "0")
+            or _env(
+                "OCPP_POC_REMOTE_STOP_WAIT_SECONDS",
+                str(defaults.get("poc_remote_stop_wait_seconds") or "0"),
+            )
         ),
         poc_transaction_id=(
-            args.poc_transaction_id or _env("OCPP_POC_TRANSACTION_ID", "")
+            args.poc_transaction_id
+            or _env(
+                "OCPP_POC_TRANSACTION_ID", str(defaults.get("poc_transaction_id") or "")
+            )
         ).strip(),
         poc_remote_start_enabled=bool(args.poc_remote_start),
         poc_remote_start_wait_seconds=int(
             args.poc_remote_start_wait_seconds
-            or _env("OCPP_POC_REMOTE_START_WAIT_SECONDS", "120")
+            or _env(
+                "OCPP_POC_REMOTE_START_WAIT_SECONDS",
+                str(defaults.get("poc_remote_start_wait_seconds") or "120"),
+            )
         ),
         poc_runbook_enabled=bool(args.poc_runbook),
         poc_runbook_wait_profile_seconds=int(
             args.poc_runbook_wait_profile_seconds
-            or _env("OCPP_POC_RUNBOOK_WAIT_PROFILE_SECONDS", "120")
+            or _env(
+                "OCPP_POC_RUNBOOK_WAIT_PROFILE_SECONDS",
+                str(defaults.get("poc_runbook_wait_profile_seconds") or "120"),
+            )
         ),
         poc_runbook_wait_stop_seconds=int(
             args.poc_runbook_wait_stop_seconds
-            or _env("OCPP_POC_RUNBOOK_WAIT_STOP_SECONDS", "120")
+            or _env(
+                "OCPP_POC_RUNBOOK_WAIT_STOP_SECONDS",
+                str(defaults.get("poc_runbook_wait_stop_seconds") or "120"),
+            )
         ),
     )
 
@@ -1127,6 +1238,17 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     p = argparse.ArgumentParser(
         prog="ocpp/main.py",
         description="OCPP station client runner (Phase-1, isolated process).",
+    )
+
+    p.add_argument(
+        "--config-path",
+        default=None,
+        help="Optional JSON config file (secret-free defaults). Password must come from env/arg.",
+    )
+    p.add_argument(
+        "--config-json",
+        default=None,
+        help="Optional JSON config string (secret-free defaults). Password must come from env/arg.",
     )
 
     p.add_argument("--station-name", default=None)
