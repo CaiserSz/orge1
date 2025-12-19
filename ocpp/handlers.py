@@ -211,6 +211,46 @@ class Ocpp201Adapter:
                     transaction_id=tx_id,
                 )
 
+            @on("RequestStopTransaction")
+            async def on_request_stop_transaction(self, transaction_id: str, **kwargs):
+                # Phase-1.4 UI Remote Stop: accept the request and optionally emit Ended.
+                print(
+                    "[OCPP] v201 RequestStopTransaction received "
+                    f"transaction_id={transaction_id} utc={_utc_now_iso()}"
+                )
+
+                async def _emit_ended() -> None:
+                    try:
+                        await self.call(
+                            call.TransactionEvent(
+                                event_type=enums.TransactionEventEnumType.ended,
+                                timestamp=_utc_now_iso(),
+                                trigger_reason=enums.TriggerReasonEnumType.remote_stop,
+                                seq_no=2,
+                                transaction_info=datatypes.TransactionType(
+                                    transaction_id=transaction_id,
+                                    stopped_reason=enums.ReasonEnumType.remote,
+                                ),
+                            ),
+                            suppress=False,
+                            unique_id=str(uuid.uuid4()),
+                        )
+                        print(
+                            "[OCPP] v201 TransactionEvent(Ended) remote_stop "
+                            f"tx_id={transaction_id} utc={_utc_now_iso()}"
+                        )
+                    except Exception as exc:
+                        print(
+                            "[OCPP] v201 TransactionEvent(Ended) remote_stop failed "
+                            f"tx_id={transaction_id} error={exc}"
+                        )
+
+                asyncio.create_task(_emit_ended())
+
+                return call_result.RequestStopTransaction(
+                    status=enums.RequestStartStopStatusEnumType.accepted
+                )
+
         url = self.cfg.ocpp201_url
         headers = {
             "Authorization": _basic_auth_header(
