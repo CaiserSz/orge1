@@ -18,15 +18,9 @@ import uuid
 from typing import Any, Optional
 
 import websockets
-from states import (
-    LocalApiPoller,
-    LocalApiPollerConfig,
-    StationIdentity,
-    basic_auth_header,
-    run_poc_v201,
-    ssl_if_needed,
-    utc_now_iso,
-)
+from states import (LocalApiPoller, LocalApiPollerConfig, StationIdentity,
+                    basic_auth_header, run_poc_v201, ssl_if_needed,
+                    utc_now_iso)
 
 from ocpp.routing import on
 
