@@ -1,7 +1,7 @@
 # CSMS ↔ Station Connection Parameters (OCPP 2.0.1 + 1.6j)
 
 **Oluşturulma:** 2025-12-15
-**Son Güncelleme:** 2025-12-18 00:07
+**Son Güncelleme:** 2025-12-19 15:04
 **Durum:** ✅ Aktif
 
 ## 1) CSMS URL nedir? (gerçek mi / simülatör mü?)
@@ -15,10 +15,12 @@ Bu ortam **gerçek CSMS sunucusudur** (simülatör değil). İstasyon tarafında
 
 ### OCPP WebSocket URL’leri
 - **OCPP 2.0.1 (primary target)**:
-  - URL: `ws://lixhium.xyz/ocpp/{STATION_NAME}`
+  - Canonical URL (prod): `wss://lixhium.xyz/ocpp/{STATION_NAME}`
+  - Ops/debug (non-TLS): `ws://lixhium.xyz/ocpp/{STATION_NAME}`
   - Subprotocol: `ocpp2.0.1`
 - **OCPP 1.6j (compat)**:
-  - URL: `ws://lixhium.xyz/ocpp16/{STATION_NAME}`
+  - Canonical URL (prod): `wss://lixhium.xyz/ocpp16/{STATION_NAME}`
+  - Ops/debug (non-TLS): `ws://lixhium.xyz/ocpp16/{STATION_NAME}`
   - Subprotocol: `ocpp1.6`
 
 ### Station authentication (WebSocket Authorization header)
@@ -31,10 +33,7 @@ Notlar:
 - Kayıtlı ve onaylı istasyonlarda parola doğrulaması beklenir.
 
 ### TLS (wss)
-Şu an **HTTP/WS** (80 / `ws://`) aktif.
-Gerçek saha istasyonları `wss://` zorunlu tutuyorsa, **Let’s Encrypt + 443/WSS** planlanmıştır (P0 görev). Bu durumda hedef URL’ler:
-- `wss://lixhium.xyz/ocpp/{STATION_NAME}`
-- `wss://lixhium.xyz/ocpp16/{STATION_NAME}`
+Prod ortamda canonical bağlantı **WSS**’tir (`wss://`, 443). `ws://` sadece ops/debug senaryoları içindir.
 
 ## 3) Connector sayısı / tip
 - İstasyon: **AC**
@@ -67,9 +66,10 @@ En basit başlangıç için öneri:
 - OCPP 1.6J (fallback):
   - `wss://lixhium.xyz/ocpp16/ORGE_AC_001` (subprotocol: `ocpp1.6`)
 
-### Phase-1 station password (geçici)
-- `temp_password_123`
-- Not: İlk BootNotification ile auto-provisioning sonrası CSMS kalıcı password üretebilir (rotation).
+### Phase-1 station password
+- Repo içinde **asla tutulmaz** / dokümana yazılmaz.
+- Station bağlantısında WebSocket handshake BasicAuth kullanılır (username=`station_name`).
+- Parola bilgisi yalnızca kullanıcı üzerinden/out-of-band paylaşılır ve tüm raporlarda **redacted** edilir (`******`).
 
 ### Test kimlik (SoT)
 - OCPP 2.0.1: `idToken.idToken="TEST001"` ve `type="Central"`
@@ -383,4 +383,24 @@ Notes evidence:
 - `phase14: started_trigger_reason=RemoteStart ...`
 - `phase14: set_charging_profile_summary=...`
 - `phase14: ended_stopped_reason=Remote trigger_reason=RemoteStop seq_no_end=2`
+
+---
+
+## Phase‑1.4 Evidence — UI Remote Ops (daemon) (no secrets)
+
+Amaç: CSMS Admin UI üzerinden “Remote Start/Stop” işlemlerini debug edebilmek için station’ın **daemon mode**’da online kalması ve inbound call’ları güvenle handle etmesi.
+
+### Evidence (Success) — 2025-12-19 (UTC)
+
+Station-side log satırları (secret-free):
+- `RequestStartTransaction received` → `remote_start_id=978191129 evse_id=1 tx_id=RS_978191129`
+- `TransactionEvent(Started) remote_start` → `tx_id=RS_978191129 utc=2025-12-19T07:25:02Z`
+- `RequestStopTransaction received` → `transaction_id=RS_978191129 utc=2025-12-19T07:26:33Z`
+- `TransactionEvent(Ended) remote_stop` → `tx_id=RS_978191129 utc=2025-12-19T07:26:33Z`
+
+CSMS-side (UI) response:
+- `{"status":"Accepted"}`
+
+Build / implementation notes:
+- Daemon inbound handler’lar: `RequestStartTransaction` (commit: `f10fcb8`), `RequestStopTransaction` (commit: `3655808`)
 
