@@ -2,8 +2,8 @@
 OCPP Station Adapters (Phase-1)
 
 Created: 2025-12-16 01:20
-Last Modified: 2025-12-16 07:22
-Version: 0.4.1
+Last Modified: 2025-12-19 08:45
+Version: 0.4.2
 Description:
   Implements the Phase-1 approach:
   - Single transport behavior per adapter (websocket connect/reconnect, auth header, subprotocol)
@@ -84,6 +84,8 @@ class Ocpp201Adapter:
     async def run(self) -> None:
         from ocpp.v201 import ChargePoint, call, call_result, datatypes, enums
 
+        cfg = self.cfg
+
         class StationCP(ChargePoint):
             # CSMS may send inventory/model queries; accept them in Phase-1 to avoid breaking the flow.
             @on("GetBaseReport")
@@ -153,6 +155,61 @@ class Ocpp201Adapter:
                     )
 
                 return call_result.GetVariables(get_variable_result=results)
+
+            @on("RequestStartTransaction")
+            async def on_request_start_transaction(
+                self,
+                id_token: datatypes.IdTokenType,
+                remote_start_id: int,
+                evse_id: int | None = None,
+                **kwargs,
+            ):
+                # Phase-1.4: accept UI Remote Start and emit a Started TransactionEvent.
+                tx_id = str(getattr(cfg, "poc_transaction_id", "") or "").strip()
+                if not tx_id:
+                    tx_id = f"RS_{remote_start_id}"
+                tx_id = tx_id[:36]
+
+                evse = datatypes.EVSEType(id=int(evse_id or 1), connector_id=1)
+
+                print(
+                    "[OCPP] v201 RequestStartTransaction received "
+                    f"remote_start_id={remote_start_id} evse_id={getattr(evse, 'id', None)} tx_id={tx_id}"
+                )
+
+                async def _emit_started() -> None:
+                    try:
+                        await self.call(
+                            call.TransactionEvent(
+                                event_type=enums.TransactionEventEnumType.started,
+                                timestamp=_utc_now_iso(),
+                                trigger_reason=enums.TriggerReasonEnumType.remote_start,
+                                seq_no=1,
+                                transaction_info=datatypes.TransactionType(
+                                    transaction_id=tx_id
+                                ),
+                                evse=evse,
+                                id_token=id_token,
+                            ),
+                            suppress=False,
+                            unique_id=str(uuid.uuid4()),
+                        )
+                        print(
+                            "[OCPP] v201 TransactionEvent(Started) remote_start "
+                            f"tx_id={tx_id} utc={_utc_now_iso()}"
+                        )
+                    except Exception as exc:
+                        print(
+                            "[OCPP] v201 TransactionEvent(Started) remote_start failed "
+                            f"tx_id={tx_id} error={exc}"
+                        )
+
+                asyncio.create_task(_emit_started())
+
+                return call_result.RequestStartTransaction(
+                    status=enums.RequestStartStopStatusEnumType.accepted,
+                    transaction_id=tx_id,
+                )
 
         url = self.cfg.ocpp201_url
         headers = {
