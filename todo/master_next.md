@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-16 16:29:34
+**Son Güncelleme:** 2025-12-19 15:02:31
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -71,12 +71,12 @@
   - Durum: ✅ Tamamlandı (2025-12-16 16:25:35)
   - Detaylar: Önce 543 satırdı → şimdi 476 satır. İlgili test: `pytest tests/test_event_detector.py` (20/20 geçti).
 
-- [ ] **Görev:** `api/event_detector.py` satır limit regresyonunu düzelt (521 → <=500)
-  - Açıklama: 2025-12-18 `python3 scripts/standards_auto_check.py` raporu dosyayı tekrar 521 satır (Limit: 500) olarak raporluyor. Önceki iyileştirmeden sonra dosya büyümüş/regresyon oluşmuş; root cause bulunup yeniden standarda çekilmeli (yeni dosya oluşturmadan).
+- [x] **Görev:** `api/event_detector.py` satır limit regresyonunu düzelt (521 → <=500)
+  - Açıklama: 2025-12-19 `python3 scripts/standards_auto_check.py` raporu dosyayı 521 satır (Limit: 500) olarak raporladı. Transition mapping bölümü sıkıştırılarak dosya 477 satıra indirildi (yeni dosya oluşturmadan); davranış korunuyor.
   - Öncelik: 0 (Acil)
   - Tahmini Süre: 30-60 dakika
-  - Durum: 🔴 Maksimum sınır aşıldı
-  - Detaylar: Rapor zamanı: 2025-12-18
+  - Durum: ✅ Tamamlandı (2025-12-19 15:02)
+  - Detaylar: 521 satır → 477 satır. İlgili test: `pytest tests/test_event_detector.py` (20/20 geçti).
 
 ### Öncelik 3: Standart Uyarıları (2025-12-16) - Uyarı Eşiği Yakın Dosyalar
 
@@ -86,6 +86,13 @@
   - Tahmini Süre: 1-2 saat
   - Durum: 🟡 Uyarı eşiği yakın
   - Detaylar: Rapor zamanı: 2025-12-16 04:40
+
+- [ ] **Görev:** `api/event_detector.py` modüllere bölme / kompaktlaştırma planı
+  - Açıklama: `standards_auto_check` raporu dosyayı 477 satır (Limit: 500) olarak raporluyor. Dosya limitin altında, ancak uyarı eşiğine yakın; yeni feature eklenirken satır limitini aşmamak için kompakt refactor stratejisi planlanmalı (repo “yeni dosya oluşturma” kuralı dikkate alınarak).
+  - Öncelik: 3 (Orta/Düşük)
+  - Tahmini Süre: 1-2 saat
+  - Durum: 🟡 Uyarı eşiği yakın
+  - Detaylar: Rapor zamanı: 2025-12-19 15:02
 
 - [ ] **Görev:** `api/config.py` modüllere bölme planı
   - Açıklama: `standards_auto_check` raporu dosya 416 satır (Limit: 500). Uyarı eşiğine yakın; config alanları kategori bazlı ayrılabilir.

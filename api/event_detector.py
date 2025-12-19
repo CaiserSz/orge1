@@ -277,70 +277,26 @@ class EventDetector:
     def _classify_event(self, from_state: int, to_state: int) -> Optional[EventType]:
         """State transition -> EventType (bilinen mapping yoksa STATE_CHANGED)."""
         # Not: ESP32 firmware bazı akışlarda READY'yi atlayıp EV_CONNECTED/IDLE -> CHARGING geçebilir.
+        s = ESP32State
         transitions = {
-            (
-                ESP32State.IDLE.value,
-                ESP32State.CABLE_DETECT.value,
-            ): EventType.CABLE_CONNECTED,
-            (
-                ESP32State.CABLE_DETECT.value,
-                ESP32State.EV_CONNECTED.value,
-            ): EventType.EV_CONNECTED,
-            (
-                ESP32State.EV_CONNECTED.value,
-                ESP32State.READY.value,
-            ): EventType.CHARGE_READY,
-            (
-                ESP32State.READY.value,
-                ESP32State.CHARGING.value,
-            ): EventType.CHARGE_STARTED,
-            (
-                ESP32State.EV_CONNECTED.value,
-                ESP32State.CHARGING.value,
-            ): EventType.CHARGE_STARTED,
-            (
-                ESP32State.IDLE.value,
-                ESP32State.CHARGING.value,
-            ): EventType.CHARGE_STARTED,
-            (
-                ESP32State.CHARGING.value,
-                ESP32State.PAUSED.value,
-            ): EventType.CHARGE_PAUSED,
-            (
-                ESP32State.PAUSED.value,
-                ESP32State.CHARGING.value,
-            ): EventType.CHARGE_STARTED,
-            (
-                ESP32State.CHARGING.value,
-                ESP32State.STOPPED.value,
-            ): EventType.CHARGE_STOPPED,
-            (
-                ESP32State.PAUSED.value,
-                ESP32State.STOPPED.value,
-            ): EventType.CHARGE_STOPPED,
-            (
-                ESP32State.CHARGING.value,
-                ESP32State.IDLE.value,
-            ): EventType.CHARGE_STOPPED,
-            (ESP32State.PAUSED.value, ESP32State.IDLE.value): EventType.CHARGE_STOPPED,
-            (
-                ESP32State.CABLE_DETECT.value,
-                ESP32State.IDLE.value,
-            ): EventType.CABLE_DISCONNECTED,
-            (
-                ESP32State.EV_CONNECTED.value,
-                ESP32State.IDLE.value,
-            ): EventType.CABLE_DISCONNECTED,
+            (s.IDLE.value, s.CABLE_DETECT.value): EventType.CABLE_CONNECTED,
+            (s.CABLE_DETECT.value, s.EV_CONNECTED.value): EventType.EV_CONNECTED,
+            (s.EV_CONNECTED.value, s.READY.value): EventType.CHARGE_READY,
+            (s.READY.value, s.CHARGING.value): EventType.CHARGE_STARTED,
+            (s.EV_CONNECTED.value, s.CHARGING.value): EventType.CHARGE_STARTED,
+            (s.IDLE.value, s.CHARGING.value): EventType.CHARGE_STARTED,
+            (s.CHARGING.value, s.PAUSED.value): EventType.CHARGE_PAUSED,
+            (s.PAUSED.value, s.CHARGING.value): EventType.CHARGE_STARTED,
+            (s.CHARGING.value, s.STOPPED.value): EventType.CHARGE_STOPPED,
+            (s.PAUSED.value, s.STOPPED.value): EventType.CHARGE_STOPPED,
+            (s.CHARGING.value, s.IDLE.value): EventType.CHARGE_STOPPED,
+            (s.PAUSED.value, s.IDLE.value): EventType.CHARGE_STOPPED,
+            (s.CABLE_DETECT.value, s.IDLE.value): EventType.CABLE_DISCONNECTED,
+            (s.EV_CONNECTED.value, s.IDLE.value): EventType.CABLE_DISCONNECTED,
             # Firmware davranışı: PAUSED -> READY görülebiliyor; genel state değişikliği olarak loglanır.
-            (ESP32State.PAUSED.value, ESP32State.READY.value): EventType.STATE_CHANGED,
-            (
-                ESP32State.FAULT_HARD.value,
-                ESP32State.HARDFAULT_END.value,
-            ): EventType.FAULT_DETECTED,
-            (
-                ESP32State.HARDFAULT_END.value,
-                ESP32State.IDLE.value,
-            ): EventType.STATE_CHANGED,
+            (s.PAUSED.value, s.READY.value): EventType.STATE_CHANGED,
+            (s.FAULT_HARD.value, s.HARDFAULT_END.value): EventType.FAULT_DETECTED,
+            (s.HARDFAULT_END.value, s.IDLE.value): EventType.STATE_CHANGED,
         }
 
         # Fault detection (herhangi bir state'den FAULT_HARD'a geçiş)
