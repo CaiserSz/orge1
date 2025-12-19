@@ -56,8 +56,14 @@ Thank you for your interest in contributing to the Charger Project! This documen
 
 4. **Configure environment:**
    ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
+   # Create .env locally (DO NOT commit secrets)
+   # Example (placeholders):
+   #   SECRET_API_KEY=******            # required for API auth in development
+   #   TEST_API_USER_ID=TEST001         # optional, used by tests/dev flows
+   #
+   # Recommended:
+   #   - Prefer exporting environment variables in your shell/systemd for production
+   #   - Keep .env local only (it is gitignored)
    ```
 
 ---

@@ -46,6 +46,27 @@
   - Durum: 📋 Bekliyor
   - Detaylar: Coverage (2025-12-16): `api/database/event_queries.py` %25.
 
+### Öncelik 0: Secret/Config Hijyeni (2025-12-19) - `.env` repo içinde track ediliyor
+
+- [ ] **Görev:** `.env` dosyasını git’ten çıkar (tracked → untracked) ve repo’dan secret sızıntısını durdur
+  - Açıklama: `.gitignore` içinde `.env` ignore edilmesine rağmen `.env` dosyası git’te **tracked** durumda. Bu, secret’ların git geçmişine sızması riskidir.
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 10-15 dk
+  - Durum: 🔴 Kritik risk
+  - Detaylar: `git ls-files .env` → `.env` (tracked). Çözüm: `git rm --cached .env` + (gerekirse) docs güncellemesi.
+
+- [ ] **Görev:** `SECRET_API_KEY` rotasyonu + (gerekirse) git history/incident değerlendirmesi
+  - Açıklama: `.env` tracked olduğu için mevcut `SECRET_API_KEY` değeri “kompromize” kabul edilmeli. Yeni anahtar üret, eskiyi geçersiz kıl. History rewrite gerekip gerekmediğini değerlendir (repo policy’ye göre).
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 30-60 dk
+  - Durum: 🔴 Kritik risk
+
+- [ ] **Görev:** `.env.example` yok; `CONTRIBUTING.md` içindeki yönergeyi düzelt veya secret‑free şablon stratejisi belirle
+  - Açıklama: `CONTRIBUTING.md` “`cp .env.example .env`” diyor ancak `.env.example` repo’da bulunmuyor. Yeni dosya oluşturma kuralı nedeniyle ya doküman güncellenmeli ya da secret‑free şablon için plan yapılmalı.
+  - Öncelik: 2 (Orta)
+  - Tahmini Süre: 15-30 dk
+  - Durum: 📋 Bekliyor
+
 ### Öncelik 0: Sistem Sağlık Tespitleri (2025-12-15) - Güç Beslemesi ve Servis Tutarlılığı
 
 - [ ] **Görev:** RPi “Undervoltage detected” olaylarını kök neden analizi + kalıcı çözüm
