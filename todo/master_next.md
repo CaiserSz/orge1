@@ -32,6 +32,13 @@
   - Durum: 📋 Bekliyor
   - Detaylar: Coverage (2025-12-16): `api/meter/acrel.py` %0, `api/meter/modbus.py` %13.
 
+- [ ] **Görev:** `ocpp/handlers.py` UI Remote Ops inbound handler’ları için otomatik test ekle (Remote Start/Stop)
+  - Açıklama: UI Remote Ops akışı (daemon) sahada kanıtlandı; ancak Station repo içinde `RequestStartTransaction` / `RequestStopTransaction` inbound handler’ları için otomatik test bulunmuyor. Regression riskini azaltmak için, gerçek WebSocket kurmadan handler’ları doğrudan çağıran (mock/fixture ile) bir test eklenmeli ve `TransactionEvent(Started/Ended)` üretimi beklenen alanlarla doğrulanmalı.
+  - Öncelik: 2 (Orta)
+  - Tahmini Süre: 1-2 saat
+  - Durum: 📋 Bekliyor
+  - Detaylar: `docs/csms/CSMS_CONNECTION_PARAMETERS.md` → “Phase‑1.4 Evidence — UI Remote Ops (daemon)”.
+
 - [ ] **Görev:** `api/database/event_queries.py` coverage artır (DB query path’leri)
   - Açıklama: Coverage %25. Mevcut test DB fixture’ları kullanılarak (in-memory / temp sqlite) query fonksiyonlarının success + empty + error path’leri kapsanmalı.
   - Öncelik: 3 (Orta/Düşük)

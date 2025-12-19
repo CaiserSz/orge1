@@ -1,8 +1,8 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-18 22:20:00
-**Version:** 1.14.0
+**Son Güncelleme:** 2025-12-19 12:25:00
+**Version:** 1.14.1
 
 ---
 
@@ -25,6 +25,8 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
     - `callerror=false`, `protocol_timeout=false`
 - SSOT:
   - `docs/csms/CSMS_CONNECTION_PARAMETERS.md` Phase‑1.4 Runbook evidence eklendi.
+- UI Remote Ops (daemon):
+  - 2025-12-19 (UTC) Remote Start/Stop inbound doğrulandı; secret‑free log kanıtı SSOT’a eklendi (`docs/csms/CSMS_CONNECTION_PARAMETERS.md`).
 
 ### Önceki Checkpoint: CP-20251216-037 (2025-12-16 06:20:00)
 **Durum:** ✅ OCPP Phase‑1.6: local session → TransactionEvent(Started/Ended) + refactor (dosya boyutu uyumu)
