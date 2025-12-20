@@ -2,8 +2,8 @@
 OCPP Station Adapters (Phase-1)
 
 Created: 2025-12-16 01:20
-Last Modified: 2025-12-19 08:45
-Version: 0.4.2
+Last Modified: 2025-12-21 01:51
+Version: 0.4.3
 Description:
   Implements the Phase-1 approach:
   - Single transport behavior per adapter (websocket connect/reconnect, auth header, subprotocol)
@@ -267,6 +267,10 @@ class Ocpp201Adapter:
                     additional_headers=headers,
                     ssl=_ssl_if_needed(url),
                     open_timeout=10,
+                    # Keepalive: helps prevent idle disconnects and improves "connected_ids" stability.
+                    ping_interval=20,
+                    ping_timeout=20,
+                    close_timeout=5,
                 ) as ws:
                     cp = StationCP(self.cfg.station_name, ws)
                     runner = asyncio.create_task(cp.start())
@@ -303,7 +307,15 @@ class Ocpp201Adapter:
                 if not _is_retryable_ws_error(e):
                     raise
                 attempt += 1
-                print(f"[OCPP] v201 reconnect attempt={attempt} error={e}")
+                code = getattr(e, "code", None)
+                reason = getattr(e, "reason", None)
+                extra = ""
+                if code is not None or reason is not None:
+                    extra = f" code={code!r} reason={reason!r}"
+                print(
+                    f"[OCPP] v201 reconnect attempt={attempt} "
+                    f"error_type={type(e).__name__} error={e}{extra}"
+                )
                 await _sleep_backoff(attempt=attempt)
 
     async def _run_once(
