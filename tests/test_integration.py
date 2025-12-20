@@ -163,7 +163,6 @@ async def test_ocpp_remote_ops_v201_local_csms_server():
     - Send RequestStartTransaction + RequestStopTransaction
     - Assert station emits TransactionEvent(Started/Ended)
     """
-    import pytest
     import websockets
     from ocpp.routing import on
     from ocpp.v201 import ChargePoint, call, call_result, datatypes, enums
@@ -242,7 +241,9 @@ async def test_ocpp_remote_ops_v201_local_csms_server():
             event_type = kwargs.get("event_type")
             trigger_reason = kwargs.get("trigger_reason")
             tx_info = kwargs.get("transaction_info")
-            transaction_id = getattr(tx_info, "transaction_id", None) if tx_info else None
+            transaction_id = (
+                getattr(tx_info, "transaction_id", None) if tx_info else None
+            )
 
             if (
                 event_type == enums.TransactionEventEnumType.started
