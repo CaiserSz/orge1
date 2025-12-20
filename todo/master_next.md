@@ -686,6 +686,13 @@
   - Tahmini Süre: 15-30 dk
   - Durum: 📋 Bekliyor
 
+- [ ] **Görev:** OCPP WS disconnect (close code=1000) → `connected_ids=[]` ve RemoteStop 404 (operasyonel risk)
+  - Açıklama: UI Remote Ops testinde CSMS tarafında “station WS disconnect (code=1000)” ve “message bus connected_ids=[]” gözlendi; bu durumda RemoteStop 404 dönebiliyor. Station daemon reconnect ediyor ancak bağlantı flapping operasyonu zayıflatıyor. Kök neden için CSMS idle timeout / load balancer / app restart / ping-pong davranışı incelenmeli; Station tarafında gerekirse keepalive stratejisi (heartbeat override önerisi, ping interval explicit) dokümante edilmeli.
+  - Öncelik: 1 (Yüksek - operasyonel blokaj)
+  - Tahmini Süre: 30-90 dk (analiz + dokümantasyon + gerekirse küçük ayar)
+  - Durum: 📋 Bekliyor
+  - Detaylar: Kanıt: Station log’da tekrar eden `reconnect attempt ... received 1000 (OK)` satırları; CSMS UI RemoteStop 404 / connected_ids boş.
+
 - [ ] **Görev:** `ocpp/main.py` satır limiti aşımı için refactor planı (Phase‑1)
   - Açıklama: `ocpp/main.py` şu an 1416 satır. Proje kod standartlarına göre bu dosya boyutu riskli (bakım/yan etki). “Yeni dosya/klasör oluşturma” kuralı nedeniyle kısa vadede mevcut `ocpp/states.py` gibi mevcut dosyalara taşıma/yeniden düzenleme stratejisi planlanmalı; orta vadede kural istisnasıyla modülerleşme değerlendirilebilir.
   - Öncelik: 3 (Orta/Düşük)

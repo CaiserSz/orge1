@@ -404,6 +404,17 @@ CSMS-side (UI) response:
 Build / implementation notes:
 - Daemon inbound handler’lar: `RequestStartTransaction` (commit: `f10fcb8`), `RequestStopTransaction` (commit: `3655808`)
 
+### Evidence (Success) — 2025-12-19 (UTC) (approve + password rotate sonrası)
+
+Station-side log satırları (secret-free):
+- `RequestStartTransaction received` → `remote_start_id=1781880852 evse_id=1 tx_id=RS_1781880852`
+- `TransactionEvent(Started) remote_start` → `tx_id=RS_1781880852 utc=2025-12-19T22:54:21Z`
+- `RequestStopTransaction received` → `transaction_id=RS_1781880852 utc=2025-12-19T23:40:02Z`
+- `TransactionEvent(Ended) remote_stop` → `tx_id=RS_1781880852 utc=2025-12-19T23:40:03Z`
+
+Notlar:
+- Bu koşumda CSMS tarafında kısa süreli WS disconnect (close code=1000) görüldü; station daemon reconnect ederek tekrar Boot/Status gönderdi. “connected_ids=[]” gibi durumlar bu pencere sırasında gözlenebilir; test penceresinde daemon online tutulmalıdır.
+
 ---
 
 ## Provisioning — Station-side OCPP ayarları (Phase‑1) (no secrets)
