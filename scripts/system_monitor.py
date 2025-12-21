@@ -7,15 +7,15 @@ Version: 1.1.0
 Açıklama: Sistem metriklerini toplar, alerting yapar ve monitoring sağlar (RPi undervoltage/throttling dahil)
 """
 
-import sys
-import os
-import time
 import json
-import subprocess
 import logging
+import os
+import subprocess
+import sys
+import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 # Logging yapılandırması
 log_dir = Path(__file__).parent.parent / "logs"
@@ -135,8 +135,8 @@ def get_system_metrics() -> Dict[str, Any]:
 def check_api_health() -> Optional[Dict[str, Any]]:
     """API health check endpoint'ini çağır"""
     try:
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         start_time = time.time()
         req = urllib.request.Request(API_URL)
