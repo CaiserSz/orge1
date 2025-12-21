@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-22 00:18:00
+**Son Güncelleme:** 2025-12-22 00:25:00
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -42,12 +42,14 @@
 
 ### Öncelik 2: Test Coverage Boşlukları (2025-12-16) - Meter/OCPP/DB
 
-- [ ] **Görev:** `meter/read_meter.py` için unit test kapsamı ekle (helper + CRC + request/response parse)
+- [x] **Görev:** `meter/read_meter.py` için unit test kapsamı ekle (helper + CRC + request/response parse)
   - Açıklama: Coverage raporunda `meter/read_meter.py` %0 görünüyor. Donanım/serial açmadan test edilebilecek saf fonksiyonlar ve parse mantığı için testler eklenmeli (CRC16, request build, response parse, register decode).
   - Öncelik: 2 (Orta/Yüksek)
   - Tahmini Süre: 1-2 saat
-  - Durum: 📋 Bekliyor
-  - Detaylar: Coverage (2025-12-16): TOTAL %62, `meter/read_meter.py` %0.
+  - Durum: ✅ Tamamlandı (2025-12-22)
+  - Detaylar:
+    - Testler: `tests/test_api_endpoints.py::TestABBMeterReadMeterHelpers` (CRC16, request build, response parse, register decode)
+    - Çalıştırma: `./env/bin/pytest -q tests/test_api_endpoints.py`
 
 - [ ] **Görev:** `api/meter/modbus.py` ve `api/meter/acrel.py` için saf parse/convert unit testleri ekle
   - Açıklama: `api/meter/modbus.py` %13, `api/meter/acrel.py` %0. Donanım erişimi olmadan test edilebilecek register decode, mapping, hata senaryoları ve dönüştürücüler kapsanmalı.
@@ -202,11 +204,11 @@
   - Detaylar: Rapor zamanı: 2025-12-21 20:43
 
 - [ ] **Görev:** `tests/test_api_endpoints.py` kompaktlaştırma planı (satır sayısı uyarı eşiği yakın)
-  - Açıklama: `standards_auto_check` raporu dosya 432 satır (Limit: 500). Uyarı eşiğine yakın; tekrar eden setup/assert blokları fixture/helper ile sadeleştirilmeli (mümkünse yeni dosya oluşturmadan).
+  - Açıklama: Dosya şu an 499 satır (Limit: 500). Limit eşiğine çok yakın; tekrar eden setup/assert blokları fixture/helper ile sadeleştirilmeli (mümkünse yeni dosya oluşturmadan) ve yeni test eklemeleri mümkünse başka mevcut dosyalara yönlendirilmeli.
   - Öncelik: 3 (Orta/Düşük)
   - Tahmini Süre: 1-2 saat
-  - Durum: 🟡 Uyarı eşiği yakın
-  - Detaylar: Rapor zamanı: 2025-12-21 20:43
+  - Durum: 🔴 Limit eşiğine çok yakın (499/500)
+  - Detaylar: Güncelleme: 2025-12-22
 
 
 ### Öncelik 1: EV Gerçek Test Bulguları (2025-12-13) - Güç/Enerji Tutarlılığı ve UI Stabilitesi

@@ -1,8 +1,8 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-21 23:15:00
-**Version:** 1.17.0
+**Son Güncelleme:** 2025-12-22 00:26:33
+**Version:** 1.18.0
 
 ---
 
@@ -14,8 +14,22 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251221-043
-**Tarih:** 2025-12-21 23:15:00
+**Checkpoint ID:** CP-20251222-044
+**Tarih:** 2025-12-22 00:26:33
+**Durum:** ✅ Backup automation + ngrok boot order + canonical test SSOT + meter unit tests
+- Backup (systemd):
+  - `backup.service` / `backup.timer` cihazda kuruldu ve timer enable edildi (günlük 02:00, randomized delay + persistent).
+  - Smoke: `sudo systemctl start backup.service` → SUCCESS (db+config+manifest).
+  - Git hijyeni: `backups/` artefact’ları git’ten çıkarıldı ve `.gitignore` ile ignore edildi.
+- Ngrok:
+  - Boot’ta “network is unreachable/lookup” hatalarını azaltmak için `ngrok.service` drop-in ile `After/Wants=network-online.target` eklendi.
+- CSMS ↔ Station SSOT:
+  - “Canonical test” komutları CSMS repo vs Station repo olarak net ayrıldı (`docs/csms/CSMS_CONNECTION_PARAMETERS.md`).
+- Meter:
+  - `meter/read_meter.py` için unit test kapsamı eklendi (CRC, request build, response parse, register decode).
+  - Test: `./env/bin/pytest -q tests/test_api_endpoints.py`
+
+### Önceki Checkpoint: CP-20251221-043 (2025-12-21 23:15:00)
 **Durum:** ✅ RPi undervoltage runbook + monitoring (hardware aksiyon bekliyor)
 - Sistem Sağlığı (RPi):
   - Kanıt: `vcgencmd get_throttled` → `throttled=0x50005` ve kernel log’larda “Undervoltage detected!” kaydı mevcut.
