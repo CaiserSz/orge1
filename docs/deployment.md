@@ -148,10 +148,7 @@ Environment="PYTHONUNBUFFERED=1"
 EnvironmentFile=-/etc/ocpp_station.env
 
 ExecStart=/home/basar/charger/env/bin/python -u /home/basar/charger/ocpp/main.py \\
-  --primary 201 \\
-  --station-name ORGE_AC_001 \\
-  --ocpp201-url wss://lixhium.xyz/ocpp/ORGE_AC_001 \\
-  --ocpp16-url  wss://lixhium.xyz/ocpp16/ORGE_AC_001
+  --primary 201
 
 Restart=always
 RestartSec=10
@@ -174,7 +171,15 @@ WantedBy=multi-user.target
 `/etc/ocpp_station.env` örneği (dosya cihazda tutulur; git’e girmez):
 
 ```bash
+# Zorunlu
+OCPP_STATION_NAME='ORGE_AC_001'
 OCPP_STATION_PASSWORD='***'
+
+# Opsiyonel: override / saha ayarı
+OCPP_HEARTBEAT_SECONDS='60'
+# OCPP_PRIMARY='201'
+# OCPP_201_URL='wss://lixhium.xyz/ocpp/ORGE_AC_001'
+# OCPP_16_URL='wss://lixhium.xyz/ocpp16/ORGE_AC_001'
 ```
 
 ### Update / Rollback (GitHub’dan çekme)
