@@ -2,8 +2,8 @@
 OCPP Station Client Runner (Phase-1)
 
 Created: 2025-12-16 01:20
-Last Modified: 2025-12-19 20:35
-Version: 0.5.1
+Last Modified: 2025-12-21 15:55
+Version: 0.5.2
 Description:
   OCPP station client entrypoint for Raspberry Pi (Python runtime).
   - Primary: OCPP 2.0.1 (v201)
@@ -22,6 +22,7 @@ import asyncio
 import contextlib
 import json
 import os
+import signal
 import subprocess
 import sys
 import uuid
@@ -1395,6 +1396,37 @@ async def _run_primary_then_fallback(cfg: OcppRuntimeConfig) -> None:
     await adapter.run()
 
 
+async def _run_daemon_with_shutdown(cfg: OcppRuntimeConfig) -> None:
+    """
+    Run the daemon with graceful shutdown handling (systemd-friendly).
+
+    Goal:
+    - On SIGTERM/SIGINT: cancel the running adapter and exit cleanly.
+    """
+    stop_event = asyncio.Event()
+    loop = asyncio.get_running_loop()
+
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        with contextlib.suppress(NotImplementedError):
+            loop.add_signal_handler(sig, stop_event.set)
+
+    main_task = asyncio.create_task(_run_primary_then_fallback(cfg))
+    stop_task = asyncio.create_task(stop_event.wait())
+    done, _pending = await asyncio.wait(
+        {main_task, stop_task}, return_when=asyncio.FIRST_COMPLETED
+    )
+
+    if stop_task in done:
+        print("[OCPP] shutdown requested; stopping daemon")
+        main_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await main_task
+        return
+
+    stop_task.cancel()
+    await main_task
+
+
 def main(argv: list[str]) -> int:
     args = _parse_args(argv)
     cfg = _build_config(args)
@@ -1419,7 +1451,7 @@ def main(argv: list[str]) -> int:
         f"[OCPP] local_poll_enabled={cfg.local_poll_enabled} local_api_base_url={cfg.local_api_base_url} local_poll_interval_seconds={cfg.local_poll_interval_seconds}"
     )
 
-    asyncio.run(_run_primary_then_fallback(cfg))
+    asyncio.run(_run_daemon_with_shutdown(cfg))
     return 0
 
 

@@ -32,6 +32,13 @@
   - Durum: ✅ Tamamlandı (2025-12-21)
   - Detaylar: `docs/deployment.md` → NGROK_API_KEY değeri kaldırıldı (“secret; dokümana yazılmaz”).
 
+- [x] **Görev:** OCPP daemon için systemd-friendly graceful shutdown (SIGTERM) ekle
+  - Açıklama: Systemd stop/restart sırasında SIGTERM ile temiz kapanış (task cancel + ws close) sağlanmalı; kontrolsüz kill/reconnect loop gözlemlerini azaltır.
+  - Öncelik: 2 (Orta)
+  - Tahmini Süre: 30-60 dk
+  - Durum: ✅ Tamamlandı (2025-12-21)
+  - Detaylar: `ocpp/main.py` → SIGTERM/SIGINT ile shutdown; `ocpp/handlers.py` → daemon task cleanup (cancel/gather). Test: `pytest tests/test_integration.py -k ocpp_remote_ops_v201_local_csms_server`
+
 ### Öncelik 2: Test Coverage Boşlukları (2025-12-16) - Meter/OCPP/DB
 
 - [ ] **Görev:** `meter/read_meter.py` için unit test kapsamı ekle (helper + CRC + request/response parse)

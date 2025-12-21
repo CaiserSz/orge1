@@ -2,8 +2,8 @@
 OCPP Station Adapters (Phase-1)
 
 Created: 2025-12-16 01:20
-Last Modified: 2025-12-21 01:51
-Version: 0.4.3
+Last Modified: 2025-12-21 15:55
+Version: 0.4.4
 Description:
   Implements the Phase-1 approach:
   - Single transport behavior per adapter (websocket connect/reconnect, auth header, subprotocol)
@@ -18,15 +18,9 @@ import uuid
 from typing import Any, Optional
 
 import websockets
-from states import (
-    LocalApiPoller,
-    LocalApiPollerConfig,
-    StationIdentity,
-    basic_auth_header,
-    run_poc_v201,
-    ssl_if_needed,
-    utc_now_iso,
-)
+from states import (LocalApiPoller, LocalApiPollerConfig, StationIdentity,
+                    basic_auth_header, run_poc_v201, ssl_if_needed,
+                    utc_now_iso)
 
 from ocpp.routing import on
 
@@ -503,15 +497,23 @@ class Ocpp201Adapter:
 
         hb_task = asyncio.create_task(_heartbeat_loop())
         poll_task = asyncio.create_task(_local_poll_loop())
-        done, pending = await asyncio.wait(
-            {hb_task, poll_task}, return_when=asyncio.FIRST_EXCEPTION
-        )
-        for task in pending:
-            task.cancel()
-        for task in done:
-            exc = task.exception()
-            if exc:
-                raise exc
+        try:
+            done, pending = await asyncio.wait(
+                {hb_task, poll_task}, return_when=asyncio.FIRST_EXCEPTION
+            )
+            for task in pending:
+                task.cancel()
+            for task in done:
+                exc = task.exception()
+                if exc:
+                    raise exc
+        except asyncio.CancelledError:
+            # Graceful shutdown: cancel background tasks and propagate cancellation.
+            for task in (hb_task, poll_task):
+                task.cancel()
+            with contextlib.suppress(BaseException):
+                await asyncio.gather(hb_task, poll_task, return_exceptions=True)
+            raise
 
     async def _send_boot(
         self, cp: Any, *, call: Any, datatypes: Any, enums: Any
