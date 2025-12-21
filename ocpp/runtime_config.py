@@ -120,11 +120,15 @@ def _load_config_defaults(args: argparse.Namespace) -> dict[str, Any]:
     """
     merged: dict[str, Any] = {}
 
-    raw_path = (getattr(args, "config_path", None) or os.getenv("OCPP_CONFIG_PATH") or "").strip()
+    raw_path = (
+        getattr(args, "config_path", None) or os.getenv("OCPP_CONFIG_PATH") or ""
+    ).strip()
     if raw_path:
         merged.update(_load_config_defaults_from_path(raw_path))
 
-    raw_json = (getattr(args, "config_json", None) or os.getenv("OCPP_CONFIG_JSON") or "").strip()
+    raw_json = (
+        getattr(args, "config_json", None) or os.getenv("OCPP_CONFIG_JSON") or ""
+    ).strip()
     if raw_json:
         merged.update(_load_config_defaults_from_json(raw_json))
 
@@ -148,7 +152,9 @@ def build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
     station_name = args.station_name or _env(
         "OCPP_STATION_NAME", str(defaults.get("station_name") or "ORGE_AC_001")
     )
-    station_password = (args.station_password or os.getenv("OCPP_STATION_PASSWORD") or "").strip()
+    station_password = (
+        args.station_password or os.getenv("OCPP_STATION_PASSWORD") or ""
+    ).strip()
     if not station_password:
         raise ValueError(
             "Missing station password: provide --station-password or set OCPP_STATION_PASSWORD"
@@ -164,7 +170,11 @@ def build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
         str(defaults.get("ocpp16_url") or f"wss://lixhium.xyz/ocpp16/{station_name}"),
     )
 
-    primary = (args.primary or _env("OCPP_PRIMARY", str(defaults.get("primary") or "201"))).strip().lower()
+    primary = (
+        (args.primary or _env("OCPP_PRIMARY", str(defaults.get("primary") or "201")))
+        .strip()
+        .lower()
+    )
     if primary in {"2.0.1", "201", "v201", "ocpp201"}:
         primary = "201"
     elif primary in {"1.6", "1.6j", "16", "v16", "ocpp16"}:
@@ -180,9 +190,11 @@ def build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
         primary=primary,
         poc_mode=bool(args.poc),
         once_mode=bool(args.once),
-        vendor_name=args.vendor_name or _env("OCPP_VENDOR", str(defaults.get("vendor_name") or "ORGE")),
+        vendor_name=args.vendor_name
+        or _env("OCPP_VENDOR", str(defaults.get("vendor_name") or "ORGE")),
         model=args.model or _env("OCPP_MODEL", str(defaults.get("model") or "AC-1")),
-        id_token=args.id_token or _env("OCPP_TEST_ID_TOKEN", str(defaults.get("id_token") or "TEST001")),
+        id_token=args.id_token
+        or _env("OCPP_TEST_ID_TOKEN", str(defaults.get("id_token") or "TEST001")),
         heartbeat_override_seconds=int(
             args.heartbeat_seconds
             or _env(
@@ -203,7 +215,9 @@ def build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
                 if args.local_poll_enabled is not None
                 else _env(
                     "OCPP_LOCAL_POLL_ENABLED",
-                    _bool_default_str(defaults.get("local_poll_enabled"), fallback=True),
+                    _bool_default_str(
+                        defaults.get("local_poll_enabled"), fallback=True
+                    ),
                 )
             ),
             default=True,
@@ -215,7 +229,12 @@ def build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
                 str(defaults.get("local_poll_interval_seconds") or "10"),
             )
         ),
-        poc_stop_source=(args.poc_stop_source or _env("OCPP_POC_STOP_SOURCE", str(defaults.get("poc_stop_source") or "auto")))
+        poc_stop_source=(
+            args.poc_stop_source
+            or _env(
+                "OCPP_POC_STOP_SOURCE", str(defaults.get("poc_stop_source") or "auto")
+            )
+        )
         .strip()
         .lower(),
         poc_remote_stop_wait_seconds=int(
@@ -225,7 +244,12 @@ def build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
                 str(defaults.get("poc_remote_stop_wait_seconds") or "0"),
             )
         ),
-        poc_transaction_id=(args.poc_transaction_id or _env("OCPP_POC_TRANSACTION_ID", str(defaults.get("poc_transaction_id") or ""))).strip(),
+        poc_transaction_id=(
+            args.poc_transaction_id
+            or _env(
+                "OCPP_POC_TRANSACTION_ID", str(defaults.get("poc_transaction_id") or "")
+            )
+        ).strip(),
         poc_remote_start_enabled=bool(args.poc_remote_start),
         poc_remote_start_wait_seconds=int(
             args.poc_remote_start_wait_seconds
@@ -250,5 +274,3 @@ def build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
             )
         ),
     )
-
-

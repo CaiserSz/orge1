@@ -49,7 +49,9 @@ def make_v201_station_cp(
 
         @on("GetReport")
         def on_get_report(self, request_id: int, **kwargs):
-            return call_result.GetReport(status=enums.GenericDeviceModelStatusEnumType.accepted)
+            return call_result.GetReport(
+                status=enums.GenericDeviceModelStatusEnumType.accepted
+            )
 
         @on("GetLog")
         def on_get_log(self, request_id: int, **kwargs):
@@ -136,7 +138,9 @@ def make_v201_station_cp(
                             timestamp=utc_now_iso(),
                             trigger_reason=enums.TriggerReasonEnumType.remote_start,
                             seq_no=1,
-                            transaction_info=datatypes.TransactionType(transaction_id=tx_id),
+                            transaction_info=datatypes.TransactionType(
+                                transaction_id=tx_id
+                            ),
                             evse=evse,
                             id_token=id_token,
                         ),
@@ -201,5 +205,3 @@ def make_v201_station_cp(
             )
 
     return StationCP
-
-

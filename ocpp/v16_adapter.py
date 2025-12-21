@@ -39,7 +39,9 @@ class Ocpp16Adapter:
 
         url = self.cfg.ocpp16_url
         headers = {
-            "Authorization": basic_auth_header(self.cfg.station_name, self.cfg.station_password)
+            "Authorization": basic_auth_header(
+                self.cfg.station_name, self.cfg.station_password
+            )
         }
 
         attempt = 0
@@ -83,7 +85,9 @@ class Ocpp16Adapter:
                         )
                         print("[OCPP] v16 StatusNotification(Available) sent")
 
-                        hb_interval = int(getattr(self.cfg, "heartbeat_override_seconds", 0) or 0)
+                        hb_interval = int(
+                            getattr(self.cfg, "heartbeat_override_seconds", 0) or 0
+                        )
                         if hb_interval <= 0:
                             hb_interval = int(getattr(boot, "interval", None) or 300)
                         hb_interval = max(10, hb_interval)
@@ -101,7 +105,9 @@ class Ocpp16Adapter:
                                 suppress=False,
                                 unique_id=str(uuid.uuid4()),
                             )
-                            print(f"[OCPP] v16 Heartbeat current_time={hb.current_time}")
+                            print(
+                                f"[OCPP] v16 Heartbeat current_time={hb.current_time}"
+                            )
                             return
 
                         print(f"[OCPP] v16 daemon heartbeat_interval={hb_interval}s")
@@ -112,7 +118,9 @@ class Ocpp16Adapter:
                                 suppress=False,
                                 unique_id=str(uuid.uuid4()),
                             )
-                            print(f"[OCPP] v16 Heartbeat current_time={hb.current_time}")
+                            print(
+                                f"[OCPP] v16 Heartbeat current_time={hb.current_time}"
+                            )
                     finally:
                         runner.cancel()
                         with contextlib.suppress(asyncio.CancelledError):
@@ -135,5 +143,3 @@ class Ocpp16Adapter:
                     f"error_type={type(e).__name__} error={e}{extra}"
                 )
                 await asyncio.sleep(min(30.0, float(2 ** max(0, attempt))))
-
-

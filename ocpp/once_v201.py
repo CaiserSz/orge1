@@ -81,7 +81,9 @@ async def run_once_v201(*, ws: Any, cfg: Any, ctx: Any) -> None:
             # C) Wait for inbound RequestStopTransaction → send TransactionEvent(Ended) (Remote/RemoteStop)
             if bool(getattr(cfg, "poc_runbook_enabled", False)):
                 start_wait_s = int(getattr(cfg, "poc_remote_start_wait_seconds", 120))
-                profile_wait_s = int(getattr(cfg, "poc_runbook_wait_profile_seconds", 120))
+                profile_wait_s = int(
+                    getattr(cfg, "poc_runbook_wait_profile_seconds", 120)
+                )
                 stop_wait_s = int(getattr(cfg, "poc_runbook_wait_stop_seconds", 120))
                 ctx.notes.append(
                     "phase14: runbook enabled "
@@ -90,11 +92,15 @@ async def run_once_v201(*, ws: Any, cfg: Any, ctx: Any) -> None:
 
                 # A) Wait for RequestStartTransaction inbound
                 try:
-                    await asyncio.wait_for(cp._remote_start_event.wait(), timeout=start_wait_s)
+                    await asyncio.wait_for(
+                        cp._remote_start_event.wait(), timeout=start_wait_s
+                    )
                 except asyncio.TimeoutError:
                     ctx.callerror = True
                     ctx.protocol_timeout = True
-                    ctx.notes.append("phase14: timeout waiting for RequestStartTransaction")
+                    ctx.notes.append(
+                        "phase14: timeout waiting for RequestStartTransaction"
+                    )
                     raise
 
                 remote_start_id = cp._remote_start_id
@@ -104,7 +110,9 @@ async def run_once_v201(*, ws: Any, cfg: Any, ctx: Any) -> None:
 
                 tx_id = (cfg.poc_transaction_id or "").strip()
                 if not tx_id:
-                    tx_id = f"RS_{remote_start_id}" if remote_start_id else uuid.uuid4().hex
+                    tx_id = (
+                        f"RS_{remote_start_id}" if remote_start_id else uuid.uuid4().hex
+                    )
                 tx_id = tx_id[:36]
 
                 started_ts = utc_now_iso()
@@ -145,11 +153,15 @@ async def run_once_v201(*, ws: Any, cfg: Any, ctx: Any) -> None:
 
                 # C) Wait for RequestStopTransaction inbound (required for runbook)
                 try:
-                    await asyncio.wait_for(cp._remote_stop_event.wait(), timeout=stop_wait_s)
+                    await asyncio.wait_for(
+                        cp._remote_stop_event.wait(), timeout=stop_wait_s
+                    )
                 except asyncio.TimeoutError:
                     ctx.callerror = True
                     ctx.protocol_timeout = True
-                    ctx.notes.append("phase14: timeout waiting for RequestStopTransaction")
+                    ctx.notes.append(
+                        "phase14: timeout waiting for RequestStopTransaction"
+                    )
                     raise
 
                 remote_stop_seen_utc = cp._remote_stop_seen_utc
@@ -187,10 +199,14 @@ async def run_once_v201(*, ws: Any, cfg: Any, ctx: Any) -> None:
                     f"phase14: waiting_for=RequestStartTransaction timeout_seconds={wait_s}"
                 )
                 try:
-                    await asyncio.wait_for(cp._remote_start_event.wait(), timeout=wait_s)
+                    await asyncio.wait_for(
+                        cp._remote_start_event.wait(), timeout=wait_s
+                    )
                 except asyncio.TimeoutError:
                     ctx.callerror = True
-                    ctx.notes.append("phase14: timeout waiting for RequestStartTransaction")
+                    ctx.notes.append(
+                        "phase14: timeout waiting for RequestStartTransaction"
+                    )
                     raise
 
                 # Build TransactionEvent(Started) driven by RemoteStart.
@@ -201,7 +217,9 @@ async def run_once_v201(*, ws: Any, cfg: Any, ctx: Any) -> None:
 
                 tx_id = (cfg.poc_transaction_id or "").strip()
                 if not tx_id:
-                    tx_id = f"RS_{remote_start_id}" if remote_start_id else uuid.uuid4().hex
+                    tx_id = (
+                        f"RS_{remote_start_id}" if remote_start_id else uuid.uuid4().hex
+                    )
                 tx_id = tx_id[:36]
 
                 started_ts = utc_now_iso()
@@ -241,7 +259,9 @@ async def run_once_v201(*, ws: Any, cfg: Any, ctx: Any) -> None:
             auth_res = await ctx.send_safe(cp, auth_req, "Authorize")
             auth_summary = ctx.response_summary(auth_res)
             # Some CSMS policies may omit id_token_info in responses.
-            auth_has_id_token_info = bool(getattr(auth_res, "id_token_info", None) is not None)
+            auth_has_id_token_info = bool(
+                getattr(auth_res, "id_token_info", None) is not None
+            )
             auth_summary["id_token_info_present"] = auth_has_id_token_info
             if auth_has_id_token_info:
                 iti = getattr(auth_res, "id_token_info", None)
@@ -317,7 +337,8 @@ async def run_once_v201(*, ws: Any, cfg: Any, ctx: Any) -> None:
             # TransactionEvent Ended (final meter + stoppedReason)
             # Phase-1.3: map stoppedReason to stop source signal
             remote_stop_seen = bool(
-                getattr(cp, "_remote_stop_event", None) and cp._remote_stop_event.is_set()
+                getattr(cp, "_remote_stop_event", None)
+                and cp._remote_stop_event.is_set()
             )
             remote_stop_tx_id = getattr(cp, "_remote_stop_transaction_id", None)
             remote_stop_seen_utc = getattr(cp, "_remote_stop_seen_utc", None)
@@ -389,7 +410,8 @@ async def run_once_v201(*, ws: Any, cfg: Any, ctx: Any) -> None:
 
             # Local validations (evidence for Phase-1.2)
             monotonic_energy_ok = all(
-                energy_values[i] < energy_values[i + 1] for i in range(len(energy_values) - 1)
+                energy_values[i] < energy_values[i + 1]
+                for i in range(len(energy_values) - 1)
             )
             ctx.notes.append(
                 f"phase12: transaction_id={tx_id} seq_no_start=1 seq_no_end={seq_no}"
@@ -407,5 +429,3 @@ async def run_once_v201(*, ws: Any, cfg: Any, ctx: Any) -> None:
         runner.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await runner
-
-

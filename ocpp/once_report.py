@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import json
 import subprocess
 import uuid
 from dataclasses import fields, is_dataclass
@@ -178,7 +177,9 @@ class OnceContext:
 async def run_once_json(cfg: Any) -> dict[str, Any]:
     subprotocol = "ocpp2.0.1" if cfg.primary == "201" else "ocpp1.6"
     url = cfg.ocpp201_url if cfg.primary == "201" else cfg.ocpp16_url
-    headers = {"Authorization": basic_auth_header(cfg.station_name, cfg.station_password)}
+    headers = {
+        "Authorization": basic_auth_header(cfg.station_name, cfg.station_password)
+    }
 
     ctx = OnceContext(cfg=cfg, url=url, subprotocol=subprotocol)
 
@@ -232,5 +233,3 @@ async def run_once_json(cfg: Any) -> dict[str, Any]:
         ctx.notes.append(f"error: {exc}")
 
     return ctx.final_report(finished_utc=utc_now_iso())
-
-

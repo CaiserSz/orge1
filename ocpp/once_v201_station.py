@@ -122,7 +122,9 @@ def make_once_v201_station_cp(
         @on("GetLog")
         def on_get_log(self, **kwargs):
             # Minimal safe response (Phase-1): do not generate/download log files here.
-            return call_result.GetLog(status=enums.LogStatusEnumType.rejected, filename="")
+            return call_result.GetLog(
+                status=enums.LogStatusEnumType.rejected, filename=""
+            )
 
         @on("GetVariables")
         def on_get_variables(self, get_variable_data: list, **kwargs):
@@ -133,9 +135,13 @@ def make_once_v201_station_cp(
                     variable = item.variable
                     attr_type = getattr(item, "attribute_type", None)
                 else:
-                    component = item.get("component") if isinstance(item, dict) else None
+                    component = (
+                        item.get("component") if isinstance(item, dict) else None
+                    )
                     variable = item.get("variable") if isinstance(item, dict) else None
-                    attr_type = item.get("attribute_type") if isinstance(item, dict) else None
+                    attr_type = (
+                        item.get("attribute_type") if isinstance(item, dict) else None
+                    )
                 results.append(
                     dt.GetVariableResultType(
                         attribute_status=enums.GetVariableStatusEnumType.unknown_component,
@@ -155,9 +161,13 @@ def make_once_v201_station_cp(
                     variable = item.variable
                     attr_type = getattr(item, "attribute_type", None)
                 else:
-                    component = item.get("component") if isinstance(item, dict) else None
+                    component = (
+                        item.get("component") if isinstance(item, dict) else None
+                    )
                     variable = item.get("variable") if isinstance(item, dict) else None
-                    attr_type = item.get("attribute_type") if isinstance(item, dict) else None
+                    attr_type = (
+                        item.get("attribute_type") if isinstance(item, dict) else None
+                    )
                 results.append(
                     dt.SetVariableResultType(
                         attribute_status=enums.SetVariableStatusEnumType.rejected,
@@ -238,5 +248,3 @@ def make_once_v201_station_cp(
             )
 
     return StationCP
-
-
