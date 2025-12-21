@@ -687,6 +687,15 @@
   - Bağımlılıklar: API katmanının stabil olması, OCPP 1.6J implementasyonu (OCPP 2.0.1 için), OCPP implementasyonu (CSMS için)
   - Durum: 📋 Bekliyor
 
+### Öncelik 2: OCPP 1.6J Fallback — Smoke Test (2025-12-21)
+
+- [x] **Görev:** OCPP 1.6J (v16) fallback adapter için local CSMS smoke test ekle (Boot+Status+Heartbeat)
+  - Açıklama: 150 istasyon rollout öncesi fallback path’in regresyon riskini azaltmak için local WS server ile v16 Boot/Status/Heartbeat smoke test eklenmeli.
+  - Öncelik: 2 (Orta/Yüksek)
+  - Tahmini Süre: 30-60 dk
+  - Durum: ✅ Tamamlandı (2025-12-21)
+  - Test: `tests/test_integration.py::test_ocpp_v16_adapter_boot_status_heartbeat_local_csms_server`
+
 - [ ] **Görev:** CSMS Admin UI BasicAuth erişimi (station-side doğrulama için)
   - Açıklama: `https://lixhium.xyz/` admin UI `Basic realm="CSMS Admin UI"` ile korunuyor. Station BasicAuth credentials (ör. `STATION_NAME:password`) UI için geçerli değil. Station AI’ın “stations list / last_seen / connected_at” doğrulaması yapabilmesi için admin kullanıcı/parola sağlanmalı veya UI kontrolü CSMS AI tarafından yapılmalı.
   - Öncelik: 2 (Yüksek - doğrulama/operasyonel ihtiyaç)
