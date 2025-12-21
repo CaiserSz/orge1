@@ -204,10 +204,10 @@
   - Detaylar: Rapor zamanı: 2025-12-21 20:43
 
 - [ ] **Görev:** `tests/test_api_endpoints.py` kompaktlaştırma planı (satır sayısı uyarı eşiği yakın)
-  - Açıklama: Dosya şu an 499 satır (Limit: 500). Limit eşiğine çok yakın; tekrar eden setup/assert blokları fixture/helper ile sadeleştirilmeli (mümkünse yeni dosya oluşturmadan) ve yeni test eklemeleri mümkünse başka mevcut dosyalara yönlendirilmeli.
+  - Açıklama: Dosya şu an 500 satır (Limit: 500). Limitte; tekrar eden setup/assert blokları fixture/helper ile sadeleştirilmeli (mümkünse yeni dosya oluşturmadan) ve yeni test eklemeleri mümkünse başka mevcut dosyalara yönlendirilmeli.
   - Öncelik: 3 (Orta/Düşük)
   - Tahmini Süre: 1-2 saat
-  - Durum: 🔴 Limit eşiğine çok yakın (499/500)
+  - Durum: 🔴 Limitte (500/500)
   - Detaylar: Güncelleme: 2025-12-22
 
 

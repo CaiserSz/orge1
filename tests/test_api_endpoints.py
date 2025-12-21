@@ -454,6 +454,7 @@ class TestABBMeterReadMeterHelpers:
 
     def test_parse_response_variants(self):
         import struct
+
         from meter.read_meter import ABBMeterReader
 
         r = ABBMeterReader(device="dummy", slave_id=1)
@@ -473,7 +474,7 @@ class TestABBMeterReadMeterHelpers:
         assert r._parse_modbus_response(exc) is None
 
     def test_read_meter_data_decoding_without_serial(self, monkeypatch):
-        from meter.read_meter import ABBMeterReader, ABB_REGISTERS
+        from meter.read_meter import ABB_REGISTERS, ABBMeterReader
 
         r = ABBMeterReader(device="dummy", slave_id=1)
         r.is_connected = True
