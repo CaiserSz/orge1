@@ -1,17 +1,17 @@
 """
 Integration Testleri - Gerçek Senaryolar
 Created: 2025-12-09 02:25:00
-Last Modified: 2025-12-21 02:42:00
-Version: 1.1.0
+Last Modified: 2025-12-21 17:05:00
+Version: 1.1.1
 Description: Gerçek kullanım senaryoları ve integration testleri (API + OCPP Remote Ops)
 """
 
 import asyncio
-import contextlib
 import base64
+import contextlib
+import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
-import sys
 from pathlib import Path
 from typing import Any
 
@@ -164,6 +164,7 @@ async def test_ocpp_remote_ops_v201_local_csms_server():
     - Assert station emits TransactionEvent(Started/Ended)
     """
     import websockets
+
     from ocpp.routing import on
     from ocpp.v201 import ChargePoint, call, call_result, datatypes, enums
 
@@ -348,6 +349,133 @@ async def test_ocpp_remote_ops_v201_local_csms_server():
         assert started_payload.get("transaction_id"), started_payload
         assert ended_payload.get("transaction_id"), ended_payload
         assert ended_payload["transaction_id"] == started_payload["transaction_id"]
+    finally:
+        adapter_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await adapter_task
+        server.close()
+        await server.wait_closed()
+
+
+@pytest.mark.asyncio
+async def test_ocpp_v16_adapter_boot_status_heartbeat_local_csms_server():
+    """
+    OCPP 1.6J (v16) fallback adapter smoke (local CSMS).
+
+    - Start a local websocket CSMS server (OCPP 1.6) with BasicAuth check
+    - Run station v16 adapter (once_mode=True)
+    - Assert station sends BootNotification + StatusNotification + Heartbeat
+    """
+    import websockets
+
+    from ocpp.routing import on
+    from ocpp.v16 import ChargePoint, call_result
+
+    # Import station adapter from /ocpp folder (not a package)
+    sys.path.insert(0, str(Path(__file__).parent.parent / "ocpp"))
+    from main import Ocpp16Adapter  # type: ignore
+
+    @dataclass
+    class _Cfg:
+        station_name: str
+        station_password: str
+        ocpp16_url: str
+        ocpp201_url: str = "ws://127.0.0.1/unused"
+        primary: str = "16"
+        poc_mode: bool = False
+        once_mode: bool = True
+        vendor_name: str = "ORGE"
+        model: str = "AC-1"
+        id_token: str = "TEST001"
+        heartbeat_override_seconds: int = 0
+        local_api_base_url: str = "http://localhost:8000"
+        local_poll_enabled: bool = False
+        local_poll_interval_seconds: int = 10
+        poc_stop_source: str = "auto"
+        poc_remote_stop_wait_seconds: int = 0
+        poc_transaction_id: str = ""
+        poc_remote_start_enabled: bool = False
+        poc_remote_start_wait_seconds: int = 120
+        poc_runbook_enabled: bool = False
+        poc_runbook_wait_profile_seconds: int = 120
+        poc_runbook_wait_stop_seconds: int = 120
+
+    def _utc_now() -> str:
+        return (
+            datetime.now(timezone.utc)
+            .replace(microsecond=0)
+            .isoformat()
+            .replace("+00:00", "Z")
+        )
+
+    boot_seen = asyncio.Event()
+    status_seen = asyncio.Event()
+    hb_seen = asyncio.Event()
+
+    class CentralSystemCP(ChargePoint):
+        @on("BootNotification")
+        async def on_boot_notification(self, **kwargs):
+            boot_seen.set()
+            return call_result.BootNotification(
+                current_time=_utc_now(), interval=30, status="Accepted"
+            )
+
+        @on("StatusNotification")
+        async def on_status_notification(self, **kwargs):
+            status_seen.set()
+            return call_result.StatusNotification()
+
+        @on("Heartbeat")
+        async def on_heartbeat(self, **kwargs):
+            hb_seen.set()
+            return call_result.Heartbeat(current_time=_utc_now())
+
+    def _get_auth_header(ws: Any) -> str | None:
+        req = getattr(ws, "request", None)
+        if req is not None:
+            headers = getattr(req, "headers", None)
+            if headers is not None:
+                return headers.get("Authorization")
+        headers = getattr(ws, "request_headers", None)
+        if headers is not None:
+            return headers.get("Authorization")
+        return None
+
+    async def _ws_handler(ws):
+        # Verify BasicAuth header (secret-free check)
+        auth = _get_auth_header(ws)
+        assert auth and auth.startswith("Basic ")
+        raw = base64.b64decode(auth.split(" ", 1)[1]).decode("utf-8")
+        assert raw == "ORGE_AC_001:testpw"
+
+        cp = CentralSystemCP("ORGE_AC_001", ws)
+        runner = asyncio.create_task(cp.start())
+        try:
+            await asyncio.wait_for(boot_seen.wait(), timeout=10)
+            await asyncio.wait_for(status_seen.wait(), timeout=10)
+            await asyncio.wait_for(hb_seen.wait(), timeout=10)
+        finally:
+            runner.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await runner
+
+    server = await websockets.serve(
+        _ws_handler, "127.0.0.1", 0, subprotocols=["ocpp1.6"]
+    )
+    port = server.sockets[0].getsockname()[1]
+
+    cfg = _Cfg(
+        station_name="ORGE_AC_001",
+        station_password="testpw",
+        ocpp16_url=f"ws://127.0.0.1:{port}/ocpp16/ORGE_AC_001",
+    )
+    adapter = Ocpp16Adapter(cfg)
+    adapter_task = asyncio.create_task(adapter.run())
+    try:
+        await asyncio.wait_for(hb_seen.wait(), timeout=20)
+        assert boot_seen.is_set()
+        assert status_seen.is_set()
+        assert hb_seen.is_set()
     finally:
         adapter_task.cancel()
         with contextlib.suppress(asyncio.CancelledError):

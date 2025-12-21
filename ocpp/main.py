@@ -2,8 +2,8 @@
 OCPP Station Client Runner (Phase-1)
 
 Created: 2025-12-16 01:20
-Last Modified: 2025-12-21 16:45
-Version: 0.5.4
+Last Modified: 2025-12-21 17:00
+Version: 0.5.5
 Description:
   OCPP station client entrypoint for Raspberry Pi (Python runtime).
   - Primary: OCPP 2.0.1 (v201)
@@ -30,13 +30,8 @@ from dataclasses import dataclass, fields, is_dataclass
 from typing import Any
 
 import websockets
-from states import (
-    StationIdentity,
-    basic_auth_header,
-    serial_number_for_station_name,
-    ssl_if_needed,
-    utc_now_iso,
-)
+from states import (StationIdentity, basic_auth_header,
+                    serial_number_for_station_name, ssl_if_needed, utc_now_iso)
 
 
 def _dataclass_field_names(obj: Any) -> list[str]:
@@ -997,50 +992,103 @@ class Ocpp16Adapter:
             )
         }
 
-        async with websockets.connect(
-            url,
-            subprotocols=["ocpp1.6"],
-            additional_headers=headers,
-            ssl=ssl_if_needed(url),
-            open_timeout=10,
-        ) as ws:
-            cp = ChargePoint(self.cfg.station_name, ws)
-            runner = asyncio.create_task(cp.start())
+        attempt = 0
+        while True:
             try:
-                if self.cfg.poc_mode:
-                    print(
-                        "[OCPP/PoC] OCPP 1.6J PoC not implemented yet (Phase-1 priority is 2.0.1)."
-                    )
-                    return
+                async with websockets.connect(
+                    url,
+                    subprotocols=["ocpp1.6"],
+                    additional_headers=headers,
+                    ssl=ssl_if_needed(url),
+                    open_timeout=10,
+                    # Keepalive: helps prevent idle disconnects.
+                    ping_interval=20,
+                    ping_timeout=20,
+                    close_timeout=5,
+                ) as ws:
+                    cp = ChargePoint(self.cfg.station_name, ws)
+                    runner = asyncio.create_task(cp.start())
+                    try:
+                        boot = await cp.call(
+                            call.BootNotification(
+                                charge_point_model=self.identity.model,
+                                charge_point_vendor=self.identity.vendor_name,
+                            ),
+                            suppress=False,
+                            unique_id=str(uuid.uuid4()),
+                        )
+                        print(
+                            f"[OCPP] v16 BootNotification status={boot.status} interval={boot.interval}"
+                        )
 
-                if self.cfg.once_mode:
-                    boot = await cp.call(
-                        call.BootNotification(
-                            charge_point_model=self.identity.model,
-                            charge_point_vendor=self.identity.vendor_name,
-                        ),
-                        suppress=False,
-                        unique_id=str(uuid.uuid4()),
-                    )
-                    print(
-                        f"[OCPP] v16 BootNotification status={boot.status} interval={boot.interval}"
-                    )
+                        await cp.call(
+                            call.StatusNotification(
+                                connector_id=1,
+                                error_code="NoError",
+                                status="Available",
+                                timestamp=utc_now_iso(),
+                            ),
+                            suppress=False,
+                            unique_id=str(uuid.uuid4()),
+                        )
+                        print("[OCPP] v16 StatusNotification(Available) sent")
 
-                    hb = await cp.call(
-                        call.Heartbeat(), suppress=False, unique_id=str(uuid.uuid4())
-                    )
-                    print(f"[OCPP] v16 Heartbeat current_time={hb.current_time}")
-                    return
+                        hb_interval = int(
+                            getattr(self.cfg, "heartbeat_override_seconds", 0) or 0
+                        )
+                        if hb_interval <= 0:
+                            hb_interval = int(getattr(boot, "interval", None) or 300)
+                        hb_interval = max(10, hb_interval)
 
-                while True:
-                    await asyncio.sleep(300)
-                    await cp.call(
-                        call.Heartbeat(), suppress=False, unique_id=str(uuid.uuid4())
-                    )
-            finally:
-                runner.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await runner
+                        if self.cfg.poc_mode:
+                            print(
+                                "[OCPP/PoC] OCPP 1.6J PoC not implemented yet "
+                                "(Phase-1 priority is 2.0.1)."
+                            )
+                            return
+
+                        if self.cfg.once_mode:
+                            hb = await cp.call(
+                                call.Heartbeat(),
+                                suppress=False,
+                                unique_id=str(uuid.uuid4()),
+                            )
+                            print(f"[OCPP] v16 Heartbeat current_time={hb.current_time}")
+                            return
+
+                        print(f"[OCPP] v16 daemon heartbeat_interval={hb_interval}s")
+                        while True:
+                            await asyncio.sleep(hb_interval)
+                            hb = await cp.call(
+                                call.Heartbeat(),
+                                suppress=False,
+                                unique_id=str(uuid.uuid4()),
+                            )
+                            print(
+                                f"[OCPP] v16 Heartbeat current_time={hb.current_time}"
+                            )
+                    finally:
+                        runner.cancel()
+                        with contextlib.suppress(asyncio.CancelledError):
+                            await runner
+
+                # Normal websocket close: reset attempt and reconnect.
+                attempt = 0
+                await asyncio.sleep(1)
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:
+                attempt += 1
+                code = getattr(e, "code", None)
+                reason = getattr(e, "reason", None)
+                extra = ""
+                if code is not None or reason is not None:
+                    extra = f" code={code!r} reason={reason!r}"
+                print(
+                    f"[OCPP] v16 reconnect attempt={attempt} "
+                    f"error_type={type(e).__name__} error={e}{extra}"
+                )
+                await asyncio.sleep(min(30.0, float(2 ** max(0, attempt))))
 
 
 @dataclass(frozen=True)
