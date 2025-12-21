@@ -415,6 +415,27 @@ Station-side log satırları (secret-free):
 Notlar:
 - Bu koşumda CSMS tarafında kısa süreli WS disconnect (close code=1000) görüldü; station daemon reconnect ederek tekrar Boot/Status gönderdi. “connected_ids=[]” gibi durumlar bu pencere sırasında gözlenebilir; test penceresinde daemon online tutulmalıdır.
 
+### Evidence (Success) — 2025-12-21 (UTC) (retest: Heartbeat=60s + Remote Ops)
+
+Context:
+- CSMS tarafında WS flapping fix deploy edildi (timeout 300→900 + last_seen touch).
+- Station retest sırasında `--heartbeat-seconds 60` kullanıldı.
+
+Station-side log satırları (secret-free):
+- `daemon heartbeat_interval=60s`
+- `Heartbeat sent` örnekleri:
+  - `utc=2025-12-21T08:49:31Z`
+  - `utc=2025-12-21T09:49:36Z`
+  - `utc=2025-12-21T10:57:42Z`
+- Remote Start/Stop:
+  - `RequestStartTransaction received` → `remote_start_id=938233573 evse_id=1 tx_id=RS_938233573`
+  - `TransactionEvent(Started) remote_start` → `tx_id=RS_938233573 utc=2025-12-21T11:11:33Z`
+  - `RequestStopTransaction received` → `transaction_id=RS_938233573 utc=2025-12-21T11:12:02Z`
+  - `TransactionEvent(Ended) remote_stop` → `tx_id=RS_938233573 utc=2025-12-21T11:12:02Z`
+
+Notlar:
+- Bu retest penceresinde station stdout’da reconnect attempt / HTTP 502 gözlenmedi (stabil görünüm).
+
 ---
 
 ## Provisioning — Station-side OCPP ayarları (Phase‑1) (no secrets)
