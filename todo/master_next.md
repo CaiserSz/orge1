@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-19 15:02:31
+**Son Güncelleme:** 2025-12-22 00:18:00
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -10,11 +10,12 @@
 
 ### Öncelik 2: CSMS canonical test komutu uyumsuzluğu (2025-12-18)
 
-- [ ] **Görev:** CSMS “canonical” test komutunu Station repo ile uyumlu hale getir (veya SSOT’ta ayrımı netleştir)
+- [x] **Görev:** CSMS “canonical” test komutunu Station repo ile uyumlu hale getir (veya SSOT’ta ayrımı netleştir)
   - Açıklama: CSMS repo’da mevcut olan `tests/unit/test_chargepoint_v201.py` dosyası Station repo’da yok; ayrıca Station repo’da `make test` target’ı bulunmuyor. Bu nedenle CSMS tarafının istediği `make test PYTEST_ARGS='-q tests/unit/test_chargepoint_v201.py'` komutu Station ortamında çalıştırılamıyor. İki repo için “canonical proof” yöntemleri SSOT’ta netleştirilmeli veya Station’a uygun bir Makefile target eklenmeli.
   - Öncelik: 2 (Orta)
   - Tahmini Süre: 30-60 dakika
-  - Durum: 📋 Bekliyor
+  - Durum: ✅ Tamamlandı (2025-12-22)
+  - Detaylar: SSOT’a “CSMS repo vs Station repo canonical test/kanıt komutları” ayrımı eklendi → `docs/csms/CSMS_CONNECTION_PARAMETERS.md` (“Canonical test / kanıt komutu” bölümü).
 
 ### Öncelik 2: Prod-hardening (security hariç) — Deployment/Service Runbook (2025-12-21)
 

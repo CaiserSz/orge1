@@ -1,7 +1,7 @@
 # CSMS ↔ Station Connection Parameters (OCPP 2.0.1 + 1.6j)
 
 **Oluşturulma:** 2025-12-15
-**Son Güncelleme:** 2025-12-19 15:04
+**Son Güncelleme:** 2025-12-22 00:16
 **Durum:** ✅ Aktif
 
 ## 1) CSMS URL nedir? (gerçek mi / simülatör mü?)
@@ -131,6 +131,21 @@ Printed to **stdout** as a single JSON object (no password/token fields).
 
 #### Evidence
 - Evidence is captured in `--once` JSON under `messages[]` with `utc`, `unique_id`, and `response_summary`.
+
+#### Canonical test / kanıt komutu (CSMS repo vs Station repo) (2025-12-22)
+CSMS tarafında paylaşılan bazı “canonical test” komutları **CSMS repo** içindir ve **Station repo** üzerinde çalışmaz.
+Bu iki repo için “canonical proof” adımlarını SSOT’ta net ayırıyoruz.
+
+- **CSMS repo (approvable_csms)**
+  - Canonical komut örneği: `make test PYTEST_ARGS='-q tests/unit/test_chargepoint_v201.py'`
+  - Not: Bu test dosyası Station repo’da yoktur; bu komut Station repo’da çalışmaz.
+
+- **Station repo (bu repo: `/home/basar/charger`)**
+  - Canonical (offline) proof: local CSMS ws server ile station integration test:
+    - `./env/bin/pytest -q tests/test_integration.py -k ocpp_remote_ops_v201_local_csms_server`
+  - Canonical (fallback) proof: OCPP 1.6J adapter smoke:
+    - `./env/bin/pytest -q tests/test_integration.py -k ocpp_v16_adapter_boot_status_heartbeat_local_csms_server`
+  - Device smoke (prod-like, secret-free rapor): `docs/deployment.md` → “Health check (CSMS’e dokunmadan smoke)” / “Smoke test”
 
 ---
 
