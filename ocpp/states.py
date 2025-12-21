@@ -6,8 +6,8 @@ Last Modified: 2025-12-16 07:22
 Version: 0.2.1
 Description:
   Shared datatypes and helper utilities for the station OCPP client.
-  This module intentionally contains helpers to keep `ocpp/handlers.py` within
-  code size standards without creating new files/folders.
+  This module intentionally contains shared helpers (auth, time, local API polling)
+  to keep adapter modules small and consistent with code size standards.
 """
 
 from __future__ import annotations
