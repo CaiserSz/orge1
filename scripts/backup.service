@@ -4,11 +4,12 @@ After=network.target
 
 [Service]
 Type=oneshot
-User=pi
-Group=pi
+User=basar
+Group=basar
 WorkingDirectory=/home/basar/charger
 Environment="PATH=/home/basar/charger/env/bin:/usr/local/bin:/usr/bin:/bin"
-ExecStart=/home/basar/charger/env/bin/python3 /home/basar/charger/scripts/backup_manager.py
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=/home/basar/charger/env/bin/python3 -u /home/basar/charger/scripts/backup_manager.py
 StandardOutput=journal
 StandardError=journal
 

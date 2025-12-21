@@ -1,8 +1,8 @@
 # Backup Strategy Documentation
 
 **Oluşturulma Tarihi:** 2025-12-10 17:00:00
-**Son Güncelleme:** 2025-12-10 17:00:00
-**Versiyon:** 1.0.0
+**Son Güncelleme:** 2025-12-22 00:10:00
+**Versiyon:** 1.1.0
 
 ---
 
@@ -98,6 +98,10 @@ python3 scripts/backup_manager.py --no-compress
 sudo cp scripts/backup.service /etc/systemd/system/
 sudo cp scripts/backup.timer /etc/systemd/system/
 ```
+
+Not:
+- `scripts/backup.service` içinde `User/Group` projenin ana kullanıcı hesabına uygun olmalıdır (bu repo için: `basar`).
+- Backup artefact’ları (`backups/`) git’e girmemelidir (`.gitignore` içinde ignore edilir).
 
 2. **Timer'ı aktif et:**
 

@@ -117,12 +117,17 @@
   - Notlar:
     - Öneri: resmi/kaliteli 5.1V/3A PSU + kısa/kalın USB‑C kablo; yüksek akım çeken USB cihazları için powered hub
 
-- [ ] **Görev:** `backup.service` systemd unit tutarlılığı (unit mevcut değil / user farklı)
+- [x] **Görev:** `backup.service` systemd unit tutarlılığı (unit mevcut değil / user farklı)
   - Açıklama: `backup.service` status sorgusunda “Unit ... could not be found.” dönüyor; ayrıca repo içindeki `scripts/backup.service` User/Group `pi` iken cihazda ana kullanıcı `basar`. Servis gerçekten kullanılacaksa doğru şekilde `/etc/systemd/system/` altına kurulmalı, user/group ve path’ler doğrulanmalı; kullanılmayacaksa dokümantasyondan/kurulumdan kaldırılmalı.
   - Öncelik: 2 (Orta)
   - Tahmini Süre: 30-45 dakika
-  - Durum: 📋 Bekliyor
-  - Detaylar: Repo: `scripts/backup.service`, cihaz: unit yok.
+  - Durum: ✅ Tamamlandı (2025-12-22) — unit kuruldu + timer enable + smoke
+  - Detaylar:
+    - Repo: `scripts/backup.service` user/group `basar` olacak şekilde güncellendi
+    - Cihaz: `backup.service` + `backup.timer` kuruldu (`/etc/systemd/system/`)
+    - Timer: `backup.timer` enable+active (OnCalendar: 02:00, RandomizedDelaySec=1800, Persistent=true)
+    - Smoke: `sudo systemctl start backup.service` → SUCCESS (db + config + manifest üretildi)
+    - Git hijyeni: `backups/` artefact’ları yanlışlıkla git’te tracked idi; `.gitignore` → `backups/` eklendi ve tracked dosyalar untrack edildi
 
 - [ ] **Görev:** Ngrok DNS/bağlantı hataları (geçmiş) - resolver yapılandırması kontrolü
   - Açıklama: Journal’da ngrok “lookup ... on [::1]:53 ... connection refused” hataları görüldü. Bu genelde DNS resolver’ın localhost’a (IPv6) işaret edip DNS servisi kapalı olmasıyla tetiklenir. Mevcut durumda ağ stabil mi teyit edilmeli; `/etc/resolv.conf` / `systemd-resolved` / `dnsmasq` durumları kontrol edilmelidir.
