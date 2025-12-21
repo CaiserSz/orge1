@@ -28,9 +28,10 @@
 - [ ] **Görev:** `api/meter/modbus.py` ve `api/meter/acrel.py` için saf parse/convert unit testleri ekle
   - Açıklama: `api/meter/modbus.py` %13, `api/meter/acrel.py` %0. Donanım erişimi olmadan test edilebilecek register decode, mapping, hata senaryoları ve dönüştürücüler kapsanmalı.
   - Öncelik: 2 (Orta)
-  - Tahmini Süre: 2-4 saat
-  - Durum: 📋 Bekliyor
+  - Tahmini Süre: 30-60 dk
+  - Durum: ✅ Tamamlandı (2025-12-21)
   - Detaylar: Coverage (2025-12-16): `api/meter/acrel.py` %0, `api/meter/modbus.py` %13.
+  - Test: `tests/test_api_endpoints.py::TestMeterParsingHelpers`
 
 - [x] **Görev:** `ocpp/handlers.py` UI Remote Ops inbound handler’ları için otomatik test ekle (Remote Start/Stop)
   - Açıklama: UI Remote Ops akışı (daemon) sahada kanıtlandı; ancak Station repo içinde `RequestStartTransaction` / `RequestStopTransaction` inbound handler’ları için otomatik test bulunmuyor. Regression riskini azaltmak için, gerçek WebSocket kurmadan handler’ları doğrudan çağıran (mock/fixture ile) bir test eklenmeli ve `TransactionEvent(Started/Ended)` üretimi beklenen alanlarla doğrulanmalı.

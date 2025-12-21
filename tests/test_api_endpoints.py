@@ -1,14 +1,16 @@
 """
 API Endpoints Unit Tests
 Created: 2025-12-09 02:00:00
-Last Modified: 2025-12-16 09:40:00
-Version: 1.1.0
+Last Modified: 2025-12-21 15:35:00
+Version: 1.1.1
 Description: API endpoint'leri için unit testler - Mock ESP32 bridge ile
 """
 
 import sys
 from pathlib import Path
 from types import SimpleNamespace
+
+import pytest
 
 # Proje root'unu path'e ekle
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -375,3 +377,56 @@ class TestMeterEndpoints:
         assert body["success"] is True
         assert body["message"] == "Meter verisi geçersiz"
         assert body["data"] is None
+
+
+class TestMeterParsingHelpers:
+    """
+    Meter register decode / convert helper testleri.
+
+    Not: Bu testler donanım/serial erişimi yapmaz; saf converter fonksiyonları kapsar.
+    """
+
+    def test_modbus_u32_from_regs(self):
+        from api.meter.modbus import _u32_from_regs
+
+        assert _u32_from_regs(0x0000, 0x0001) == 1
+        assert _u32_from_regs(0x1234, 0x5678) == 0x12345678
+
+    def test_modbus_s32_from_regs_positive(self):
+        from api.meter.modbus import _s32_from_regs
+
+        assert _s32_from_regs(0x0000, 0x0001) == 1
+
+    def test_modbus_s32_from_regs_negative(self):
+        from api.meter.modbus import _s32_from_regs
+
+        # 0xFFFFFFFF -> -1 (signed 32-bit)
+        assert _s32_from_regs(0xFFFF, 0xFFFF) == -1
+
+    def test_acrel_to_float(self):
+        from api.meter.acrel import _to_float
+
+        # IEEE754 1.0 -> 0x3F80 0x0000
+        assert _to_float((0x3F80, 0x0000)) == pytest.approx(1.0)
+
+    def test_acrel_to_float_invalid(self):
+        from api.meter.acrel import _to_float
+
+        assert _to_float((1,)) is None
+
+    def test_acrel_read_uint32_scaled(self, monkeypatch):
+        from api.meter.acrel import AcrelModbusMeter
+
+        m = AcrelModbusMeter(port="dummy", baudrate=9600, slave_id=1, timeout=0.1)
+        monkeypatch.setattr(m, "_read_regs", lambda address, count: (0x0000, 0x000A))
+
+        # 10 * 0.1 = 1.0
+        assert m._read_uint32_scaled(0x0842, 0.1) == pytest.approx(1.0)
+
+    def test_acrel_read_uint32_scaled_none(self, monkeypatch):
+        from api.meter.acrel import AcrelModbusMeter
+
+        m = AcrelModbusMeter(port="dummy", baudrate=9600, slave_id=1, timeout=0.1)
+        monkeypatch.setattr(m, "_read_regs", lambda address, count: None)
+
+        assert m._read_uint32_scaled(0x0842, 0.1) is None
