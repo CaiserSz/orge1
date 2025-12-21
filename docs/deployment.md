@@ -1,8 +1,8 @@
 # Deployment Kılavuzu - AC Charger
 
 **Oluşturulma Tarihi:** 2025-12-09 22:40:00
-**Son Güncelleme:** 2025-12-09 22:40:00
-**Version:** 1.0.0
+**Son Güncelleme:** 2025-12-21 15:45:00
+**Version:** 1.1.0
 
 ---
 
@@ -38,7 +38,7 @@
 
 #### Kimlik Doğrulama
 - **AUTHTOKEN:** `ngrok.yml` dosyasında tanımlı
-- **NGROK_API_KEY:** `.env` dosyasında tanımlı (`32AHSFuAnr3dEqbISzXQj8LT2bT_89vhksjQHgjV3Z644eDk3`)
+- **NGROK_API_KEY:** `.env` dosyasında tanımlı (**secret**; repo/dokümana yazılmaz)
 - **API Bağlantısı:** ✅ Ngrok API'ye başarıyla bağlanıldı
 
 #### Servis Yönetimi Komutları
@@ -104,4 +104,89 @@ sudo journalctl -u ngrok -f
 - SSH key GitHub'a eklendi ve bağlantı başarıyla test edildi
 - İlk push başarıyla tamamlandı (commit: 57be7e3)
 - Branch: main, Remote: git@github.com:CaiserSz/orge1.git (SSH)
+
+---
+
+## Systemd Servisleri (Pilot/Prod - Security hariç) (2025-12-21)
+
+Hedef: 5-6 pilot → 150 istasyona ölçeklerken “aynı SSD imajı + deterministik provisioning” ile
+servislerin otomatik kalkması, otomatik toparlaması ve kolay güncellenebilmesi.
+
+### Charger API (FastAPI)
+
+- Template: `scripts/charger-api.service`
+- Kurulum örneği:
+  - `sudo cp /home/basar/charger/scripts/charger-api.service /etc/systemd/system/charger-api.service`
+  - `sudo systemctl daemon-reload`
+  - `sudo systemctl enable --now charger-api.service`
+  - Log: `sudo journalctl -u charger-api -f`
+
+### OCPP Station Daemon (OCPP 2.0.1 primary + 1.6J fallback)
+
+Not: Station OCPP client (`ocpp/main.py`) Phase-1 tasarımında **API’den izole ayrı bir proses** olarak çalışır.
+Bu sayede ESP32/yerel API servisinin çalışma düzeni bozulmadan CSMS ile “outbound WebSocket” bağlantısı yönetilir.
+
+Önerilen kurulum (yeni unit’i cihaz üzerinde oluştur):
+
+1) `sudo systemctl edit --force --full ocpp-station.service`
+2) Aşağıdaki içeriği yapıştır:
+
+```ini
+[Unit]
+Description=OCPP Station Daemon (ORGE)
+After=network-online.target time-sync.target
+Wants=network-online.target time-sync.target
+
+[Service]
+Type=simple
+User=basar
+Group=basar
+WorkingDirectory=/home/basar/charger
+Environment="PATH=/home/basar/charger/env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="PYTHONUNBUFFERED=1"
+# Secrets kesinlikle repo içine girmez. Password sadece runtime env ile verilir.
+EnvironmentFile=-/etc/ocpp_station.env
+
+ExecStart=/home/basar/charger/env/bin/python -u /home/basar/charger/ocpp/main.py \\
+  --primary 201 \\
+  --station-name ORGE_AC_001 \\
+  --ocpp201-url wss://lixhium.xyz/ocpp/ORGE_AC_001 \\
+  --ocpp16-url  wss://lixhium.xyz/ocpp16/ORGE_AC_001
+
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ocpp-station
+
+TimeoutStopSec=30
+KillMode=mixed
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target
+```
+
+3) `sudo systemctl daemon-reload`
+4) `sudo systemctl enable --now ocpp-station.service`
+5) Log: `sudo journalctl -u ocpp-station -f`
+
+`/etc/ocpp_station.env` örneği (dosya cihazda tutulur; git’e girmez):
+
+```bash
+OCPP_STATION_PASSWORD='***'
+```
+
+### Update / Rollback (GitHub’dan çekme)
+
+Öneri: Her SSD imajı bir “pinned” commit/tag ile çıkar; sahada güncelleme kontrollü yapılır.
+
+- Update:
+  - `cd /home/basar/charger && git fetch --all --tags`
+  - `git checkout <tag|commit>`
+  - (gerekirse) `./env/bin/pip install -r requirements.txt`
+  - `sudo systemctl restart charger-api.service ocpp-station.service`
+- Health check (CSMS’e dokunmadan smoke):
+  - `OCPP_STATION_PASSWORD='***' ./env/bin/python -u ocpp/main.py --once --primary 201 --station-name ORGE_AC_001 --ocpp201-url wss://lixhium.xyz/ocpp/ORGE_AC_001 --ocpp16-url wss://lixhium.xyz/ocpp16/ORGE_AC_001`
+  - Çıktı: tek JSON (secret içermez). Exit code `0` başarı.
 

@@ -16,6 +16,22 @@
   - Tahmini Süre: 30-60 dakika
   - Durum: 📋 Bekliyor
 
+### Öncelik 2: Prod-hardening (security hariç) — Deployment/Service Runbook (2025-12-21)
+
+- [x] **Görev:** OCPP daemon için systemd servis kurulumu + update/rollback runbook dokümante et
+  - Açıklama: 5-6 pilot → 150 istasyona ölçeklerken SSD imajı ile deterministik provisioning gerekli. OCPP client (`ocpp/main.py`) API’den izole ayrı proses olarak systemd altında yönetilmeli; update/rollback adımları tek SSOT’ta olmalı.
+  - Öncelik: 2 (Orta/Yüksek)
+  - Tahmini Süre: 30-60 dk
+  - Durum: ✅ Tamamlandı (2025-12-21)
+  - Detaylar: `docs/deployment.md` içine `ocpp-station.service` örneği + `/etc/ocpp_station.env` + update/rollback + `--once` smoke check eklendi.
+
+- [x] **Görev:** `docs/deployment.md` içindeki açık secret değerlerini redakte et (NGROK_API_KEY)
+  - Açıklama: Dokümanda secret value yer alması risklidir; repo/dokümana secret yazılmamalı.
+  - Öncelik: 2 (Orta)
+  - Tahmini Süre: 10-15 dk
+  - Durum: ✅ Tamamlandı (2025-12-21)
+  - Detaylar: `docs/deployment.md` → NGROK_API_KEY değeri kaldırıldı (“secret; dokümana yazılmaz”).
+
 ### Öncelik 2: Test Coverage Boşlukları (2025-12-16) - Meter/OCPP/DB
 
 - [ ] **Görev:** `meter/read_meter.py` için unit test kapsamı ekle (helper + CRC + request/response parse)
