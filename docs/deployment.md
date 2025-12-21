@@ -1,8 +1,8 @@
 # Deployment Kılavuzu - AC Charger
 
 **Oluşturulma Tarihi:** 2025-12-09 22:40:00
-**Son Güncelleme:** 2025-12-21 15:45:00
-**Version:** 1.1.0
+**Son Güncelleme:** 2025-12-21 16:15:00
+**Version:** 1.1.1
 
 ---
 
@@ -192,6 +192,6 @@ OCPP_HEARTBEAT_SECONDS='60'
   - (gerekirse) `./env/bin/pip install -r requirements.txt`
   - `sudo systemctl restart charger-api.service ocpp-station.service`
 - Health check (CSMS’e dokunmadan smoke):
-  - `OCPP_STATION_PASSWORD='***' ./env/bin/python -u ocpp/main.py --once --primary 201 --station-name ORGE_AC_001 --ocpp201-url wss://lixhium.xyz/ocpp/ORGE_AC_001 --ocpp16-url wss://lixhium.xyz/ocpp16/ORGE_AC_001`
-  - Çıktı: tek JSON (secret içermez). Exit code `0` başarı.
+  - `sudo bash -lc 'set -a; source /etc/ocpp_station.env; set +a; cd /home/basar/charger; ./env/bin/python -u ocpp/main.py --once'`
+  - Çıktı: stdout’a **tek JSON** (secret içermez; `messages[]` içinde Boot/Status/Heartbeat kanıtı). Exit code `0` başarı.
 
