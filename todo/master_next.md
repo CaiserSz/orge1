@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-22 00:25:00
+**Son Güncelleme:** 2025-12-22 00:49:00
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -8,64 +8,7 @@
 
 ## Öncelikli Görevler
 
-### Öncelik 2: CSMS canonical test komutu uyumsuzluğu (2025-12-18)
-
-- [x] **Görev:** CSMS “canonical” test komutunu Station repo ile uyumlu hale getir (veya SSOT’ta ayrımı netleştir)
-  - Açıklama: CSMS repo’da mevcut olan `tests/unit/test_chargepoint_v201.py` dosyası Station repo’da yok; ayrıca Station repo’da `make test` target’ı bulunmuyor. Bu nedenle CSMS tarafının istediği `make test PYTEST_ARGS='-q tests/unit/test_chargepoint_v201.py'` komutu Station ortamında çalıştırılamıyor. İki repo için “canonical proof” yöntemleri SSOT’ta netleştirilmeli veya Station’a uygun bir Makefile target eklenmeli.
-  - Öncelik: 2 (Orta)
-  - Tahmini Süre: 30-60 dakika
-  - Durum: ✅ Tamamlandı (2025-12-22)
-  - Detaylar: SSOT’a “CSMS repo vs Station repo canonical test/kanıt komutları” ayrımı eklendi → `docs/csms/CSMS_CONNECTION_PARAMETERS.md` (“Canonical test / kanıt komutu” bölümü).
-
-### Öncelik 2: Prod-hardening (security hariç) — Deployment/Service Runbook (2025-12-21)
-
-- [x] **Görev:** OCPP daemon için systemd servis kurulumu + update/rollback runbook dokümante et
-  - Açıklama: 5-6 pilot → 150 istasyona ölçeklerken SSD imajı ile deterministik provisioning gerekli. OCPP client (`ocpp/main.py`) API’den izole ayrı proses olarak systemd altında yönetilmeli; update/rollback adımları tek SSOT’ta olmalı.
-  - Öncelik: 2 (Orta/Yüksek)
-  - Tahmini Süre: 30-60 dk
-  - Durum: ✅ Tamamlandı (2025-12-21)
-  - Detaylar: `docs/deployment.md` içine `ocpp-station.service` örneği + `/etc/ocpp_station.env` + update/rollback + `--once` smoke check eklendi.
-
-- [x] **Görev:** `docs/deployment.md` içindeki açık secret değerlerini redakte et (NGROK_API_KEY)
-  - Açıklama: Dokümanda secret value yer alması risklidir; repo/dokümana secret yazılmamalı.
-  - Öncelik: 2 (Orta)
-  - Tahmini Süre: 10-15 dk
-  - Durum: ✅ Tamamlandı (2025-12-21)
-  - Detaylar: `docs/deployment.md` → NGROK_API_KEY değeri kaldırıldı (“secret; dokümana yazılmaz”).
-
-- [x] **Görev:** OCPP daemon için systemd-friendly graceful shutdown (SIGTERM) ekle
-  - Açıklama: Systemd stop/restart sırasında SIGTERM ile temiz kapanış (task cancel + ws close) sağlanmalı; kontrolsüz kill/reconnect loop gözlemlerini azaltır.
-  - Öncelik: 2 (Orta)
-  - Tahmini Süre: 30-60 dk
-  - Durum: ✅ Tamamlandı (2025-12-21)
-  - Detaylar: `ocpp/main.py` → SIGTERM/SIGINT ile shutdown; `ocpp/handlers.py` → daemon task cleanup (cancel/gather). Test: `pytest tests/test_integration.py -k ocpp_remote_ops_v201_local_csms_server`
-
 ### Öncelik 2: Test Coverage Boşlukları (2025-12-16) - Meter/OCPP/DB
-
-- [x] **Görev:** `meter/read_meter.py` için unit test kapsamı ekle (helper + CRC + request/response parse)
-  - Açıklama: Coverage raporunda `meter/read_meter.py` %0 görünüyor. Donanım/serial açmadan test edilebilecek saf fonksiyonlar ve parse mantığı için testler eklenmeli (CRC16, request build, response parse, register decode).
-  - Öncelik: 2 (Orta/Yüksek)
-  - Tahmini Süre: 1-2 saat
-  - Durum: ✅ Tamamlandı (2025-12-22)
-  - Detaylar:
-    - Testler: `tests/test_api_endpoints.py::TestABBMeterReadMeterHelpers` (CRC16, request build, response parse, register decode)
-    - Çalıştırma: `./env/bin/pytest -q tests/test_api_endpoints.py`
-
-- [ ] **Görev:** `api/meter/modbus.py` ve `api/meter/acrel.py` için saf parse/convert unit testleri ekle
-  - Açıklama: `api/meter/modbus.py` %13, `api/meter/acrel.py` %0. Donanım erişimi olmadan test edilebilecek register decode, mapping, hata senaryoları ve dönüştürücüler kapsanmalı.
-  - Öncelik: 2 (Orta)
-  - Tahmini Süre: 30-60 dk
-  - Durum: ✅ Tamamlandı (2025-12-21)
-  - Detaylar: Coverage (2025-12-16): `api/meter/acrel.py` %0, `api/meter/modbus.py` %13.
-  - Test: `tests/test_api_endpoints.py::TestMeterParsingHelpers`
-
-- [x] **Görev:** `ocpp/handlers.py` UI Remote Ops inbound handler’ları için otomatik test ekle (Remote Start/Stop)
-  - Açıklama: UI Remote Ops akışı (daemon) sahada kanıtlandı; ancak Station repo içinde `RequestStartTransaction` / `RequestStopTransaction` inbound handler’ları için otomatik test bulunmuyor. Regression riskini azaltmak için, gerçek WebSocket kurmadan handler’ları doğrudan çağıran (mock/fixture ile) bir test eklenmeli ve `TransactionEvent(Started/Ended)` üretimi beklenen alanlarla doğrulanmalı.
-  - Öncelik: 2 (Orta)
-  - Tahmini Süre: 1-2 saat
-  - Durum: ✅ Tamamlandı (2025-12-21)
-  - Detaylar: `docs/csms/CSMS_CONNECTION_PARAMETERS.md` → “Phase‑1.4 Evidence — UI Remote Ops (daemon)”.
-  - Test: `tests/test_integration.py::test_ocpp_remote_ops_v201_local_csms_server` (local CSMS ws server; RemoteStart+RemoteStop end-to-end)
 
 - [ ] **Görev:** `api/database/event_queries.py` coverage artır (DB query path’leri)
   - Açıklama: Coverage %25. Mevcut test DB fixture’ları kullanılarak (in-memory / temp sqlite) query fonksiyonlarının success + empty + error path’leri kapsanmalı.
@@ -76,38 +19,13 @@
 
 ### Öncelik 0: Secret/Config Hijyeni (2025-12-19) - `.env` repo içinde track ediliyor
 
-- [x] **Görev:** `.env` dosyasını git’ten çıkar (tracked → untracked) ve repo’dan secret sızıntısını durdur
-  - Açıklama: `.gitignore` içinde `.env` ignore edilmesine rağmen `.env` dosyası git’te **tracked** durumda. Bu, secret’ların git geçmişine sızması riskidir.
-  - Öncelik: 0 (Acil)
-  - Tahmini Süre: 10-15 dk
-  - Durum: ✅ Tamamlandı (2025-12-19)
-  - Detaylar: `git ls-files .env` → `.env` (tracked). Çözüm: `git rm --cached .env` + (gerekirse) docs güncellemesi.
-
 - [ ] **Görev:** `SECRET_API_KEY` rotasyonu + (gerekirse) git history/incident değerlendirmesi
   - Açıklama: `.env` tracked olduğu için mevcut `SECRET_API_KEY` değeri “kompromize” kabul edilmeli. Yeni anahtar üret, eskiyi geçersiz kıl. History rewrite gerekip gerekmediğini değerlendir (repo policy’ye göre).
   - Öncelik: 0 (Acil)
   - Tahmini Süre: 30-60 dk
   - Durum: ⏸️ Ertelendi (test aşaması; risk kabul edildi)
 
-- [x] **Görev:** `.env.example` yok; `CONTRIBUTING.md` içindeki yönergeyi düzelt veya secret‑free şablon stratejisi belirle
-  - Açıklama: `CONTRIBUTING.md` “`cp .env.example .env`” diyor ancak `.env.example` repo’da bulunmuyor. Yeni dosya oluşturma kuralı nedeniyle ya doküman güncellenmeli ya da secret‑free şablon için plan yapılmalı.
-  - Öncelik: 2 (Orta)
-  - Tahmini Süre: 15-30 dk
-  - Durum: ✅ Tamamlandı (2025-12-19)
-
 ### Öncelik 0: Sistem Sağlık Tespitleri (2025-12-15) - Güç Beslemesi ve Servis Tutarlılığı
-
-- [x] **Görev:** RPi “Undervoltage detected” olaylarını kök neden analizi + kalıcı çözüm (yazılımsal)
-  - Açıklama: Kernel log’larında undervoltage tespit edildi. Bu durum CPU throttling, SD kart I/O hataları ve rastgele servis sorunlarına yol açabilir. Güç adaptörü/USB-C kablo/hat direnci ve besleme ölçümü (5V stabilitesi) doğrulanmalı; gerekirse daha güçlü PSU + kısa/kalın kablo kullanılmalı.
-  - Öncelik: 0 (Acil)
-  - Tahmini Süre: 30-60 dakika (ölçüm + doğrulama)
-  - Durum: ✅ Tamamlandı (2025-12-21) — kanıt + runbook + monitoring (hardware aksiyon ayrı görev)
-  - Detaylar:
-    - Kanıt (RPi4): `vcgencmd get_throttled` → `throttled=0x50005` (undervoltage + throttling flag’leri)
-    - Kernel log: `journalctl -k` / `dmesg -T` içinde “Undervoltage detected!” kaydı var
-    - Runbook: `docs/troubleshooting.md` → “Raspberry Pi Undervoltage / Throttling”
-    - Golden Image checklist: `docs/deployment.md` → “Power sanity (RPi)”
-    - Erken uyarı: `scripts/system_monitor.py` → `get_rpi_throttled_status()` ile log/alert
 
 - [ ] **Görev:** RPi undervoltage kalıcı çözüm (hardware) — PSU/kablo/USB yükü doğrula + reboot + teyit
   - Açıklama: Bu kısım fiziksel müdahale gerektirir. Amaç: undervoltage/throttling durumunu kalıcı olarak sıfırlamak.
@@ -119,29 +37,6 @@
     - `journalctl -k --no-pager | grep -i undervoltage | tail -n 50` → yeni kayıt yok (en azından fix sonrası yeni event gözlenmiyor)
   - Notlar:
     - Öneri: resmi/kaliteli 5.1V/3A PSU + kısa/kalın USB‑C kablo; yüksek akım çeken USB cihazları için powered hub
-
-- [x] **Görev:** `backup.service` systemd unit tutarlılığı (unit mevcut değil / user farklı)
-  - Açıklama: `backup.service` status sorgusunda “Unit ... could not be found.” dönüyor; ayrıca repo içindeki `scripts/backup.service` User/Group `pi` iken cihazda ana kullanıcı `basar`. Servis gerçekten kullanılacaksa doğru şekilde `/etc/systemd/system/` altına kurulmalı, user/group ve path’ler doğrulanmalı; kullanılmayacaksa dokümantasyondan/kurulumdan kaldırılmalı.
-  - Öncelik: 2 (Orta)
-  - Tahmini Süre: 30-45 dakika
-  - Durum: ✅ Tamamlandı (2025-12-22) — unit kuruldu + timer enable + smoke
-  - Detaylar:
-    - Repo: `scripts/backup.service` user/group `basar` olacak şekilde güncellendi
-    - Cihaz: `backup.service` + `backup.timer` kuruldu (`/etc/systemd/system/`)
-    - Timer: `backup.timer` enable+active (OnCalendar: 02:00, RandomizedDelaySec=1800, Persistent=true)
-    - Smoke: `sudo systemctl start backup.service` → SUCCESS (db + config + manifest üretildi)
-    - Git hijyeni: `backups/` artefact’ları yanlışlıkla git’te tracked idi; `.gitignore` → `backups/` eklendi ve tracked dosyalar untrack edildi
-
-- [x] **Görev:** Ngrok DNS/bağlantı hataları (geçmiş) - resolver yapılandırması kontrolü
-  - Açıklama: Journal’da ngrok “lookup ... on [::1]:53 ... connection refused” hataları görüldü. Bu genelde DNS resolver’ın localhost’a (IPv6) işaret edip DNS servisi kapalı olmasıyla tetiklenir. Mevcut durumda ağ stabil mi teyit edilmeli; `/etc/resolv.conf` / `systemd-resolved` / `dnsmasq` durumları kontrol edilmelidir.
-  - Öncelik: 3 (Orta/Düşük)
-  - Tahmini Süre: 30-60 dakika
-  - Durum: ✅ Tamamlandı (2025-12-22) — kök neden: boot’ta network hazır değil; unit order iyileştirildi
-  - Detaylar:
-    - Mevcut DNS: `/etc/resolv.conf` (NetworkManager) → `nameserver 192.168.1.1`, `getent hosts google.com` ✅
-    - `systemd-resolved` yok (Unit not found) → localhost DNS senaryosu aktif değil
-    - Ngrok journal (2025-12-08): `lookup connect.ngrok-agent.com on 192.168.1.1:53 ... network is unreachable` (network-up sırası)
-    - Fix: `ngrok.service` için drop-in eklendi → `Wants/After=network-online.target` + `systemctl restart ngrok` ✅
 
 ### Öncelik 0: Standart İhlali (2025-12-16) - `api/event_detector.py` Satır Limiti Aşıldı
 
@@ -202,13 +97,6 @@
   - Tahmini Süre: 1-2 saat
   - Durum: 🟡 Uyarı eşiği yakın
   - Detaylar: Rapor zamanı: 2025-12-21 20:43
-
-- [ ] **Görev:** `tests/test_api_endpoints.py` kompaktlaştırma planı (satır sayısı uyarı eşiği yakın)
-  - Açıklama: Dosya şu an 500 satır (Limit: 500). Limitte; tekrar eden setup/assert blokları fixture/helper ile sadeleştirilmeli (mümkünse yeni dosya oluşturmadan) ve yeni test eklemeleri mümkünse başka mevcut dosyalara yönlendirilmeli.
-  - Öncelik: 3 (Orta/Düşük)
-  - Tahmini Süre: 1-2 saat
-  - Durum: 🔴 Limitte (500/500)
-  - Detaylar: Güncelleme: 2025-12-22
 
 
 ### Öncelik 1: EV Gerçek Test Bulguları (2025-12-13) - Güç/Enerji Tutarlılığı ve UI Stabilitesi

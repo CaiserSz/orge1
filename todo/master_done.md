@@ -1,11 +1,79 @@
 # Tamamlanan Görevler
 
 **Oluşturulma Tarihi:** 2025-12-08 18:20:00
-**Son Güncelleme:** 2025-12-18 22:20:00
+**Son Güncelleme:** 2025-12-22 00:55:00
 
 ---
 
 ## Tamamlanan Görevler Listesi
+
+### 2025-12-22
+
+#### ✅ Backup automation (systemd) + git hijyeni
+- **Görev:** `backup.service` systemd unit tutarlılığı (unit mevcut değil / user farklı)
+- **Açıklama:** `backup.service` + `backup.timer` cihazda kuruldu ve timer enable edildi. Repo template `User/Group=basar` olacak şekilde düzeltildi. Backup artefact’ları (`backups/`) git’ten çıkarıldı ve `.gitignore` ile ignore edildi.
+- **Test/Doğrulama:**
+  - `systemctl status backup.timer` → ✅ active (waiting)
+  - `sudo systemctl start backup.service` → ✅ SUCCESS (db+config+manifest üretildi)
+
+#### ✅ Ngrok boot order iyileştirmesi (network-online)
+- **Görev:** Ngrok DNS/bağlantı hataları (geçmiş) - resolver yapılandırması kontrolü
+- **Açıklama:** Geçmiş “lookup … network is unreachable” hatasının kök nedeni boot’ta network-online olmadan ngrok’un başlamasıydı. `ngrok.service` için drop-in ile `Wants/After=network-online.target` eklendi.
+- **Test/Doğrulama:**
+  - `systemctl status ngrok` → ✅ active
+  - `curl http://localhost:4040/api/tunnels` → ✅ response (local inspect)
+
+#### ✅ CSMS ↔ Station canonical test komutu ayrımı (SSOT)
+- **Görev:** CSMS “canonical” test komutunu Station repo ile uyumlu hale getir (veya SSOT’ta ayrımı netleştir)
+- **Açıklama:** CSMS repo komutları ile Station repo kanıt komutları SSOT’ta ayrıştırıldı.
+- **SSOT:** `docs/csms/CSMS_CONNECTION_PARAMETERS.md` → “Canonical test / kanıt komutu”
+
+#### ✅ `meter/read_meter.py` unit test kapsamı
+- **Görev:** `meter/read_meter.py` için unit test kapsamı ekle (helper + CRC + request/response parse)
+- **Açıklama:** Donanım/serial açmadan test edilebilecek saf helper ve Modbus frame/parse mantığı için testler eklendi.
+- **Test/Doğrulama:**
+  - `python3 -m py_compile tests/test_api_endpoints.py` → ✅
+  - `./env/bin/pytest -q tests/test_api_endpoints.py` → ✅
+
+#### ✅ `tests/test_api_endpoints.py` kompaktlaştırma (satır limiti)
+- **Görev:** `tests/test_api_endpoints.py` kompaktlaştırma (satır sayısı uyarı eşiği yakın)
+- **Açıklama:** Tekrarlı maxcurrent testleri `pytest.mark.parametrize` ile sadeleştirildi; dosya 500 limitinin altına indirildi.
+- **Test/Doğrulama:**
+  - `python3 -m py_compile tests/test_api_endpoints.py` → ✅
+  - `./env/bin/pytest -q tests/test_api_endpoints.py` → ✅
+
+### 2025-12-21
+
+#### ✅ OCPP daemon prod-hardening (security hariç) — runbook + shutdown
+- **Görev:** OCPP daemon için systemd servis kurulumu + update/rollback runbook dokümante et
+- **Açıklama:** `docs/deployment.md` içine `ocpp-station.service` örneği + `/etc/ocpp_station.env` + update/rollback + `--once` smoke check eklendi.
+
+- **Görev:** `docs/deployment.md` içindeki açık secret değerlerini redakte et (NGROK_API_KEY)
+- **Açıklama:** Dokümandaki açık secret value kaldırıldı (secret’lar dokümana yazılmaz).
+
+- **Görev:** OCPP daemon için systemd-friendly graceful shutdown (SIGTERM) ekle
+- **Açıklama:** Systemd stop/restart sırasında SIGTERM ile temiz kapanış akışı iyileştirildi.
+
+#### ✅ Meter parse unit testleri (donanım yok)
+- **Görev:** `api/meter/modbus.py` ve `api/meter/acrel.py` için saf parse/convert unit testleri ekle
+- **Açıklama:** Donanım erişimi olmadan test edilebilecek register decode/convert path’leri kapsandı.
+
+#### ✅ OCPP Remote Ops inbound handler testleri
+- **Görev:** UI Remote Ops inbound handler’ları için otomatik test ekle (Remote Start/Stop)
+- **Açıklama:** Local CSMS ws server ile RemoteStart/RemoteStop end-to-end kanıtı testle kalıcılaştırıldı.
+
+#### ✅ RPi Undervoltage (yazılımsal) — kanıt + runbook + monitoring
+- **Görev:** RPi “Undervoltage detected” olaylarını kök neden analizi + kalıcı çözüm (yazılımsal)
+- **Açıklama:** Kanıt toplandı, runbook ve monitoring eklendi. Hardware aksiyon ayrı görev olarak bırakıldı.
+
+### 2025-12-19
+
+#### ✅ Secret/Config hijyeni (repo)
+- **Görev:** `.env` dosyasını git’ten çıkar (tracked → untracked) ve repo’dan secret sızıntısını durdur
+- **Açıklama:** `.env` git geçmişi riskine karşı tracked olmaktan çıkarıldı; secret’lar repo dışında tutuluyor.
+
+- **Görev:** `.env.example` yok; `CONTRIBUTING.md` içindeki yönergeyi düzelt veya secret‑free şablon stratejisi belirle
+- **Açıklama:** Dokümandaki `.env.example` varsayımı düzeltildi / secret-free strateji netleştirildi.
 
 ### 2025-12-18
 
