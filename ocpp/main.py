@@ -24,6 +24,7 @@ import json
 import os
 import signal
 import sys
+from typing import Any
 
 # Ensure local `ocpp/` directory is importable when this file is loaded via
 # `importlib` from an arbitrary working directory (tests rely on this).
@@ -31,9 +32,22 @@ _THIS_DIR = os.path.dirname(__file__)
 if _THIS_DIR and _THIS_DIR not in sys.path:
     sys.path.insert(0, _THIS_DIR)
 
-from once_report import run_once_json
-from runtime_config import OcppRuntimeConfig, _parse_bool, build_config as _build_config
-from v16_adapter import Ocpp16Adapter
+# Re-export: tests import Ocpp16Adapter directly from `ocpp/main.py`.
+from v16_adapter import Ocpp16Adapter  # noqa: E402
+
+
+def _parse_bool(value: str, *, default: bool) -> bool:
+    # Backward-compat: tests expect `ocpp/main.py::_parse_bool`.
+    from runtime_config import _parse_bool as _impl  # noqa: E402
+
+    return _impl(value, default=default)
+
+
+def _build_config(args: argparse.Namespace):
+    # Backward-compat: tests expect `ocpp/main.py::_build_config`.
+    from runtime_config import build_config as _impl  # noqa: E402
+
+    return _impl(args)
 
 
 def _verify_python_ocpp_package() -> None:
@@ -212,7 +226,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     return p.parse_args(argv)
 
 
-async def _run_primary_then_fallback(cfg: OcppRuntimeConfig) -> None:
+async def _run_primary_then_fallback(cfg: Any) -> None:
     """
     Start station client.
 
@@ -250,7 +264,7 @@ async def _run_primary_then_fallback(cfg: OcppRuntimeConfig) -> None:
     await adapter.run()
 
 
-async def _run_daemon_with_shutdown(cfg: OcppRuntimeConfig) -> None:
+async def _run_daemon_with_shutdown(cfg: Any) -> None:
     """
     Run the daemon with graceful shutdown handling (systemd-friendly).
 
@@ -297,6 +311,8 @@ def main(argv: list[str]) -> int:
         # IMPORTANT:
         # `--once` MUST output exactly one JSON object to stdout (CSMS ops tooling).
         # Do not print any other lines here.
+        from once_report import run_once_json
+
         report = asyncio.run(run_once_json(cfg))
         print(json.dumps(report, ensure_ascii=False, sort_keys=True))
         return 2 if report.get("result", {}).get("callerror") else 0
