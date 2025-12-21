@@ -1,8 +1,8 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-19 12:25:00
-**Version:** 1.14.1
+**Son Güncelleme:** 2025-12-21 19:55:00
+**Version:** 1.15.0
 
 ---
 
@@ -14,8 +14,24 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251218-040
-**Tarih:** 2025-12-18 22:20:00
+**Checkpoint ID:** CP-20251221-041
+**Tarih:** 2025-12-21 19:55:00
+**Durum:** ✅ OCPP Phase‑1 prod-hardening (security hariç) + rollout hazırlığı
+- OCPP (station client):
+  - OCPP 2.0.1 primary + OCPP 1.6J fallback çalışır durumda.
+  - UI Remote Ops (daemon) kanıtı alındı: Remote Start/Stop + TransactionEvent(Started/Ended).
+  - `--once` JSON raporu ops ihtiyaçlarına göre genişletildi (UTC + unique_id + response_summary + secret‑free config/build özet).
+  - python-ocpp package sanity check eklendi (repo `ocpp/` klasörü ile olası gölgeleme durumlarını fail-fast yakalar).
+  - OCPP 1.6J (v16) fallback için local CSMS smoke test eklendi (Boot+Status+Heartbeat).
+  - Systemd için graceful shutdown (SIGTERM/SIGINT) iyileştirildi.
+- Deployment / Rollout (security hariç):
+  - `docs/deployment.md` güncellendi: `ocpp-station.service` runbook + `/etc/ocpp_station.env` (env-driven provisioning) + update/rollback + `--once` smoke check + Golden Image/SSD checklist.
+  - Dokümantasyondaki açık secret değerleri redakte edildi (örn. NGROK_API_KEY değeri dokümana yazılmıyor).
+- Notlar / Riskler:
+  - OCPP dosya boyut standardı halen aşılıyor (`ocpp/main.py`, `ocpp/handlers.py`). Standartlara tam uyum için OCPP klasörü özelinde “yeni .py dosyası” istisna kararı gerekiyor (plan: `todo/REFACTORING_PLAN.md`).
+  - Security (mTLS/sertifika, credential lifecycle vb.) bilinçli olarak sonraya bırakıldı; CSMS Master AI ile birlikte ele alınacak.
+
+### Önceki Checkpoint: CP-20251218-040 (2025-12-18 22:20:00)
 **Durum:** ✅ OCPP Phase‑1.4 kapanış: Runbook A/B/C kanıtı alındı (Start → SetChargingProfile → Stop)
 - OCPP (station client):
   - Phase‑1.4 runbook tek koşum kanıtı (tx_id=`REMOTE_TX_001`) başarıyla tamamlandı:

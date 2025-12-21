@@ -1,20 +1,22 @@
 # Proje Durumu ve İlerleme Takibi
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-18 22:20:00
-**Version:** 1.8.6
+**Son Güncelleme:** 2025-12-21 19:55:00
+**Version:** 1.9.0
 
 ---
 
 ## 🎯 Proje Genel Durumu
 
-**Mevcut Faz:** Faz 6 - Logging ve Session Yönetimi (Tamamlandı ✅)
-**Sonraki Faz:** Faz 7 - Production Deployment ve Mobil Uygulama Entegrasyonu
+**Mevcut Faz:** Faz 7 - Production Deployment (Pilot rollout hazırlığı, security hariç)
+**Sonraki Faz:** Faz 8 - Security hardening + Monitoring/Update (CSMS Master AI ile)
 **Proje Sağlığı:** ✅ Mükemmel (Skor: 9.6/10)
-**Son Aktif Çalışma:** `/api/status` RL/LOCK telemetri açıklaması ve uyarılar (Tamamlandı - 2025-12-14 03:50:00)
-**CSMS/OCPP Durumu:** ✅ Phase‑1.4 tamamlandı (Runbook: RequestStartTransaction → SetChargingProfile → RequestStopTransaction kanıtı alındı)
-**İstasyon Durumu:** ✅ Production-Ready (2025-12-10 15:40:00)
-**Checkpoint Tag:** v1.0.0-test-complete
+**Son Aktif Çalışma:** OCPP prod-hardening (security hariç) + rollout runbook + v16 fallback smoke test (2025-12-21)
+**CSMS/OCPP Durumu:** ✅ OCPP 2.0.1 primary + OCPP 1.6J fallback + UI Remote Ops (Start/Stop) kanıtlı + `--once` JSON raporu ops formatında
+**İstasyon Durumu:** ✅ Pilot-ready (security hariç) — 5-6 istasyon rollout hedefi; orta vadede 150
+**Checkpoint:** SSOT: `todo/checkpoint.md` (CP-20251221-041)
+
+**Not:** Bu dosyadaki tarihli detaylar “genel arşiv” niteliğindedir; güncel görev/öncelik SSOT: `todo/master_next.md` ve `todo/checkpoint.md`.
 
 ---
 
@@ -248,7 +250,7 @@
 ### Tamamlanma Oranı
 - **Faz 1 (Temel Altyapı):** %100 ✅
 - **Faz 2 (API Katmanı):** %80 (API var, test var, logging var)
-- **Faz 3 (OCPP):** %0
+- **Faz 3 (OCPP):** %85 (Phase‑1 tamam; prod-hardening/security+refactor planı kaldı)
 - **Faz 4 (Meter):** %30 (Kod var, fiziksel test bekliyor)
 - **Faz 5 (Test):** %70 (Test altyapısı var, coverage ~70%)
 - **Faz 6 (Logging ve Session):** %40 (Logging tamamlandı, Event Detection bekliyor)
