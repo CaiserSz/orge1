@@ -60,47 +60,49 @@ docs/
 
 ### 2. OCPP Modülleri (Phase‑1) — `ocpp/main.py` + `ocpp/handlers.py`
 
-**Durum:** 🔴 Maksimum sınır aşıldı (Python modül max: 500 satır)  
+**Durum:** ✅ Tamamlandı (2025-12-21) — OCPP modülleri satır limitlerine indirildi (<=500)  
 **Öncelik:** Yüksek (prod-hardening / bakım riski)  
-**Mevcut Boyut:**
-- `ocpp/main.py`: 1475 satır (2025-12-21)
-- `ocpp/handlers.py`: 616 satır (2025-12-21)
-- `ocpp/states.py`: 444 satır (2025-12-21)
+**Son Durum Boyutları (örnek):**
+- `ocpp/main.py`: 315 satır
+- `ocpp/handlers.py`: 460 satır
+- `ocpp/states.py`: 444 satır
 
 #### Kritik Kısıt
-Repo kuralı “yeni dosya oluşturma yok” olduğu sürece bu iki dosyayı **500 satır altına indirmek pratikte mümkün değil**.  
-Bu nedenle iki fazlı plan önerilir:
+Standartlara tam uyum için OCPP klasörü özelinde sınırlı sayıda yeni `.py` modülü (yeni klasör yok) istisnası gerekiyordu. Bu istisna kullanıcı onayıyla uygulanarak Plan B tamamlandı.
 
 #### Plan A (Kural İhlali Olmadan / Kısa Vadeli)
 Amaç: Standart ihlalini “bilinen risk” olarak yönetirken sahada arıza/operasyon maliyetini azaltmak.
 
 - ✅ Systemd runbook + env provisioning + `--once` JSON raporu (ops kanıt) tamamlandı (SSOT: `docs/deployment.md`)
 - ✅ SIGTERM graceful shutdown eklendi (`ocpp/main.py`, `ocpp/handlers.py`)
-- 🟡 Kalan: büyük refactor için karar/izin
+- ✅ Tamamlandı: büyük refactor için karar/izin alındı ve uygulandı (Plan B)
 
 #### Plan B (Önerilen / Standartlara Tam Uyum)
 Amaç: OCPP kodunu modüler hale getirip dosya limitlerine uymak (bakım kolaylığı + yan etki riskini azaltma).
 
-**Gereken:** “Yeni dosya oluşturma” kuralı için **OCPP klasörü özelinde istisna** (yalnızca `.py` dosyaları, yeni klasör yok).
+**Gereken:** OCPP klasörü özelinde sınırlı yeni `.py` modül istisnası (yalnızca `.py`, yeni klasör yok).
 
-Önerilen bölme (örnek):
+Uygulanan bölme (gerçek):
 
 ```
 ocpp/
-├── main.py               (entrypoint: arg/env + run)
-├── handlers.py           (v201 adapter + ws connect loop)
-├── states.py             (shared helpers, poller, auth, utils)
-├── once_report.py        (NEW) --once JSON raporu (Phase-1 ops kanıt)
+├── main.py               (entrypoint: args/env + run)
 ├── runtime_config.py     (NEW) OcppRuntimeConfig + env/config load
-└── v16_adapter.py        (NEW) OCPP 1.6J adapter (fallback)
+├── handlers.py           (v201 adapter + ws connect loop; StationCP ayrı modülde)
+├── v201_station.py       (NEW) v201 StationCP factory (daemon/remote ops)
+├── v16_adapter.py        (NEW) OCPP 1.6J adapter (fallback)
+├── states.py             (shared helpers, poller, auth, utils)
+├── once_report.py        (NEW) --once JSON raporu orchestrator
+├── once_v201.py          (NEW) v201 --once evidence runner
+└── once_v201_station.py  (NEW) v201 StationCP factory (--once inbound capture)
 ```
 
 **Aksiyon Adımları (özet):**
-1) Refactor branch: `git checkout -b refactor/ocpp-modularize`
-2) `ocpp/main.py` içinden config/once/v16 kodlarını yeni modüllere taşı
-3) `ocpp/handlers.py` içindeki helper/utility parçalarını `states.py` veya uygun modüle taşı
-4) `py_compile` + ilgili test: `pytest tests/test_integration.py -k ocpp_remote_ops_v201_local_csms_server`
-5) Küçük commit’ler + push; gerekirse tag ile rollback
+1) ✅ Refactor branch: `refactor/ocpp-modularize-phase1`
+2) ✅ `ocpp/main.py` içinden config/once/v16 parçaları yeni modüllere taşındı
+3) ✅ `ocpp/handlers.py` içindeki StationCP mantığı `ocpp/v201_station.py` modülüne taşındı
+4) ✅ `py_compile` + ilgili testler: `tests/test_integration.py` (v201 remote ops + v16 smoke) geçti
+5) ✅ Küçük commit’ler + rollback tag: `v2025-12-21-pre-ocpp-modularize`
 
 ---
 

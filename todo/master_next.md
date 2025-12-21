@@ -745,11 +745,18 @@
   - Durum: ✅ Plan hazır (2025-12-21)
   - Detaylar: Plan: `todo/REFACTORING_PLAN.md` → “OCPP Modülleri (Phase‑1)”.
 
-- [ ] **Görev:** OCPP modüler refactor uygulaması (standart uyumu) — “yeni dosya” istisnası kararı
-  - Açıklama: `ocpp/main.py` (1475) ve `ocpp/handlers.py` (616) dosyaları standartları aşıyor. Standartlara tam uyum için OCPP klasörü içinde sınırlı sayıda yeni `.py` modülüne bölme gerekiyor (yeni klasör yok). Bu iş için “kural istisnası” kararı alınmalı.
+- [x] **Görev:** OCPP modüler refactor uygulaması (standart uyumu) — OCPP özelinde sınırlı yeni `.py` istisnası
+  - Açıklama: `ocpp/main.py` (1475) ve `ocpp/handlers.py` (616) dosyaları standartları aşıyordu. OCPP klasörü içinde sınırlı sayıda yeni `.py` modülüne bölünerek standart uyumu sağlandı (yeni klasör yok). Sonuç: `ocpp/*.py` dosyalarının tamamı <=500 satır (örn. `ocpp/main.py`=315, `ocpp/handlers.py`=460).
   - Öncelik: 1 (Yüksek - prod bakım riski)
   - Tahmini Süre: 15-30 dk (karar) + 2-4 saat (uygulama)
-  - Durum: 🧱 Bekliyor (karar)
+  - Durum: ✅ Tamamlandı (2025-12-21)
+  - Detaylar: Yeni modüller: `ocpp/runtime_config.py`, `ocpp/once_report.py`, `ocpp/once_v201.py`, `ocpp/once_v201_station.py`, `ocpp/v16_adapter.py`, `ocpp/v201_station.py`.
+
+- [ ] **Görev:** `todo/checkpoint.md` legacy/çelişkili blokları temizle (SSOT netliği)
+  - Açıklama: `todo/checkpoint.md` içinde proje başlangıcından kalan eski şablon/progress blokları bulunuyor. SSOT netliği için sadece checkpoint kayıtları kalacak şekilde sadeleştirilmeli (tarihçe korunmalı).
+  - Öncelik: 3 (Orta)
+  - Tahmini Süre: 15-30 dk
+  - Durum: 💡 İyileştirme fırsatı
 
 ---
 

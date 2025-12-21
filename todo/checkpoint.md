@@ -1,8 +1,8 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-21 19:55:00
-**Version:** 1.15.0
+**Son Güncelleme:** 2025-12-21 20:50:00
+**Version:** 1.16.0
 
 ---
 
@@ -14,8 +14,18 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251221-041
-**Tarih:** 2025-12-21 19:55:00
+**Checkpoint ID:** CP-20251221-042
+**Tarih:** 2025-12-21 20:50:00
+**Durum:** ✅ OCPP Phase‑1 modüler refactor tamamlandı (standart uyumu) + test teyidi
+- OCPP (station client):
+  - OCPP modülleri modülerleştirildi; tüm `ocpp/*.py` dosyaları <= 500 satır.
+  - `ocpp/main.py` + `ocpp/handlers.py` bakım riski azaltıldı (standart uyumu sağlandı).
+  - Yeni modüller: `ocpp/runtime_config.py`, `ocpp/once_report.py`, `ocpp/once_v201.py`, `ocpp/once_v201_station.py`, `ocpp/v16_adapter.py`, `ocpp/v201_station.py`.
+  - Test/teyit: `tests/test_integration.py` içinden v201 Remote Ops + v16 fallback smoke testleri ✅ geçti.
+- Notlar / Riskler:
+  - Security (mTLS/sertifika, credential lifecycle vb.) bilinçli olarak sonraya bırakıldı; CSMS Master AI ile birlikte ele alınacak.
+
+### Önceki Checkpoint: CP-20251221-041 (2025-12-21 19:55:00)
 **Durum:** ✅ OCPP Phase‑1 prod-hardening (security hariç) + rollout hazırlığı
 - OCPP (station client):
   - OCPP 2.0.1 primary + OCPP 1.6J fallback çalışır durumda.

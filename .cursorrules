@@ -36,6 +36,7 @@ Tüm kod dosyalarına oluşturulma tarihi, revizyon tarihleri(saat ve dakika dah
 Tüm dosya isimleri her zaman İngilizce olacaktır.
 Çalışma dizini: /home/basar/charger
 Dosya, klasör, alt klasör, ikilik (binary) yaratacak durumlara izin verilmeyecektir.
+**İstisna (SSOT / 2025-12-21):** OCPP Phase‑1 modüler refactor için (kullanıcı onayıyla) yalnızca `ocpp/` klasörü altında **sınırlı sayıda yeni `.py` dosyası** oluşturulmasına izin verilmiştir. **Yeni klasör yoktur.** Amaç sadece kod standart uyumu ve bakım riskini azaltmaktır.
 Kod standardı tüm workspace ve projede korunacaktır.
 /home/basar/charger/project_info_20251208_145614.md ve /home/basar/charger/.cursorrules dosyaları her zaman güncel tutulacaktır.
 **Agent Çalışma Prensipleri:**

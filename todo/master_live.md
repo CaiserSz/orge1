@@ -1,6 +1,6 @@
 # Aktif Görevler (Şu Anda Yapılanlar)
 
-**Son Güncelleme:** 2025-12-19 12:25:00
+**Son Güncelleme:** 2025-12-21 20:45:00
 
 ---
 
@@ -12,6 +12,7 @@
   - CSMS: `lixhium.xyz` (BasicAuth + ocpp2.0.1 / ocpp1.6)
   - İlerleme: Daemon mode (Boot/Status/Heartbeat + reconnect) + local API read-only polling (station status + meter values + sessions→TransactionEvent) ✅
   - İlerleme: Phase‑1.4 Runbook (A/B/C) evidence ✅ + UI Remote Ops (daemon) Remote Start/Stop evidence ✅ (SSOT: `docs/csms/CSMS_CONNECTION_PARAMETERS.md`)
+  - İlerleme: OCPP modüler refactor ✅ (tüm `ocpp/*.py` <= 500 satır; `main.py`/`handlers.py` bakım riski azaltıldı)
   - Not: Mevcut API/ESP32/session sistemi bozulmayacak; OCPP ayrı proses olarak ilerleyecek.
 
 - Şu anda başka aktif görev yok. Son tamamlanan işler:
