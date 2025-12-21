@@ -22,7 +22,7 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
   - Runbook: `docs/troubleshooting.md` → “Raspberry Pi Undervoltage / Throttling”
   - Golden Image kontrol adımı: `docs/deployment.md` → “Power sanity (RPi)”
   - Erken uyarı: `scripts/system_monitor.py` → `get_rpi_throttled_status()` ile log/alert
-  - Not: Kalıcı çözüm için PSU/kablo/USB yükü fiziksel doğrulama + reboot sonrası `throttled=0x0` teyidi gerekiyor.
+  - Not: Kalıcı çözüm için PSU/kablo/USB yükü fiziksel doğrulama + reboot sonrası `throttled=0x0` teyidi gerekiyor. Şu an fiziksel erişim yok; kullanıcı uygun olduğunda bildirecek.
 
 ### Önceki Checkpoint: CP-20251221-042 (2025-12-21 20:50:00)
 **Durum:** ✅ OCPP Phase‑1 modüler refactor tamamlandı (standart uyumu) + test teyidi

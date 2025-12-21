@@ -110,7 +110,7 @@
   - Açıklama: Bu kısım fiziksel müdahale gerektirir. Amaç: undervoltage/throttling durumunu kalıcı olarak sıfırlamak.
   - Öncelik: 0 (Acil)
   - Tahmini Süre: 30-60 dk (PSU/kablo + reboot + teyit)
-  - Durum: 🧱 Bekliyor (hardware)
+  - Durum: ⏸️ Ertelendi (fiziksel erişim yok; kullanıcı uygun olduğunda bildirecek)
   - Done kriteri:
     - Reboot sonrası `vcgencmd get_throttled` → `throttled=0x0`
     - `journalctl -k --no-pager | grep -i undervoltage | tail -n 50` → yeni kayıt yok (en azından fix sonrası yeni event gözlenmiyor)

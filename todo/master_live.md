@@ -16,7 +16,7 @@
   - Not: Mevcut API/ESP32/session sistemi bozulmayacak; OCPP ayrı proses olarak ilerleyecek.
 
 - **RPi Undervoltage (Sistem Sağlığı)** – 2025-12-21 (ocpp/phase1 branch)
-  - Durum: ⏸️ Bekliyor (hardware)
+  - Durum: ⏸️ Ertelendi (fiziksel erişim yok; kullanıcı bildirecek)
   - Kapsam: Yazılımsal kanıt + runbook + monitoring tamamlandı; kalıcı çözüm için PSU/kablo/USB yükü fiziksel doğrulama gerekiyor.
   - Not: Done kriteri reboot sonrası `vcgencmd get_throttled` → `throttled=0x0`.
 
