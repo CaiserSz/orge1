@@ -1,7 +1,7 @@
 # Tamamlanan Görevler
 
 **Oluşturulma Tarihi:** 2025-12-08 18:20:00
-**Son Güncelleme:** 2025-12-22 00:55:00
+**Son Güncelleme:** 2025-12-22 01:03:47
 
 ---
 
@@ -41,6 +41,13 @@
 - **Test/Doğrulama:**
   - `python3 -m py_compile tests/test_api_endpoints.py` → ✅
   - `./env/bin/pytest -q tests/test_api_endpoints.py` → ✅
+
+#### ✅ `tests/test_integration.py` kompaktlaştırma (satır limiti payı)
+- **Görev:** `tests/test_integration.py` kompaktlaştırma (satır sayısı uyarı eşiği yakın)
+- **Açıklama:** Tekrarlı test blokları sadeleştirildi (loop/parametrize), OCPP test helper’ları ortaklaştırıldı (`_utc_now`, BasicAuth helper, ortak cfg). Ayrıca v201 `TransactionEvent` içinden `transaction_id` extraction dict/obj uyumlu yapıldı. Dosya 485 → 433 satıra indirildi.
+- **Test/Doğrulama:**
+  - `python3 -m py_compile tests/test_integration.py` → ✅
+  - `./env/bin/pytest -q tests/test_integration.py` → ✅
 
 ### 2025-12-21
 

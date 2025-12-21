@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-22 00:54:46
+**Son Güncelleme:** 2025-12-22 01:03:47
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -91,12 +91,12 @@
   - Durum: 🟡 Uyarı eşiği yakın
   - Detaylar: Rapor zamanı: 2025-12-16 12:44
 
-- [ ] **Görev:** `tests/test_integration.py` kompaktlaştırma planı (satır sayısı uyarı eşiği yakın)
-  - Açıklama: `standards_auto_check` raporu dosya 484 satır (Limit: 500). Uyarı eşiğine çok yakın; ortak helper/fixture'ları `tests/conftest.py` içine taşıyarak ve tekrarları azaltarak satır sayısı düşürülmeli (yeni test dosyası gerekmeyecek şekilde).
+- [ ] **Görev:** `tests/test_integration.py` büyüme kontrolü (satır sayısı uyarı eşiği yakın)
+  - Açıklama: `standards_auto_check` raporu dosya 433 satır (Limit: 500). Uyarı eşiğine yakın; yeni test eklerken tekrarları azalt ve mümkünse mevcut helper/fixture’ları kullan (yeni test dosyası oluşturmadan).
   - Öncelik: 3 (Orta/Düşük)
-  - Tahmini Süre: 1-2 saat
-  - Durum: 🟡 Uyarı eşiği yakın
-  - Detaylar: Rapor zamanı: 2025-12-21 20:43
+  - Tahmini Süre: 30-60 dk
+  - Durum: 🟡 Uyarı eşiği yakın (433/500)
+  - Detaylar: Güncelleme: 2025-12-22
 
 - [ ] **Görev:** `tests/test_api_endpoints.py` büyüme kontrolü (satır sayısı uyarı eşiği yakın)
   - Açıklama: `standards_auto_check` raporu dosya 464 satır (Limit: 500). Uyarı eşiğine yakın; yeni testler mümkünse diğer mevcut test dosyalarına dağıtılmalı veya tekrar eden bloklar fixture/helper ile sadeleştirilmeli (**yeni test dosyası oluşturmadan**).
