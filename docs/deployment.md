@@ -1,8 +1,8 @@
 # Deployment Kılavuzu - AC Charger
 
 **Oluşturulma Tarihi:** 2025-12-09 22:40:00
-**Son Güncelleme:** 2025-12-21 16:15:00
-**Version:** 1.1.1
+**Son Güncelleme:** 2025-12-21 16:25:00
+**Version:** 1.1.2
 
 ---
 
@@ -147,8 +147,8 @@ Environment="PYTHONUNBUFFERED=1"
 # Secrets kesinlikle repo içine girmez. Password sadece runtime env ile verilir.
 EnvironmentFile=-/etc/ocpp_station.env
 
-ExecStart=/home/basar/charger/env/bin/python -u /home/basar/charger/ocpp/main.py \\
-  --primary 201
+ExecStart=/home/basar/charger/env/bin/python -u /home/basar/charger/ocpp/main.py
+# Not: CLI arg'ları env'i override eder; fleet provisioning için env tercih edilir.
 
 Restart=always
 RestartSec=10
@@ -175,11 +175,11 @@ WantedBy=multi-user.target
 OCPP_STATION_NAME='ORGE_AC_001'
 OCPP_STATION_PASSWORD='***'
 
-# Opsiyonel: override / saha ayarı
+# Opsiyonel: override / saha ayarı (fleet için önerilen)
+OCPP_PRIMARY='201'
+OCPP_201_URL='wss://lixhium.xyz/ocpp/ORGE_AC_001'
+OCPP_16_URL='wss://lixhium.xyz/ocpp16/ORGE_AC_001'
 OCPP_HEARTBEAT_SECONDS='60'
-# OCPP_PRIMARY='201'
-# OCPP_201_URL='wss://lixhium.xyz/ocpp/ORGE_AC_001'
-# OCPP_16_URL='wss://lixhium.xyz/ocpp16/ORGE_AC_001'
 ```
 
 ### Update / Rollback (GitHub’dan çekme)
