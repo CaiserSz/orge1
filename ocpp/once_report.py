@@ -19,7 +19,6 @@ from dataclasses import fields, is_dataclass
 from typing import Any
 
 import websockets
-
 from states import basic_auth_header, ssl_if_needed, utc_now_iso
 
 

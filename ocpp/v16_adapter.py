@@ -18,7 +18,6 @@ import uuid
 from typing import Any
 
 import websockets
-
 from states import StationIdentity, basic_auth_header, ssl_if_needed, utc_now_iso
 
 
