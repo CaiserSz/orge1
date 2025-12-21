@@ -1,8 +1,8 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-21 20:50:00
-**Version:** 1.16.0
+**Son Güncelleme:** 2025-12-21 23:15:00
+**Version:** 1.17.0
 
 ---
 
@@ -14,8 +14,17 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251221-042
-**Tarih:** 2025-12-21 20:50:00
+**Checkpoint ID:** CP-20251221-043
+**Tarih:** 2025-12-21 23:15:00
+**Durum:** ✅ RPi undervoltage runbook + monitoring (hardware aksiyon bekliyor)
+- Sistem Sağlığı (RPi):
+  - Kanıt: `vcgencmd get_throttled` → `throttled=0x50005` ve kernel log’larda “Undervoltage detected!” kaydı mevcut.
+  - Runbook: `docs/troubleshooting.md` → “Raspberry Pi Undervoltage / Throttling”
+  - Golden Image kontrol adımı: `docs/deployment.md` → “Power sanity (RPi)”
+  - Erken uyarı: `scripts/system_monitor.py` → `get_rpi_throttled_status()` ile log/alert
+  - Not: Kalıcı çözüm için PSU/kablo/USB yükü fiziksel doğrulama + reboot sonrası `throttled=0x0` teyidi gerekiyor.
+
+### Önceki Checkpoint: CP-20251221-042 (2025-12-21 20:50:00)
 **Durum:** ✅ OCPP Phase‑1 modüler refactor tamamlandı (standart uyumu) + test teyidi
 - OCPP (station client):
   - OCPP modülleri modülerleştirildi; tüm `ocpp/*.py` dosyaları <= 500 satır.

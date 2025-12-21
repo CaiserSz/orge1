@@ -16,9 +16,9 @@
   - Not: Mevcut API/ESP32/session sistemi bozulmayacak; OCPP ayrı proses olarak ilerleyecek.
 
 - **RPi Undervoltage (Sistem Sağlığı)** – 2025-12-21 (ocpp/phase1 branch)
-  - Durum: 🔄 Devam ediyor
-  - Kapsam: Kernel log + `vcgencmd get_throttled` kanıt toplama, kalıcı çözüm runbook, erken uyarı/izleme
-  - Not: Kalıcı çözüm için PSU/kablo/USB yükü fiziksel doğrulama gerekiyor; yazılımsal izleme ve SSOT runbook hazırlanıyor.
+  - Durum: ⏸️ Bekliyor (hardware)
+  - Kapsam: Yazılımsal kanıt + runbook + monitoring tamamlandı; kalıcı çözüm için PSU/kablo/USB yükü fiziksel doğrulama gerekiyor.
+  - Not: Done kriteri reboot sonrası `vcgencmd get_throttled` → `throttled=0x0`.
 
 - Şu anda başka aktif görev yok. Son tamamlanan işler:
   0. **RL/LOCK telemetri açıklaması** – 2025-12-14 03:50 (`/api/status` telemetry + warnings)

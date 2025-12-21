@@ -94,17 +94,28 @@
 
 ### Öncelik 0: Sistem Sağlık Tespitleri (2025-12-15) - Güç Beslemesi ve Servis Tutarlılığı
 
-- [ ] **Görev:** RPi “Undervoltage detected” olaylarını kök neden analizi + kalıcı çözüm
+- [x] **Görev:** RPi “Undervoltage detected” olaylarını kök neden analizi + kalıcı çözüm (yazılımsal)
   - Açıklama: Kernel log’larında undervoltage tespit edildi. Bu durum CPU throttling, SD kart I/O hataları ve rastgele servis sorunlarına yol açabilir. Güç adaptörü/USB-C kablo/hat direnci ve besleme ölçümü (5V stabilitesi) doğrulanmalı; gerekirse daha güçlü PSU + kısa/kalın kablo kullanılmalı.
   - Öncelik: 0 (Acil)
   - Tahmini Süre: 30-60 dakika (ölçüm + doğrulama)
-  - Durum: 🔄 Devam ediyor (2025-12-21) — yazılımsal kanıt + runbook hazırlandı; hardware aksiyon bekliyor
+  - Durum: ✅ Tamamlandı (2025-12-21) — kanıt + runbook + monitoring (hardware aksiyon ayrı görev)
   - Detaylar:
     - Kanıt (RPi4): `vcgencmd get_throttled` → `throttled=0x50005` (undervoltage + throttling flag’leri)
     - Kernel log: `journalctl -k` / `dmesg -T` içinde “Undervoltage detected!” kaydı var
     - Runbook: `docs/troubleshooting.md` → “Raspberry Pi Undervoltage / Throttling”
     - Golden Image checklist: `docs/deployment.md` → “Power sanity (RPi)”
     - Erken uyarı: `scripts/system_monitor.py` → `get_rpi_throttled_status()` ile log/alert
+
+- [ ] **Görev:** RPi undervoltage kalıcı çözüm (hardware) — PSU/kablo/USB yükü doğrula + reboot + teyit
+  - Açıklama: Bu kısım fiziksel müdahale gerektirir. Amaç: undervoltage/throttling durumunu kalıcı olarak sıfırlamak.
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 30-60 dk (PSU/kablo + reboot + teyit)
+  - Durum: 🧱 Bekliyor (hardware)
+  - Done kriteri:
+    - Reboot sonrası `vcgencmd get_throttled` → `throttled=0x0`
+    - `journalctl -k --no-pager | grep -i undervoltage | tail -n 50` → yeni kayıt yok (en azından fix sonrası yeni event gözlenmiyor)
+  - Notlar:
+    - Öneri: resmi/kaliteli 5.1V/3A PSU + kısa/kalın USB‑C kablo; yüksek akım çeken USB cihazları için powered hub
 
 - [ ] **Görev:** `backup.service` systemd unit tutarlılığı (unit mevcut değil / user farklı)
   - Açıklama: `backup.service` status sorgusunda “Unit ... could not be found.” dönüyor; ayrıca repo içindeki `scripts/backup.service` User/Group `pi` iken cihazda ana kullanıcı `basar`. Servis gerçekten kullanılacaksa doğru şekilde `/etc/systemd/system/` altına kurulmalı, user/group ve path’ler doğrulanmalı; kullanılmayacaksa dokümantasyondan/kurulumdan kaldırılmalı.
