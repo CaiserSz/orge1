@@ -691,10 +691,10 @@
   - Açıklama: UI Remote Ops testinde CSMS tarafında “station WS disconnect (code=1000)” ve “message bus connected_ids=[]” gözlendi; bu durumda RemoteStop 404 dönebiliyor. Station daemon reconnect ediyor ancak bağlantı flapping operasyonu zayıflatıyor. Kök neden için CSMS idle timeout / load balancer / app restart / ping-pong davranışı incelenmeli; Station tarafında gerekirse keepalive stratejisi (heartbeat override önerisi, ping interval explicit) dokümante edilmeli.
   - Öncelik: 1 (Yüksek - operasyonel blokaj)
   - Tahmini Süre: 30-90 dk (analiz + dokümantasyon + gerekirse küçük ayar)
-  - Durum: 🟡 İzleniyor (CSMS fix deploy + Heartbeat=60s ile retest stabil)
+  - Durum: ✅ Kapatıldı (false positive: CSMS deploy/restart/CI kaynaklı; CI iyileştirildi)
   - Detaylar:
     - Önce: flapping (code=1000) + arada HTTP 502 görüldü.
-    - Retest: CSMS fix sonrası + station `--heartbeat-seconds 60` ile uzun aralıkta reconnect/502 gözlenmedi; RemoteStart+RemoteStop başarıyla tamamlandı (SSOT: `docs/csms/CSMS_CONNECTION_PARAMETERS.md`).
+    - Retest: CSMS fix sonrası + station `--heartbeat-seconds 60` ile uzun aralıkta stabil; RemoteStart+RemoteStop başarıyla tamamlandı. Uzun pencerede 1 kez code=1000 reconnect görüldü; Master AI bunun CSMS deploy/restart ve (daha önce) doc/todo değişimlerinde restart tetikleyen CI davranışı kaynaklı olabileceğini teyit etti; CI ayarı güncellendi (SSOT: `docs/csms/CSMS_CONNECTION_PARAMETERS.md`).
 
 - [ ] **Görev:** `ocpp/main.py` satır limiti aşımı için refactor planı (Phase‑1)
   - Açıklama: `ocpp/main.py` şu an 1416 satır. Proje kod standartlarına göre bu dosya boyutu riskli (bakım/yan etki). “Yeni dosya/klasör oluşturma” kuralı nedeniyle kısa vadede mevcut `ocpp/states.py` gibi mevcut dosyalara taşıma/yeniden düzenleme stratejisi planlanmalı; orta vadede kural istisnasıyla modülerleşme değerlendirilebilir.

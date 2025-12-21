@@ -434,7 +434,7 @@ Station-side log satırları (secret-free):
   - `TransactionEvent(Ended) remote_stop` → `tx_id=RS_938233573 utc=2025-12-21T11:12:02Z`
 
 Notlar:
-- Bu retest penceresinde station stdout’da reconnect attempt / HTTP 502 gözlenmedi (stabil görünüm).
+- Retest boyunca Heartbeat 60s stabil aktı; ancak uzun pencerede **en az 1 kez** `reconnect attempt ... code=1000 (OK)` görüldü. Bu olayın CSMS tarafında deploy/restart ve CI kaynaklı olabileceği teyit edildi; CI iyileştirmesi sonrası daha az beklenir. (Operasyonel ölçüt: düşük frekans + hızlı self-heal + Remote Ops başarısı.)
 
 ---
 
