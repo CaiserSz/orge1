@@ -1,8 +1,8 @@
 # Sorun Giderme - AC Charger
 
 **Oluşturulma Tarihi:** 2025-12-09 22:40:00
-**Son Güncelleme:** 2025-12-09 22:40:00
-**Version:** 1.0.0
+**Son Güncelleme:** 2025-12-21 22:55:00
+**Version:** 1.1.0
 
 ---
 
@@ -47,4 +47,37 @@ Detaylı kurulum için: `WIFI_FAILOVER_SETUP.md` (konsolide edilecek)
 _(Bu bölüm karşılaşılan hatalar ve çözümleri ile güncellenecek)_
 
 ---
+
+## Raspberry Pi Undervoltage / Throttling (2025-12-21)
+
+Bu sorun **kritik altyapı riski**dir: CPU throttling, SD kart I/O hataları ve servis flapping (API/OCPP reconnect) gibi “rastgele” problemlere yol açabilir.
+
+### Kanıt / Belirti
+- Kernel log: `journalctl -k` içinde **`Undervoltage detected!`** kaydı görülebilir.
+- Firmware flag: `vcgencmd get_throttled` çıktısı **0x0 değilse** undervoltage/throttling yaşanmıştır.
+  - Bu cihazda gözlenen örnek: `throttled=0x50005` (undervoltage + throttling).
+
+### Hızlı Kontrol Komutları
+```bash
+# Firmware flag
+vcgencmd get_throttled
+
+# Kernel log kanıtı
+journalctl -k --no-pager | grep -i undervoltage | tail -n 50
+```
+
+### `get_throttled` Bit Anlamları (Özet)
+- **Bit 0**: Undervoltage şu an var
+- **Bit 2**: Throttling şu an var
+- **Bit 16**: Undervoltage boot’tan beri yaşandı
+- **Bit 18**: Throttling boot’tan beri yaşandı
+
+Beklenen “sağlıklı” durum: **`throttled=0x0`**
+
+### Kalıcı Çözüm (Önerilen)
+- **PSU**: RPi4 için **kaliteli / resmi** 5.1V/3A güç adaptörü kullan
+- **Kablo**: Kısa ve kalın USB‑C kablo kullan (uzun/ince kablo voltage drop yapar)
+- **USB yükü**: Yüksek akım çeken USB cihazlarını RPi’den besleme; gerekiyorsa powered USB hub kullan
+- **Doğrulama**: PSU/kablo değişiminden sonra reboot edip `vcgencmd get_throttled` ile tekrar kontrol et
+
 

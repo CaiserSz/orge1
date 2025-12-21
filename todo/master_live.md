@@ -1,6 +1,6 @@
 # Aktif Görevler (Şu Anda Yapılanlar)
 
-**Son Güncelleme:** 2025-12-21 20:45:00
+**Son Güncelleme:** 2025-12-21 23:05:00
 
 ---
 
@@ -14,6 +14,11 @@
   - İlerleme: Phase‑1.4 Runbook (A/B/C) evidence ✅ + UI Remote Ops (daemon) Remote Start/Stop evidence ✅ (SSOT: `docs/csms/CSMS_CONNECTION_PARAMETERS.md`)
   - İlerleme: OCPP modüler refactor ✅ (tüm `ocpp/*.py` <= 500 satır; `main.py`/`handlers.py` bakım riski azaltıldı)
   - Not: Mevcut API/ESP32/session sistemi bozulmayacak; OCPP ayrı proses olarak ilerleyecek.
+
+- **RPi Undervoltage (Sistem Sağlığı)** – 2025-12-21 (ocpp/phase1 branch)
+  - Durum: 🔄 Devam ediyor
+  - Kapsam: Kernel log + `vcgencmd get_throttled` kanıt toplama, kalıcı çözüm runbook, erken uyarı/izleme
+  - Not: Kalıcı çözüm için PSU/kablo/USB yükü fiziksel doğrulama gerekiyor; yazılımsal izleme ve SSOT runbook hazırlanıyor.
 
 - Şu anda başka aktif görev yok. Son tamamlanan işler:
   0. **RL/LOCK telemetri açıklaması** – 2025-12-14 03:50 (`/api/status` telemetry + warnings)

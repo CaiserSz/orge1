@@ -98,8 +98,13 @@
   - Açıklama: Kernel log’larında undervoltage tespit edildi. Bu durum CPU throttling, SD kart I/O hataları ve rastgele servis sorunlarına yol açabilir. Güç adaptörü/USB-C kablo/hat direnci ve besleme ölçümü (5V stabilitesi) doğrulanmalı; gerekirse daha güçlü PSU + kısa/kalın kablo kullanılmalı.
   - Öncelik: 0 (Acil)
   - Tahmini Süre: 30-60 dakika (ölçüm + doğrulama)
-  - Durum: 🔴 Kritik risk
-  - Detaylar: `journalctl -k` içinde “Undervoltage detected!” kaydı mevcut.
+  - Durum: 🔄 Devam ediyor (2025-12-21) — yazılımsal kanıt + runbook hazırlandı; hardware aksiyon bekliyor
+  - Detaylar:
+    - Kanıt (RPi4): `vcgencmd get_throttled` → `throttled=0x50005` (undervoltage + throttling flag’leri)
+    - Kernel log: `journalctl -k` / `dmesg -T` içinde “Undervoltage detected!” kaydı var
+    - Runbook: `docs/troubleshooting.md` → “Raspberry Pi Undervoltage / Throttling”
+    - Golden Image checklist: `docs/deployment.md` → “Power sanity (RPi)”
+    - Erken uyarı: `scripts/system_monitor.py` → `get_rpi_throttled_status()` ile log/alert
 
 - [ ] **Görev:** `backup.service` systemd unit tutarlılığı (unit mevcut değil / user farklı)
   - Açıklama: `backup.service` status sorgusunda “Unit ... could not be found.” dönüyor; ayrıca repo içindeki `scripts/backup.service` User/Group `pi` iken cihazda ana kullanıcı `basar`. Servis gerçekten kullanılacaksa doğru şekilde `/etc/systemd/system/` altına kurulmalı, user/group ve path’ler doğrulanmalı; kullanılmayacaksa dokümantasyondan/kurulumdan kaldırılmalı.

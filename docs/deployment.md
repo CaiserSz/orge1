@@ -1,8 +1,8 @@
 # Deployment Kılavuzu - AC Charger
 
 **Oluşturulma Tarihi:** 2025-12-09 22:40:00
-**Son Güncelleme:** 2025-12-21 16:35:00
-**Version:** 1.1.3
+**Son Güncelleme:** 2025-12-21 23:00:00
+**Version:** 1.1.4
 
 ---
 
@@ -227,4 +227,9 @@ Amaç: Yeni SSD imajı ile gelen RPi’lerde aynı adımlarla (deterministik) se
 6) Smoke test:
    - `sudo bash -lc 'set -a; source /etc/ocpp_station.env; set +a; cd /home/basar/charger; ./env/bin/python -u ocpp/main.py --once'`
    - Beklenen: tek JSON + exit code `0`
+
+7) Power sanity (RPi):
+   - `vcgencmd get_throttled` → Beklenen: `throttled=0x0`
+   - `journalctl -k --no-pager | grep -i undervoltage | tail -n 50` → Kayıt varsa PSU/kablo kontrolü gerekir
+   - Detaylı runbook: `docs/troubleshooting.md` → “Raspberry Pi Undervoltage / Throttling”
 
