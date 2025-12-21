@@ -722,19 +722,25 @@
     - Önce: flapping (code=1000) + arada HTTP 502 görüldü.
     - Retest: CSMS fix sonrası + station `--heartbeat-seconds 60` ile uzun aralıkta stabil; RemoteStart+RemoteStop başarıyla tamamlandı. Uzun pencerede 1 kez code=1000 reconnect görüldü; Master AI bunun CSMS deploy/restart ve (daha önce) doc/todo değişimlerinde restart tetikleyen CI davranışı kaynaklı olabileceğini teyit etti; CI ayarı güncellendi (SSOT: `docs/csms/CSMS_CONNECTION_PARAMETERS.md`).
 
-- [ ] **Görev:** `ocpp/main.py` satır limiti aşımı için refactor planı (Phase‑1)
-  - Açıklama: `ocpp/main.py` şu an 1416 satır. Proje kod standartlarına göre bu dosya boyutu riskli (bakım/yan etki). “Yeni dosya/klasör oluşturma” kuralı nedeniyle kısa vadede mevcut `ocpp/states.py` gibi mevcut dosyalara taşıma/yeniden düzenleme stratejisi planlanmalı; orta vadede kural istisnasıyla modülerleşme değerlendirilebilir.
+- [x] **Görev:** `ocpp/main.py` satır limiti aşımı için refactor planı (Phase‑1)
+  - Açıklama: `ocpp/main.py` şu an 1475 satır. Proje kod standartlarına göre bu dosya boyutu riskli (bakım/yan etki). Refactor planı hazırlandı.
   - Öncelik: 3 (Orta/Düşük)
   - Tahmini Süre: 2-4 saat (plan + ilk taşıma)
-  - Durum: 🟡 Standart aşımı / refactor gerekli
-  - Detaylar: `wc -l ocpp/main.py` → 1416 (2025-12-19).
+  - Durum: ✅ Plan hazır (2025-12-21)
+  - Detaylar: Plan: `todo/REFACTORING_PLAN.md` → “OCPP Modülleri (Phase‑1)”. Not: Standartlara tam uyum için OCPP klasörü özelinde “yeni `.py` dosyası” istisnası gerekiyor.
 
-- [ ] **Görev:** `ocpp/handlers.py` satır limiti aşımı (608) için refactor planı
-  - Açıklama: `ocpp/handlers.py` şu an 608 satır. Station-side OCPP adapter/handler mantığı büyüdü; bakım ve yan etki riski var. “Yeni dosya/klasör oluşturma” kuralı nedeniyle kısa vadede mevcut `ocpp/states.py` içine uygun yardımcıların taşınması ve handler bloklarının kompaktlaştırılması planlanmalı.
+- [x] **Görev:** `ocpp/handlers.py` satır limiti aşımı (608) için refactor planı
+  - Açıklama: `ocpp/handlers.py` şu an 616 satır. Station-side OCPP adapter/handler mantığı büyüdü; bakım ve yan etki riski var. Refactor planı hazırlandı.
   - Öncelik: 2 (Orta/Yüksek)
   - Tahmini Süre: 2-4 saat
-  - Durum: 🟡 Standart aşımı / refactor gerekli
-  - Detaylar: `wc -l ocpp/handlers.py` → 608 (2025-12-21).
+  - Durum: ✅ Plan hazır (2025-12-21)
+  - Detaylar: Plan: `todo/REFACTORING_PLAN.md` → “OCPP Modülleri (Phase‑1)”.
+
+- [ ] **Görev:** OCPP modüler refactor uygulaması (standart uyumu) — “yeni dosya” istisnası kararı
+  - Açıklama: `ocpp/main.py` (1475) ve `ocpp/handlers.py` (616) dosyaları standartları aşıyor. Standartlara tam uyum için OCPP klasörü içinde sınırlı sayıda yeni `.py` modülüne bölme gerekiyor (yeni klasör yok). Bu iş için “kural istisnası” kararı alınmalı.
+  - Öncelik: 1 (Yüksek - prod bakım riski)
+  - Tahmini Süre: 15-30 dk (karar) + 2-4 saat (uygulama)
+  - Durum: 🧱 Bekliyor (karar)
 
 ---
 

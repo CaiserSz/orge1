@@ -1,8 +1,8 @@
 # Refactoring Planı - Kod ve Dokümantasyon Standartları
 
 **Oluşturulma Tarihi:** 2025-12-09 22:00:00  
-**Son Güncelleme:** 2025-12-09 22:00:00  
-**Version:** 1.0.0
+**Son Güncelleme:** 2025-12-21 16:55:00  
+**Version:** 1.1.0
 
 ---
 
@@ -55,6 +55,52 @@ docs/
 3. ✅ Ana dosyada index ve linkler oluştur
 4. ✅ Cross-reference'ları güncelle
 5. ✅ Test et ve doğrula
+
+---
+
+### 2. OCPP Modülleri (Phase‑1) — `ocpp/main.py` + `ocpp/handlers.py`
+
+**Durum:** 🔴 Maksimum sınır aşıldı (Python modül max: 500 satır)  
+**Öncelik:** Yüksek (prod-hardening / bakım riski)  
+**Mevcut Boyut:**
+- `ocpp/main.py`: 1475 satır (2025-12-21)
+- `ocpp/handlers.py`: 616 satır (2025-12-21)
+- `ocpp/states.py`: 444 satır (2025-12-21)
+
+#### Kritik Kısıt
+Repo kuralı “yeni dosya oluşturma yok” olduğu sürece bu iki dosyayı **500 satır altına indirmek pratikte mümkün değil**.  
+Bu nedenle iki fazlı plan önerilir:
+
+#### Plan A (Kural İhlali Olmadan / Kısa Vadeli)
+Amaç: Standart ihlalini “bilinen risk” olarak yönetirken sahada arıza/operasyon maliyetini azaltmak.
+
+- ✅ Systemd runbook + env provisioning + `--once` JSON raporu (ops kanıt) tamamlandı (SSOT: `docs/deployment.md`)
+- ✅ SIGTERM graceful shutdown eklendi (`ocpp/main.py`, `ocpp/handlers.py`)
+- 🟡 Kalan: büyük refactor için karar/izin
+
+#### Plan B (Önerilen / Standartlara Tam Uyum)
+Amaç: OCPP kodunu modüler hale getirip dosya limitlerine uymak (bakım kolaylığı + yan etki riskini azaltma).
+
+**Gereken:** “Yeni dosya oluşturma” kuralı için **OCPP klasörü özelinde istisna** (yalnızca `.py` dosyaları, yeni klasör yok).
+
+Önerilen bölme (örnek):
+
+```
+ocpp/
+├── main.py               (entrypoint: arg/env + run)
+├── handlers.py           (v201 adapter + ws connect loop)
+├── states.py             (shared helpers, poller, auth, utils)
+├── once_report.py        (NEW) --once JSON raporu (Phase-1 ops kanıt)
+├── runtime_config.py     (NEW) OcppRuntimeConfig + env/config load
+└── v16_adapter.py        (NEW) OCPP 1.6J adapter (fallback)
+```
+
+**Aksiyon Adımları (özet):**
+1) Refactor branch: `git checkout -b refactor/ocpp-modularize`
+2) `ocpp/main.py` içinden config/once/v16 kodlarını yeni modüllere taşı
+3) `ocpp/handlers.py` içindeki helper/utility parçalarını `states.py` veya uygun modüle taşı
+4) `py_compile` + ilgili test: `pytest tests/test_integration.py -k ocpp_remote_ops_v201_local_csms_server`
+5) Küçük commit’ler + push; gerekirse tag ile rollback
 
 ---
 
@@ -221,5 +267,5 @@ meter/
 
 ---
 
-**Son Güncelleme:** 2025-12-09 22:00:00
+**Son Güncelleme:** 2025-12-21 16:55:00
 
