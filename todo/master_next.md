@@ -129,12 +129,16 @@
     - Smoke: `sudo systemctl start backup.service` → SUCCESS (db + config + manifest üretildi)
     - Git hijyeni: `backups/` artefact’ları yanlışlıkla git’te tracked idi; `.gitignore` → `backups/` eklendi ve tracked dosyalar untrack edildi
 
-- [ ] **Görev:** Ngrok DNS/bağlantı hataları (geçmiş) - resolver yapılandırması kontrolü
+- [x] **Görev:** Ngrok DNS/bağlantı hataları (geçmiş) - resolver yapılandırması kontrolü
   - Açıklama: Journal’da ngrok “lookup ... on [::1]:53 ... connection refused” hataları görüldü. Bu genelde DNS resolver’ın localhost’a (IPv6) işaret edip DNS servisi kapalı olmasıyla tetiklenir. Mevcut durumda ağ stabil mi teyit edilmeli; `/etc/resolv.conf` / `systemd-resolved` / `dnsmasq` durumları kontrol edilmelidir.
   - Öncelik: 3 (Orta/Düşük)
   - Tahmini Süre: 30-60 dakika
-  - Durum: 📋 Bekliyor
-  - Detaylar: ngrok hataları 2025-12-08 civarı journal’da.
+  - Durum: ✅ Tamamlandı (2025-12-22) — kök neden: boot’ta network hazır değil; unit order iyileştirildi
+  - Detaylar:
+    - Mevcut DNS: `/etc/resolv.conf` (NetworkManager) → `nameserver 192.168.1.1`, `getent hosts google.com` ✅
+    - `systemd-resolved` yok (Unit not found) → localhost DNS senaryosu aktif değil
+    - Ngrok journal (2025-12-08): `lookup connect.ngrok-agent.com on 192.168.1.1:53 ... network is unreachable` (network-up sırası)
+    - Fix: `ngrok.service` için drop-in eklendi → `Wants/After=network-online.target` + `systemctl restart ngrok` ✅
 
 ### Öncelik 0: Standart İhlali (2025-12-16) - `api/event_detector.py` Satır Limiti Aşıldı
 

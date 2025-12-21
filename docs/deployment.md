@@ -1,8 +1,8 @@
 # Deployment Kılavuzu - AC Charger
 
 **Oluşturulma Tarihi:** 2025-12-09 22:40:00
-**Son Güncelleme:** 2025-12-21 23:00:00
-**Version:** 1.1.4
+**Son Güncelleme:** 2025-12-22 00:20:00
+**Version:** 1.1.5
 
 ---
 
@@ -57,6 +57,22 @@ sudo systemctl restart ngrok
 
 # Servis loglarını görüntüleme
 sudo journalctl -u ngrok -f
+```
+
+#### Boot'ta DNS/lookup hataları (geçmiş)
+Eğer `journalctl -u ngrok` içinde boot anında “`lookup ... network is unreachable`” benzeri hatalar görülürse, genelde sebep **network-online olmadan servisin başlamasıdır**.
+
+Kalıcı iyileştirme (drop-in override):
+
+```bash
+sudo mkdir -p /etc/systemd/system/ngrok.service.d
+cat <<'EOF' | sudo tee /etc/systemd/system/ngrok.service.d/override.conf >/dev/null
+[Unit]
+Wants=network-online.target
+After=network-online.target
+EOF
+sudo systemctl daemon-reload
+sudo systemctl restart ngrok
 ```
 
 #### Ngrok Web Arayüzü
