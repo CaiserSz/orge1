@@ -1,8 +1,8 @@
 # Deployment Kılavuzu - AC Charger
 
 **Oluşturulma Tarihi:** 2025-12-09 22:40:00
-**Son Güncelleme:** 2025-12-21 16:25:00
-**Version:** 1.1.2
+**Son Güncelleme:** 2025-12-21 16:35:00
+**Version:** 1.1.3
 
 ---
 
@@ -194,4 +194,37 @@ OCPP_HEARTBEAT_SECONDS='60'
 - Health check (CSMS’e dokunmadan smoke):
   - `sudo bash -lc 'set -a; source /etc/ocpp_station.env; set +a; cd /home/basar/charger; ./env/bin/python -u ocpp/main.py --once'`
   - Çıktı: stdout’a **tek JSON** (secret içermez; `messages[]` içinde Boot/Status/Heartbeat kanıtı). Exit code `0` başarı.
+
+---
+
+## Golden Image / SSD Provisioning Checklist (Security hariç) (2025-12-21)
+
+Amaç: Yeni SSD imajı ile gelen RPi’lerde aynı adımlarla (deterministik) servislerin kalkması.
+
+Önerilen minimum adımlar:
+
+1) Paketler:
+   - `sudo apt-get update`
+   - `sudo apt-get install -y git python3-venv`
+
+2) Repo:
+   - `cd /home/basar`
+   - `git clone git@github.com:CaiserSz/orge1.git charger`
+   - `cd /home/basar/charger`
+   - `git checkout <tag|commit>`  (fleet rollout için pin önerilir)
+
+3) Python env:
+   - `python3 -m venv env`
+   - `./env/bin/pip install -r requirements.txt`
+
+4) Station config (secret cihazda):
+   - `/etc/ocpp_station.env` oluştur (örnek üstte)
+
+5) Systemd:
+   - `charger-api.service` kur + enable (template: `scripts/charger-api.service`)
+   - `ocpp-station.service` kur + enable (örnek unit: bu doküman)
+
+6) Smoke test:
+   - `sudo bash -lc 'set -a; source /etc/ocpp_station.env; set +a; cd /home/basar/charger; ./env/bin/python -u ocpp/main.py --once'`
+   - Beklenen: tek JSON + exit code `0`
 
