@@ -30,8 +30,13 @@ from dataclasses import dataclass, fields, is_dataclass
 from typing import Any
 
 import websockets
-from states import (StationIdentity, basic_auth_header,
-                    serial_number_for_station_name, ssl_if_needed, utc_now_iso)
+from states import (
+    StationIdentity,
+    basic_auth_header,
+    serial_number_for_station_name,
+    ssl_if_needed,
+    utc_now_iso,
+)
 
 
 def _dataclass_field_names(obj: Any) -> list[str]:
@@ -1053,7 +1058,9 @@ class Ocpp16Adapter:
                                 suppress=False,
                                 unique_id=str(uuid.uuid4()),
                             )
-                            print(f"[OCPP] v16 Heartbeat current_time={hb.current_time}")
+                            print(
+                                f"[OCPP] v16 Heartbeat current_time={hb.current_time}"
+                            )
                             return
 
                         print(f"[OCPP] v16 daemon heartbeat_interval={hb_interval}s")
