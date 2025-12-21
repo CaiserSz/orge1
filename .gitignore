@@ -43,6 +43,9 @@ logs/*.log
 *.log
 *.log.*
 
+# Backups (may contain sensitive config; keep out of git)
+backups/
+
 # OS
 .DS_Store
 Thumbs.db

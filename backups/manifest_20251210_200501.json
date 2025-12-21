@@ -1,7 +1,0 @@
-{
-  "timestamp": "2025-12-10T20:05:01.158286",
-  "backups": {
-    "database": "/home/basar/charger/backups/sessions_db_20251210_200501.db.gz",
-    "configuration": "/home/basar/charger/backups/config_20251210_200501.tar.gz"
-  }
-}
