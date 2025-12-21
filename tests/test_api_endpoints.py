@@ -1,8 +1,8 @@
 """
 API Endpoints Unit Tests
 Created: 2025-12-09 02:00:00
-Last Modified: 2025-12-21 15:35:00
-Version: 1.1.1
+Last Modified: 2025-12-22 00:20:00
+Version: 1.1.2
 Description: API endpoint'leri için unit testler - Mock ESP32 bridge ile
 """
 
@@ -430,3 +430,70 @@ class TestMeterParsingHelpers:
         monkeypatch.setattr(m, "_read_regs", lambda address, count: None)
 
         assert m._read_uint32_scaled(0x0842, 0.1) is None
+
+
+class TestABBMeterReadMeterHelpers:
+    """meter/read_meter.py içindeki saf helper + Modbus frame logic testleri (donanım yok)."""
+
+    def test_register_helpers(self):
+        from meter.read_meter import _s32_from_2regs, _u32_from_2regs, _u64_from_4regs
+
+        assert _u32_from_2regs(0x1234, 0x5678) == 0x12345678
+        assert _s32_from_2regs(0xFFFF, 0xFFFF) == -1
+        assert _u64_from_4regs([0, 0, 0, 1]) == 1
+        with pytest.raises(ValueError):
+            _u64_from_4regs([0, 1, 2])
+
+    def test_crc_and_request_build(self):
+        from meter.read_meter import ABBMeterReader
+
+        r = ABBMeterReader(device="dummy", slave_id=1)
+        payload = b"\x01\x03\x00\x00\x00\x0a"
+        assert r._calculate_crc16(payload) == 0xCDC5
+        assert r._build_modbus_request(0x03, 0x0000, 0x000A) == payload + b"\xc5\xcd"
+
+    def test_parse_response_variants(self):
+        import struct
+        from meter.read_meter import ABBMeterReader
+
+        r = ABBMeterReader(device="dummy", slave_id=1)
+        data = b"\x12\x34\xab\xcd"
+        pre = b"\x01\x03\x04" + data
+        ok = pre + struct.pack("<H", r._calculate_crc16(pre))
+        assert r._parse_modbus_response(ok) == [0x1234, 0xABCD]
+        bad_crc = ok[:-1] + bytes([ok[-1] ^ 0xFF])
+        assert r._parse_modbus_response(bad_crc) is None
+        wrong_slave_pre = b"\x02\x03\x04" + data
+        wrong_slave = wrong_slave_pre + struct.pack(
+            "<H", r._calculate_crc16(wrong_slave_pre)
+        )
+        assert r._parse_modbus_response(wrong_slave) is None
+        exc_pre = b"\x01\x83\x02"
+        exc = exc_pre + struct.pack("<H", r._calculate_crc16(exc_pre))
+        assert r._parse_modbus_response(exc) is None
+
+    def test_read_meter_data_decoding_without_serial(self, monkeypatch):
+        from meter.read_meter import ABBMeterReader, ABB_REGISTERS
+
+        r = ABBMeterReader(device="dummy", slave_id=1)
+        r.is_connected = True
+
+        def fake_read(start_address: int, quantity: int):
+            if (start_address, quantity) == (ABB_REGISTERS["voltage_l1"], 6):
+                return [0, 230, 0, 231, 0, 232]
+            if (start_address, quantity) == (ABB_REGISTERS["current_l1"], 6):
+                return [0, 10_000, 0, 11_000, 0, 12_000]
+            if (start_address, quantity) == (ABB_REGISTERS["power_active_total"], 8):
+                return [0, 2300, 0, 700, 0, 800, 0, 900]
+            if (start_address, quantity) == (ABB_REGISTERS["energy_active_import"], 4):
+                return [0, 0, 0, 10_050]
+            return None
+
+        monkeypatch.setattr(r, "read_holding_registers", fake_read, raising=True)
+        out = r.read_meter_data()
+        assert out and out["slave_id"] == 1
+        assert out["device"] == "dummy"
+        assert out["voltage_l1"] == 230.0
+        assert out["current_l1"] == pytest.approx(10.0)
+        assert out["power_active_w"] == 2300.0
+        assert out["energy_active_kwh"] == pytest.approx(100.5)
