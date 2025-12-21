@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-22 00:49:00
+**Son Güncelleme:** 2025-12-22 00:54:46
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -97,6 +97,13 @@
   - Tahmini Süre: 1-2 saat
   - Durum: 🟡 Uyarı eşiği yakın
   - Detaylar: Rapor zamanı: 2025-12-21 20:43
+
+- [ ] **Görev:** `tests/test_api_endpoints.py` büyüme kontrolü (satır sayısı uyarı eşiği yakın)
+  - Açıklama: `standards_auto_check` raporu dosya 464 satır (Limit: 500). Uyarı eşiğine yakın; yeni testler mümkünse diğer mevcut test dosyalarına dağıtılmalı veya tekrar eden bloklar fixture/helper ile sadeleştirilmeli (**yeni test dosyası oluşturmadan**).
+  - Öncelik: 3 (Orta/Düşük)
+  - Tahmini Süre: 30-60 dk
+  - Durum: 🟡 Uyarı eşiği yakın (464/500)
+  - Detaylar: Güncelleme: 2025-12-22
 
 
 ### Öncelik 1: EV Gerçek Test Bulguları (2025-12-13) - Güç/Enerji Tutarlılığı ve UI Stabilitesi
