@@ -1,7 +1,7 @@
 # Refactoring Planı - Kod ve Dokümantasyon Standartları
 
-**Oluşturulma Tarihi:** 2025-12-09 22:00:00  
-**Son Güncelleme:** 2025-12-21 16:55:00  
+**Oluşturulma Tarihi:** 2025-12-09 22:00:00
+**Son Güncelleme:** 2025-12-21 16:55:00
 **Version:** 1.1.0
 
 ---
@@ -16,8 +16,8 @@ Bu dokümantasyon, kod ve dokümantasyon standartlarına uygunluk için yapılma
 
 ### 1. `project_info_20251208_145614.md` (1245 satır)
 
-**Durum:** 🔴 Maksimum sınır (1200 satır) aşıldı  
-**Öncelik:** Yüksek  
+**Durum:** 🔴 Maksimum sınır (1200 satır) aşıldı
+**Öncelik:** Yüksek
 **Tahmini Süre:** 2-3 saat
 
 #### Bölümleme Planı
@@ -60,8 +60,8 @@ docs/
 
 ### 2. OCPP Modülleri (Phase‑1) — `ocpp/main.py` + `ocpp/handlers.py`
 
-**Durum:** ✅ Tamamlandı (2025-12-21) — OCPP modülleri satır limitlerine indirildi (<=500)  
-**Öncelik:** Yüksek (prod-hardening / bakım riski)  
+**Durum:** ✅ Tamamlandı (2025-12-21) — OCPP modülleri satır limitlerine indirildi (<=500)
+**Öncelik:** Yüksek (prod-hardening / bakım riski)
 **Son Durum Boyutları (örnek):**
 - `ocpp/main.py`: 315 satır
 - `ocpp/handlers.py`: 460 satır
@@ -110,8 +110,8 @@ ocpp/
 
 ### 2. `api/main.py` (591 satır)
 
-**Durum:** 🟡 Uyarı eşiği (600 satır) yakın  
-**Öncelik:** Orta  
+**Durum:** 🟡 Uyarı eşiği (600 satır) yakın
+**Öncelik:** Orta
 **Tahmini Süre:** 3-4 saat
 
 #### Router'lara Bölme Planı
@@ -152,8 +152,8 @@ api/
 
 ### 3. `MULTI_EXPERT_ANALYSIS.md` (1115 satır)
 
-**Durum:** 🟡 Uyarı eşiği (1000 satır) aşıldı  
-**Öncelik:** Orta  
+**Durum:** 🟡 Uyarı eşiği (1000 satır) aşıldı
+**Öncelik:** Orta
 **Tahmini Süre:** 1-2 saat
 
 #### Bölümleme Planı
@@ -187,8 +187,8 @@ docs/analysis/
 
 ### 4. `meter/read_meter.py` (~496 satır)
 
-**Durum:** 🟡 Uyarı eşiği (500 satır) yakın  
-**Öncelik:** Düşük  
+**Durum:** 🟡 Uyarı eşiği (500 satır) yakın
+**Öncelik:** Düşük
 **Tahmini Süre:** 2-3 saat
 
 #### Modüllere Bölme Planı
