@@ -1,8 +1,8 @@
 """
 API Endpoints Unit Tests
 Created: 2025-12-09 02:00:00
-Last Modified: 2025-12-22 00:20:00
-Version: 1.1.2
+Last Modified: 2025-12-22 00:32:00
+Version: 1.1.3
 Description: API endpoint'leri için unit testler - Mock ESP32 bridge ile
 """
 
@@ -71,58 +71,22 @@ class TestAPIEndpoints:
         assert data["message"] == "Şarj durdurma komutu gönderildi"
         mock_esp32_bridge.send_charge_stop.assert_called_once()
 
-    def test_set_current_8A(self, client, mock_esp32_bridge, test_headers):
-        """Set current 8A endpoint çalışıyor mu?"""
+    @pytest.mark.parametrize("amperage", [8, 16, 24, 32])
+    def test_set_current_valid(self, client, mock_esp32_bridge, test_headers, amperage):
+        """Set current endpoint (valid values) çalışıyor mu?"""
         response = client.post(
-            "/api/maxcurrent", json={"amperage": 8}, headers=test_headers
+            "/api/maxcurrent", json={"amperage": amperage}, headers=test_headers
         )
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
-        assert "8A" in data["message"]
-        mock_esp32_bridge.send_current_set.assert_called_once_with(8)
+        assert f"{amperage}A" in data["message"]
+        mock_esp32_bridge.send_current_set.assert_called_once_with(amperage)
 
-    def test_set_current_16A(self, client, mock_esp32_bridge, test_headers):
-        """Set current 16A endpoint çalışıyor mu?"""
-        response = client.post(
-            "/api/maxcurrent", json={"amperage": 16}, headers=test_headers
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert data["success"] is True
-        assert "16A" in data["message"]
-        mock_esp32_bridge.send_current_set.assert_called_once_with(16)
-
-    def test_set_current_24A(self, client, mock_esp32_bridge, test_headers):
-        """Set current 24A endpoint çalışıyor mu?"""
-        response = client.post(
-            "/api/maxcurrent", json={"amperage": 24}, headers=test_headers
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert data["success"] is True
-        assert "24A" in data["message"]
-        mock_esp32_bridge.send_current_set.assert_called_once_with(24)
-
-    def test_set_current_32A(self, client, mock_esp32_bridge, test_headers):
-        """Set current 32A endpoint çalışıyor mu?"""
-        response = client.post(
-            "/api/maxcurrent", json={"amperage": 32}, headers=test_headers
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert data["success"] is True
-        assert "32A" in data["message"]
-        mock_esp32_bridge.send_current_set.assert_called_once_with(32)
-
-    def test_set_current_invalid_low(self, client):
-        """Geçersiz düşük akım değeri reddedilmeli"""
-        response = client.post("/api/maxcurrent", json={"amperage": 5})
-        assert response.status_code == 422  # Validation error
-
-    def test_set_current_invalid_high(self, client):
-        """Geçersiz yüksek akım değeri reddedilmeli"""
-        response = client.post("/api/maxcurrent", json={"amperage": 33})
+    @pytest.mark.parametrize("amperage", [5, 33])
+    def test_set_current_invalid(self, client, amperage):
+        """Geçersiz akım değerleri reddedilmeli."""
+        response = client.post("/api/maxcurrent", json={"amperage": amperage})
         assert response.status_code == 422  # Validation error
 
     def test_start_charge_when_already_charging(
@@ -436,7 +400,8 @@ class TestABBMeterReadMeterHelpers:
     """meter/read_meter.py içindeki saf helper + Modbus frame logic testleri (donanım yok)."""
 
     def test_register_helpers(self):
-        from meter.read_meter import _s32_from_2regs, _u32_from_2regs, _u64_from_4regs
+        from meter.read_meter import (_s32_from_2regs, _u32_from_2regs,
+                                      _u64_from_4regs)
 
         assert _u32_from_2regs(0x1234, 0x5678) == 0x12345678
         assert _s32_from_2regs(0xFFFF, 0xFFFF) == -1
