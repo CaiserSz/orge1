@@ -2,8 +2,8 @@
 OCPP Station Client Runner (Phase-1)
 
 Created: 2025-12-16 01:20
-Last Modified: 2025-12-21 15:55
-Version: 0.5.2
+Last Modified: 2025-12-21 16:05
+Version: 0.5.3
 Description:
   OCPP station client entrypoint for Raspberry Pi (Python runtime).
   - Primary: OCPP 2.0.1 (v201)
@@ -104,6 +104,22 @@ async def _run_once_json(cfg: Any) -> dict[str, Any]:
                 "callerror": bool(callerror),
                 "protocol_timeout": bool(protocol_timeout),
                 "notes": notes,
+                "config": {
+                    # Secret-free runtime config summary (for ops correlation).
+                    "primary": getattr(cfg, "primary", None),
+                    "ocpp201_url": getattr(cfg, "ocpp201_url", None),
+                    "ocpp16_url": getattr(cfg, "ocpp16_url", None),
+                    "vendor_name": getattr(cfg, "vendor_name", None),
+                    "model": getattr(cfg, "model", None),
+                    "heartbeat_override_seconds": getattr(
+                        cfg, "heartbeat_override_seconds", None
+                    ),
+                    "local_poll_enabled": getattr(cfg, "local_poll_enabled", None),
+                    "local_api_base_url": getattr(cfg, "local_api_base_url", None),
+                    "local_poll_interval_seconds": getattr(
+                        cfg, "local_poll_interval_seconds", None
+                    ),
+                },
                 "build": {
                     "station_build_commit": _git_commit_short(),
                     "ocpp_lib_version": _dist_version("ocpp"),

@@ -705,11 +705,12 @@
   - Tahmini Süre: 15-30 dk
   - Durum: 📋 Bekliyor
 
-- [ ] **Görev:** `ocpp/main.py --once` log formatını CSMS operasyon ihtiyacına uygun genişlet (UTC + unique_id + response)
-  - Açıklama: CSMS DB doğrulaması için Boot/Status/Heartbeat mesajları için UTC timestamp + unique_id + response bilgileri isteniyor. Şu an `--once` minimal log basıyor; gerektiğinde tek komutla kanıt üretmek için log formatı genişletilebilir.
+- [x] **Görev:** `ocpp/main.py --once` log formatını CSMS operasyon ihtiyacına uygun genişlet (UTC + unique_id + response)
+  - Açıklama: CSMS DB doğrulaması için Boot/Status/Heartbeat mesajları için UTC timestamp + unique_id + response bilgileri isteniyor. `--once` artık tek JSON içinde her CALL için `utc + unique_id + response_summary` ve secret‑free config/build özetini verir.
   - Öncelik: 2 (Orta/Yüksek)
   - Tahmini Süre: 15-30 dk
-  - Durum: 📋 Bekliyor
+  - Durum: ✅ Tamamlandı (2025-12-21)
+  - Detaylar: `ocpp/main.py::_run_once_json` → `messages[]` + `result.config/build` alanları (secret yok).
 
 - [ ] **Görev:** OCPP WS disconnect (close code=1000) → `connected_ids=[]` ve RemoteStop 404 (operasyonel risk)
   - Açıklama: UI Remote Ops testinde CSMS tarafında “station WS disconnect (code=1000)” ve “message bus connected_ids=[]” gözlendi; bu durumda RemoteStop 404 dönebiliyor. Station daemon reconnect ediyor ancak bağlantı flapping operasyonu zayıflatıyor. Kök neden için CSMS idle timeout / load balancer / app restart / ping-pong davranışı incelenmeli; Station tarafında gerekirse keepalive stratejisi (heartbeat override önerisi, ping interval explicit) dokümante edilmeli.
