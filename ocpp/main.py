@@ -2,8 +2,8 @@
 OCPP Station Client Runner (Phase-1)
 
 Created: 2025-12-16 01:20
-Last Modified: 2025-12-21 16:05
-Version: 0.5.3
+Last Modified: 2025-12-21 16:45
+Version: 0.5.4
 Description:
   OCPP station client entrypoint for Raspberry Pi (Python runtime).
   - Primary: OCPP 2.0.1 (v201)
@@ -30,7 +30,6 @@ from dataclasses import dataclass, fields, is_dataclass
 from typing import Any
 
 import websockets
-from handlers import Ocpp201Adapter
 from states import (
     StationIdentity,
     basic_auth_header,
@@ -75,6 +74,57 @@ def _dist_version(dist_name: str) -> str | None:
         return md.version(dist_name)
     except Exception:
         return None
+
+
+def _verify_python_ocpp_package() -> None:
+    """
+    Verify that the python-ocpp library is importable and not shadowed by local paths.
+
+    Why:
+    - Repo contains `/home/basar/charger/ocpp/` folder.
+    - python-ocpp library is imported as `ocpp` (e.g. `ocpp.v201`, `ocpp.v16`).
+    - Some environments may accidentally shadow the library, causing runtime import errors.
+
+    This function is secret-free and raises a RuntimeError with an actionable message.
+    """
+    import importlib
+
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+    try:
+        ocpp_pkg = importlib.import_module("ocpp")
+    except Exception as exc:
+        raise RuntimeError(
+            "Missing dependency: python-ocpp library is not importable. "
+            "Ensure the venv is created and requirements are installed "
+            "(`./env/bin/pip install -r requirements.txt`)."
+        ) from exc
+
+    pkg_file = getattr(ocpp_pkg, "__file__", None)
+    if not pkg_file:
+        raise RuntimeError(
+            "Python package conflict: `import ocpp` resolved to a namespace package "
+            "(no __file__). This can happen if local paths shadow the python-ocpp library. "
+            "Fix: run the station via the venv and avoid adding the repo root ahead of "
+            "site-packages on PYTHONPATH."
+        )
+
+    pkg_file_abs = os.path.abspath(str(pkg_file))
+    if pkg_file_abs.startswith(repo_root + os.sep):
+        raise RuntimeError(
+            "Python package conflict: `import ocpp` resolved to the repo path "
+            f"({pkg_file_abs}). Expected python-ocpp from site-packages. "
+            "Fix: ensure python-ocpp is installed in the venv and do not create "
+            "`ocpp/__init__.py` inside this repo."
+        )
+
+    for mod_name in ("ocpp.routing", "ocpp.v201", "ocpp.v16"):
+        try:
+            importlib.import_module(mod_name)
+        except Exception as exc:
+            raise RuntimeError(
+                f"python-ocpp appears incomplete or shadowed: failed to import `{mod_name}`: {exc}"
+            ) from exc
 
 
 async def _run_once_json(cfg: Any) -> dict[str, Any]:
@@ -1385,6 +1435,8 @@ async def _run_primary_then_fallback(cfg: OcppRuntimeConfig) -> None:
     - If primary fails to connect, try fallback once.
     - In PoC mode, the adapter runs the PoC sequence then exits.
     """
+    # Local adapter import (kept inside function to avoid import-time surprises in some environments).
+    from handlers import Ocpp201Adapter
 
     if cfg.primary == "201":
         try:
@@ -1446,6 +1498,13 @@ async def _run_daemon_with_shutdown(cfg: OcppRuntimeConfig) -> None:
 def main(argv: list[str]) -> int:
     args = _parse_args(argv)
     cfg = _build_config(args)
+
+    try:
+        _verify_python_ocpp_package()
+    except Exception as exc:
+        sys.stderr.write(f"[OCPP] dependency check failed: {exc}\n")
+        sys.stderr.flush()
+        return 2
 
     # Safety: this runner is isolated. It must not be started implicitly.
     if cfg.once_mode:

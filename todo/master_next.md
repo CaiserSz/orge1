@@ -699,11 +699,12 @@
   - Tahmini Süre: 15-30 dk
   - Durum: 🧱 Bloklayıcı (CSMS fix gerekli)
 
-- [ ] **Görev:** OCPP modül adı çakışması: repo `ocpp/` vs pip `ocpp` paketi (import hatası riski)
+- [x] **Görev:** OCPP modül adı çakışması: repo `ocpp/` vs pip `ocpp` paketi (import hatası riski)
   - Açıklama: `python-ocpp` paketi `ocpp` adıyla geliyor; repo’da da `ocpp/` klasörü var. `import ocpp.states` gibi importlar yanlış pakete gidebilir ve `ModuleNotFoundError` üretebilir. Kısa vadede import rehberi/snippet standardı (örn. `sys.path` ile `/home/basar/charger/ocpp` ekleyip `import states` kullanma) netleştirilmeli. Orta vadede klasör adı değişimi değerlendirilebilir (örn. `station_ocpp/`) ancak “yeni klasör/dosya” kuralı nedeniyle planlı yapılmalı.
   - Öncelik: 2 (Orta/Yüksek)
   - Tahmini Süre: 15-30 dk
-  - Durum: 📋 Bekliyor
+  - Durum: ✅ Tamamlandı (2025-12-21)
+  - Detaylar: `ocpp/main.py` → `_verify_python_ocpp_package()` ile `ocpp.routing`, `ocpp.v201`, `ocpp.v16` import doğrulaması + gölgeleme tespiti (secret-free, fail-fast).
 
 - [x] **Görev:** `ocpp/main.py --once` log formatını CSMS operasyon ihtiyacına uygun genişlet (UTC + unique_id + response)
   - Açıklama: CSMS DB doğrulaması için Boot/Status/Heartbeat mesajları için UTC timestamp + unique_id + response bilgileri isteniyor. `--once` artık tek JSON içinde her CALL için `utc + unique_id + response_summary` ve secret‑free config/build özetini verir.
