@@ -1,8 +1,8 @@
 """
 Integration Testleri - Gerçek Senaryolar
 Created: 2025-12-09 02:25:00
-Last Modified: 2025-12-21 17:05:00
-Version: 1.1.1
+Last Modified: 2025-12-22 01:01:00
+Version: 1.1.3
 Description: Gerçek kullanım senaryoları ve integration testleri (API + OCPP Remote Ops)
 """
 
@@ -23,6 +23,72 @@ from api.event_detector import ESP32State
 
 # conftest.py'deki standart fixture'ları kullan
 # mock_esp32_bridge, client, test_headers fixture'ları conftest.py'den gelir
+
+
+def _utc_now() -> str:
+    return (
+        datetime.now(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
+
+
+def _get_auth_header(ws: Any) -> str | None:
+    # websockets 15 uses ServerConnection with `.request.headers`
+    req = getattr(ws, "request", None)
+    if req is not None:
+        headers = getattr(req, "headers", None)
+        if headers is not None:
+            return headers.get("Authorization")
+    # older API compatibility
+    headers = getattr(ws, "request_headers", None)
+    if headers is not None:
+        return headers.get("Authorization")
+    return None
+
+
+def _assert_basic_auth(ws: Any, expected_raw: str) -> None:
+    auth = _get_auth_header(ws)
+    assert auth and auth.startswith("Basic ")
+    raw = base64.b64decode(auth.split(" ", 1)[1]).decode("utf-8")
+    assert raw == expected_raw
+
+
+def _tx_id_from_transaction_info(tx_info: Any) -> str | None:
+    if tx_info is None:
+        return None
+    if isinstance(tx_info, dict):
+        return tx_info.get("transaction_id") or tx_info.get("transactionId")
+    return getattr(tx_info, "transaction_id", None) or getattr(
+        tx_info, "transactionId", None
+    )
+
+
+@dataclass
+class _OcppTestCfg:
+    station_name: str
+    station_password: str
+    ocpp201_url: str = "ws://127.0.0.1/unused"
+    ocpp16_url: str = "ws://127.0.0.1/unused"
+    primary: str = "201"
+    poc_mode: bool = False
+    once_mode: bool = False
+    vendor_name: str = "ORGE"
+    model: str = "AC-1"
+    id_token: str = "TEST001"
+    heartbeat_override_seconds: int = 10
+    local_api_base_url: str = "http://localhost:8000"
+    local_poll_enabled: bool = False
+    local_poll_interval_seconds: int = 10
+    poc_stop_source: str = "auto"
+    poc_remote_stop_wait_seconds: int = 0
+    poc_transaction_id: str = ""
+    poc_remote_start_enabled: bool = False
+    poc_remote_start_wait_seconds: int = 120
+    poc_runbook_enabled: bool = False
+    poc_runbook_wait_profile_seconds: int = 120
+    poc_runbook_wait_stop_seconds: int = 120
 
 
 class TestRealWorldScenarios:
@@ -83,27 +149,13 @@ class TestRealWorldScenarios:
         """Birden fazla akım değişikliği"""
         mock_esp32_bridge.get_status.return_value = {"STATE": 1}
 
-        # 8A ayarla
-        response = client.post("/api/maxcurrent", json={"amperage": 8})
-        assert response.status_code == 200
-
-        # 16A ayarla
-        response = client.post("/api/maxcurrent", json={"amperage": 16})
-        assert response.status_code == 200
-
-        # 24A ayarla
-        response = client.post("/api/maxcurrent", json={"amperage": 24})
-        assert response.status_code == 200
-
-        # 32A ayarla
-        response = client.post("/api/maxcurrent", json={"amperage": 32})
-        assert response.status_code == 200
+        for amperage in (8, 16, 24, 32):
+            response = client.post("/api/maxcurrent", json={"amperage": amperage})
+            assert response.status_code == 200
 
     def test_charging_with_different_currents(self, client, mock_esp32_bridge):
         """Farklı akımlarla şarj başlatma"""
-        currents = [8, 16, 24, 32]
-
-        for current in currents:
+        for current in (8, 16, 24, 32):
             # Akım ayarla
             mock_esp32_bridge.get_status.return_value = {"STATE": 1}
             response = client.post("/api/maxcurrent", json={"amperage": current})
@@ -142,12 +194,8 @@ class TestRealWorldScenarios:
 
     def test_rapid_state_changes(self, client, mock_esp32_bridge):
         """Hızlı state değişiklikleri"""
-        states = [1, 2, 3, 4, 5, 6, 7]
-
-        for state in states:
-            mock_esp32_bridge.get_status.return_value = {
-                "STATE": state.value if hasattr(state, "value") else state
-            }
+        for state in (1, 2, 3, 4, 5, 6, 7):
+            mock_esp32_bridge.get_status.return_value = {"STATE": state}
             response = client.get("/api/status")
             assert response.status_code == 200
             assert response.json()["data"]["STATE"] == state
@@ -172,47 +220,13 @@ async def test_ocpp_remote_ops_v201_local_csms_server():
     sys.path.insert(0, str(Path(__file__).parent.parent / "ocpp"))
     from handlers import Ocpp201Adapter  # type: ignore
 
-    @dataclass
-    class _Cfg:
-        station_name: str
-        station_password: str
-        ocpp201_url: str
-        ocpp16_url: str = "ws://127.0.0.1/unused"
-        primary: str = "201"
-        poc_mode: bool = False
-        once_mode: bool = False
-        vendor_name: str = "ORGE"
-        model: str = "AC-1"
-        id_token: str = "TEST001"
-        heartbeat_override_seconds: int = 10
-        local_api_base_url: str = "http://localhost:8000"
-        local_poll_enabled: bool = False
-        local_poll_interval_seconds: int = 10
-        poc_stop_source: str = "auto"
-        poc_remote_stop_wait_seconds: int = 0
-        poc_transaction_id: str = ""
-        poc_remote_start_enabled: bool = False
-        poc_remote_start_wait_seconds: int = 120
-        poc_runbook_enabled: bool = False
-        poc_runbook_wait_profile_seconds: int = 120
-        poc_runbook_wait_stop_seconds: int = 120
-
-    def _utc_now() -> str:
-        return (
-            datetime.now(timezone.utc)
-            .replace(microsecond=0)
-            .isoformat()
-            .replace("+00:00", "Z")
-        )
-
     boot_seen = asyncio.Event()
     started_seen = asyncio.Event()
     ended_seen = asyncio.Event()
 
-    started_payload: dict[str, Any] = {}
-    ended_payload: dict[str, Any] = {}
-
-    tx_id_holder: dict[str, str] = {}
+    remote_tx_id: str = ""
+    started_tx_id: str | None = None
+    ended_tx_id: str | None = None
 
     class CentralSystemCP(ChargePoint):
         @on("BootNotification")
@@ -238,24 +252,19 @@ async def test_ocpp_remote_ops_v201_local_csms_server():
 
         @on("TransactionEvent")
         async def on_transaction_event(self, **kwargs):
+            nonlocal ended_tx_id, started_tx_id
             # We only assert event_type and trigger_reason in this Phase-1 test.
             event_type = kwargs.get("event_type")
             trigger_reason = kwargs.get("trigger_reason")
             tx_info = kwargs.get("transaction_info")
-            transaction_id = (
-                getattr(tx_info, "transaction_id", None) if tx_info else None
-            )
+            transaction_id = _tx_id_from_transaction_info(tx_info)
 
             if (
                 event_type == enums.TransactionEventEnumType.started
                 and trigger_reason == enums.TriggerReasonEnumType.remote_start
             ):
-                started_payload.update(
-                    {
-                        "event_type": str(event_type),
-                        "trigger_reason": str(trigger_reason),
-                        "transaction_id": str(transaction_id),
-                    }
+                started_tx_id = (
+                    str(transaction_id) if transaction_id is not None else None
                 )
                 started_seen.set()
 
@@ -263,36 +272,17 @@ async def test_ocpp_remote_ops_v201_local_csms_server():
                 event_type == enums.TransactionEventEnumType.ended
                 and trigger_reason == enums.TriggerReasonEnumType.remote_stop
             ):
-                ended_payload.update(
-                    {
-                        "event_type": str(event_type),
-                        "trigger_reason": str(trigger_reason),
-                        "transaction_id": str(transaction_id),
-                    }
+                ended_tx_id = (
+                    str(transaction_id) if transaction_id is not None else None
                 )
                 ended_seen.set()
 
             return call_result.TransactionEvent()
 
-    def _get_auth_header(ws: Any) -> str | None:
-        # websockets 15 uses ServerConnection with `.request.headers`
-        req = getattr(ws, "request", None)
-        if req is not None:
-            headers = getattr(req, "headers", None)
-            if headers is not None:
-                return headers.get("Authorization")
-        # older API compatibility
-        headers = getattr(ws, "request_headers", None)
-        if headers is not None:
-            return headers.get("Authorization")
-        return None
-
     async def _ws_handler(ws):
+        nonlocal remote_tx_id
         # Verify BasicAuth header (secret-free check)
-        auth = _get_auth_header(ws)
-        assert auth and auth.startswith("Basic ")
-        raw = base64.b64decode(auth.split(" ", 1)[1]).decode("utf-8")
-        assert raw == "ORGE_AC_001:testpw"
+        _assert_basic_auth(ws, "ORGE_AC_001:testpw")
 
         cp = CentralSystemCP("ORGE_AC_001", ws)
         runner = asyncio.create_task(cp.start())
@@ -313,13 +303,13 @@ async def test_ocpp_remote_ops_v201_local_csms_server():
                 res.status == enums.RequestStartStopStatusEnumType.accepted
             ), f"unexpected start status: {res}"
             assert getattr(res, "transaction_id", None)
-            tx_id_holder["tx_id"] = str(res.transaction_id)
+            remote_tx_id = str(res.transaction_id)
 
             await asyncio.wait_for(started_seen.wait(), timeout=10)
 
             # Remote Stop
             res2 = await cp.call(
-                call.RequestStopTransaction(transaction_id=tx_id_holder["tx_id"]),
+                call.RequestStopTransaction(transaction_id=remote_tx_id),
                 suppress=False,
             )
             assert (
@@ -337,18 +327,21 @@ async def test_ocpp_remote_ops_v201_local_csms_server():
     )
     port = server.sockets[0].getsockname()[1]
 
-    cfg = _Cfg(
+    cfg = _OcppTestCfg(
         station_name="ORGE_AC_001",
         station_password="testpw",
         ocpp201_url=f"ws://127.0.0.1:{port}/ocpp/ORGE_AC_001",
+        primary="201",
     )
     adapter = Ocpp201Adapter(cfg)
     adapter_task = asyncio.create_task(adapter.run())
     try:
         await asyncio.wait_for(ended_seen.wait(), timeout=20)
-        assert started_payload.get("transaction_id"), started_payload
-        assert ended_payload.get("transaction_id"), ended_payload
-        assert ended_payload["transaction_id"] == started_payload["transaction_id"]
+        assert remote_tx_id
+        assert started_tx_id
+        assert ended_tx_id
+        assert started_tx_id == remote_tx_id
+        assert ended_tx_id == remote_tx_id
     finally:
         adapter_task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
@@ -375,39 +368,6 @@ async def test_ocpp_v16_adapter_boot_status_heartbeat_local_csms_server():
     sys.path.insert(0, str(Path(__file__).parent.parent / "ocpp"))
     from main import Ocpp16Adapter  # type: ignore
 
-    @dataclass
-    class _Cfg:
-        station_name: str
-        station_password: str
-        ocpp16_url: str
-        ocpp201_url: str = "ws://127.0.0.1/unused"
-        primary: str = "16"
-        poc_mode: bool = False
-        once_mode: bool = True
-        vendor_name: str = "ORGE"
-        model: str = "AC-1"
-        id_token: str = "TEST001"
-        heartbeat_override_seconds: int = 0
-        local_api_base_url: str = "http://localhost:8000"
-        local_poll_enabled: bool = False
-        local_poll_interval_seconds: int = 10
-        poc_stop_source: str = "auto"
-        poc_remote_stop_wait_seconds: int = 0
-        poc_transaction_id: str = ""
-        poc_remote_start_enabled: bool = False
-        poc_remote_start_wait_seconds: int = 120
-        poc_runbook_enabled: bool = False
-        poc_runbook_wait_profile_seconds: int = 120
-        poc_runbook_wait_stop_seconds: int = 120
-
-    def _utc_now() -> str:
-        return (
-            datetime.now(timezone.utc)
-            .replace(microsecond=0)
-            .isoformat()
-            .replace("+00:00", "Z")
-        )
-
     boot_seen = asyncio.Event()
     status_seen = asyncio.Event()
     hb_seen = asyncio.Event()
@@ -430,23 +390,9 @@ async def test_ocpp_v16_adapter_boot_status_heartbeat_local_csms_server():
             hb_seen.set()
             return call_result.Heartbeat(current_time=_utc_now())
 
-    def _get_auth_header(ws: Any) -> str | None:
-        req = getattr(ws, "request", None)
-        if req is not None:
-            headers = getattr(req, "headers", None)
-            if headers is not None:
-                return headers.get("Authorization")
-        headers = getattr(ws, "request_headers", None)
-        if headers is not None:
-            return headers.get("Authorization")
-        return None
-
     async def _ws_handler(ws):
         # Verify BasicAuth header (secret-free check)
-        auth = _get_auth_header(ws)
-        assert auth and auth.startswith("Basic ")
-        raw = base64.b64decode(auth.split(" ", 1)[1]).decode("utf-8")
-        assert raw == "ORGE_AC_001:testpw"
+        _assert_basic_auth(ws, "ORGE_AC_001:testpw")
 
         cp = CentralSystemCP("ORGE_AC_001", ws)
         runner = asyncio.create_task(cp.start())
@@ -464,10 +410,13 @@ async def test_ocpp_v16_adapter_boot_status_heartbeat_local_csms_server():
     )
     port = server.sockets[0].getsockname()[1]
 
-    cfg = _Cfg(
+    cfg = _OcppTestCfg(
         station_name="ORGE_AC_001",
         station_password="testpw",
         ocpp16_url=f"ws://127.0.0.1:{port}/ocpp16/ORGE_AC_001",
+        primary="16",
+        once_mode=True,
+        heartbeat_override_seconds=0,
     )
     adapter = Ocpp16Adapter(cfg)
     adapter_task = asyncio.create_task(adapter.run())
