@@ -149,11 +149,13 @@ def _bool_default_str(value: Any, *, fallback: bool) -> str:
 def build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
     defaults = _load_config_defaults(args)
 
-    station_name = args.station_name or _env(
+    station_name = getattr(args, "station_name", None) or _env(
         "OCPP_STATION_NAME", str(defaults.get("station_name") or "ORGE_AC_001")
     )
     station_password = (
-        args.station_password or os.getenv("OCPP_STATION_PASSWORD") or ""
+        getattr(args, "station_password", None)
+        or os.getenv("OCPP_STATION_PASSWORD")
+        or ""
     ).strip()
     if not station_password:
         raise ValueError(
@@ -161,17 +163,20 @@ def build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
         )
 
     # URLs can be ws:// or wss://
-    ocpp201_url = args.ocpp201_url or _env(
+    ocpp201_url = getattr(args, "ocpp201_url", None) or _env(
         "OCPP_201_URL",
         str(defaults.get("ocpp201_url") or f"wss://lixhium.xyz/ocpp/{station_name}"),
     )
-    ocpp16_url = args.ocpp16_url or _env(
+    ocpp16_url = getattr(args, "ocpp16_url", None) or _env(
         "OCPP_16_URL",
         str(defaults.get("ocpp16_url") or f"wss://lixhium.xyz/ocpp16/{station_name}"),
     )
 
     primary = (
-        (args.primary or _env("OCPP_PRIMARY", str(defaults.get("primary") or "201")))
+        (
+            getattr(args, "primary", None)
+            or _env("OCPP_PRIMARY", str(defaults.get("primary") or "201"))
+        )
         .strip()
         .lower()
     )
@@ -188,22 +193,23 @@ def build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
         ocpp201_url=ocpp201_url,
         ocpp16_url=ocpp16_url,
         primary=primary,
-        poc_mode=bool(args.poc),
-        once_mode=bool(args.once),
-        vendor_name=args.vendor_name
+        poc_mode=bool(getattr(args, "poc", False)),
+        once_mode=bool(getattr(args, "once", False)),
+        vendor_name=getattr(args, "vendor_name", None)
         or _env("OCPP_VENDOR", str(defaults.get("vendor_name") or "ORGE")),
-        model=args.model or _env("OCPP_MODEL", str(defaults.get("model") or "AC-1")),
-        id_token=args.id_token
+        model=getattr(args, "model", None)
+        or _env("OCPP_MODEL", str(defaults.get("model") or "AC-1")),
+        id_token=getattr(args, "id_token", None)
         or _env("OCPP_TEST_ID_TOKEN", str(defaults.get("id_token") or "TEST001")),
         heartbeat_override_seconds=int(
-            args.heartbeat_seconds
+            getattr(args, "heartbeat_seconds", None)
             or _env(
                 "OCPP_HEARTBEAT_SECONDS",
                 str(defaults.get("heartbeat_override_seconds") or "0"),
             )
         ),
         local_api_base_url=(
-            args.local_api_base_url
+            getattr(args, "local_api_base_url", None)
             or _env(
                 "OCPP_LOCAL_API_BASE_URL",
                 str(defaults.get("local_api_base_url") or "http://localhost:8000"),
@@ -211,8 +217,8 @@ def build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
         ).rstrip("/"),
         local_poll_enabled=_parse_bool(
             (
-                args.local_poll_enabled
-                if args.local_poll_enabled is not None
+                getattr(args, "local_poll_enabled", None)
+                if getattr(args, "local_poll_enabled", None) is not None
                 else _env(
                     "OCPP_LOCAL_POLL_ENABLED",
                     _bool_default_str(
@@ -223,14 +229,14 @@ def build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
             default=True,
         ),
         local_poll_interval_seconds=int(
-            args.local_poll_interval_seconds
+            getattr(args, "local_poll_interval_seconds", None)
             or _env(
                 "OCPP_LOCAL_POLL_INTERVAL_SECONDS",
                 str(defaults.get("local_poll_interval_seconds") or "10"),
             )
         ),
         poc_stop_source=(
-            args.poc_stop_source
+            getattr(args, "poc_stop_source", None)
             or _env(
                 "OCPP_POC_STOP_SOURCE", str(defaults.get("poc_stop_source") or "auto")
             )
@@ -238,36 +244,36 @@ def build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
         .strip()
         .lower(),
         poc_remote_stop_wait_seconds=int(
-            args.poc_remote_stop_wait_seconds
+            getattr(args, "poc_remote_stop_wait_seconds", None)
             or _env(
                 "OCPP_POC_REMOTE_STOP_WAIT_SECONDS",
                 str(defaults.get("poc_remote_stop_wait_seconds") or "0"),
             )
         ),
         poc_transaction_id=(
-            args.poc_transaction_id
+            getattr(args, "poc_transaction_id", None)
             or _env(
                 "OCPP_POC_TRANSACTION_ID", str(defaults.get("poc_transaction_id") or "")
             )
         ).strip(),
-        poc_remote_start_enabled=bool(args.poc_remote_start),
+        poc_remote_start_enabled=bool(getattr(args, "poc_remote_start", False)),
         poc_remote_start_wait_seconds=int(
-            args.poc_remote_start_wait_seconds
+            getattr(args, "poc_remote_start_wait_seconds", None)
             or _env(
                 "OCPP_POC_REMOTE_START_WAIT_SECONDS",
                 str(defaults.get("poc_remote_start_wait_seconds") or "120"),
             )
         ),
-        poc_runbook_enabled=bool(args.poc_runbook),
+        poc_runbook_enabled=bool(getattr(args, "poc_runbook", False)),
         poc_runbook_wait_profile_seconds=int(
-            args.poc_runbook_wait_profile_seconds
+            getattr(args, "poc_runbook_wait_profile_seconds", None)
             or _env(
                 "OCPP_POC_RUNBOOK_WAIT_PROFILE_SECONDS",
                 str(defaults.get("poc_runbook_wait_profile_seconds") or "120"),
             )
         ),
         poc_runbook_wait_stop_seconds=int(
-            args.poc_runbook_wait_stop_seconds
+            getattr(args, "poc_runbook_wait_stop_seconds", None)
             or _env(
                 "OCPP_POC_RUNBOOK_WAIT_STOP_SECONDS",
                 str(defaults.get("poc_runbook_wait_stop_seconds") or "120"),

@@ -25,8 +25,14 @@ import os
 import signal
 import sys
 
+# Ensure local `ocpp/` directory is importable when this file is loaded via
+# `importlib` from an arbitrary working directory (tests rely on this).
+_THIS_DIR = os.path.dirname(__file__)
+if _THIS_DIR and _THIS_DIR not in sys.path:
+    sys.path.insert(0, _THIS_DIR)
+
 from once_report import run_once_json
-from runtime_config import OcppRuntimeConfig, build_config
+from runtime_config import OcppRuntimeConfig, _parse_bool, build_config as _build_config
 from v16_adapter import Ocpp16Adapter
 
 
@@ -277,7 +283,7 @@ async def _run_daemon_with_shutdown(cfg: OcppRuntimeConfig) -> None:
 
 def main(argv: list[str]) -> int:
     args = _parse_args(argv)
-    cfg = build_config(args)
+    cfg = _build_config(args)
 
     try:
         _verify_python_ocpp_package()
