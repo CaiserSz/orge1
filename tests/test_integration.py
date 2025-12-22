@@ -26,7 +26,12 @@ from api.event_detector import ESP32State
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return (
+        datetime.now(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
 
 
 def _get_auth_header(ws: Any) -> str | None:
@@ -55,7 +60,9 @@ def _tx_id_from_transaction_info(tx_info: Any) -> str | None:
         return None
     if isinstance(tx_info, dict):
         return tx_info.get("transaction_id") or tx_info.get("transactionId")
-    return getattr(tx_info, "transaction_id", None) or getattr(tx_info, "transactionId", None)
+    return getattr(tx_info, "transaction_id", None) or getattr(
+        tx_info, "transactionId", None
+    )
 
 
 @dataclass
@@ -156,7 +163,9 @@ class TestRealWorldScenarios:
 
             # Şarj başlat
             mock_esp32_bridge.get_status.side_effect = None
-            mock_esp32_bridge.get_status.return_value = {"STATE": ESP32State.EV_CONNECTED.value}
+            mock_esp32_bridge.get_status.return_value = {
+                "STATE": ESP32State.EV_CONNECTED.value
+            }
             response = client.post("/api/charge/start", json={"id_tag": "TEST"})
             assert response.status_code == 200
 
@@ -240,12 +249,22 @@ async def test_ocpp_remote_ops_v201_local_csms_server():
             tx_info = kwargs.get("transaction_info")
             transaction_id = _tx_id_from_transaction_info(tx_info)
 
-            if event_type == enums.TransactionEventEnumType.started and trigger_reason == enums.TriggerReasonEnumType.remote_start:
-                started_tx_id = str(transaction_id) if transaction_id is not None else None
+            if (
+                event_type == enums.TransactionEventEnumType.started
+                and trigger_reason == enums.TriggerReasonEnumType.remote_start
+            ):
+                started_tx_id = (
+                    str(transaction_id) if transaction_id is not None else None
+                )
                 started_seen.set()
 
-            if event_type == enums.TransactionEventEnumType.ended and trigger_reason == enums.TriggerReasonEnumType.remote_stop:
-                ended_tx_id = str(transaction_id) if transaction_id is not None else None
+            if (
+                event_type == enums.TransactionEventEnumType.ended
+                and trigger_reason == enums.TriggerReasonEnumType.remote_stop
+            ):
+                ended_tx_id = (
+                    str(transaction_id) if transaction_id is not None else None
+                )
                 ended_seen.set()
 
             return call_result.TransactionEvent()
@@ -293,7 +312,9 @@ async def test_ocpp_remote_ops_v201_local_csms_server():
             with contextlib.suppress(asyncio.CancelledError):
                 await runner
 
-    server = await websockets.serve(_ws_handler, "127.0.0.1", 0, subprotocols=["ocpp2.0.1"])
+    server = await websockets.serve(
+        _ws_handler, "127.0.0.1", 0, subprotocols=["ocpp2.0.1"]
+    )
     port = server.sockets[0].getsockname()[1]
 
     cfg = _OcppTestCfg(
@@ -367,7 +388,9 @@ async def test_ocpp_v16_adapter_boot_status_heartbeat_local_csms_server():
             with contextlib.suppress(asyncio.CancelledError):
                 await runner
 
-    server = await websockets.serve(_ws_handler, "127.0.0.1", 0, subprotocols=["ocpp1.6"])
+    server = await websockets.serve(
+        _ws_handler, "127.0.0.1", 0, subprotocols=["ocpp1.6"]
+    )
     port = server.sockets[0].getsockname()[1]
 
     cfg = _OcppTestCfg(

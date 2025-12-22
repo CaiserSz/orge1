@@ -48,20 +48,62 @@ class TestEventDetector:
     @pytest.mark.parametrize(
         ("from_state", "to_state", "expected_event"),
         [
-            (ESP32State.IDLE.value, ESP32State.CABLE_DETECT.value, EventType.CABLE_CONNECTED),
-            (ESP32State.CABLE_DETECT.value, ESP32State.EV_CONNECTED.value, EventType.EV_CONNECTED),
-            (ESP32State.EV_CONNECTED.value, ESP32State.READY.value, EventType.CHARGE_READY),
-            (ESP32State.READY.value, ESP32State.CHARGING.value, EventType.CHARGE_STARTED),
-            (ESP32State.CHARGING.value, ESP32State.PAUSED.value, EventType.CHARGE_PAUSED),
-            (ESP32State.CHARGING.value, ESP32State.STOPPED.value, EventType.CHARGE_STOPPED),
-            (ESP32State.PAUSED.value, ESP32State.STOPPED.value, EventType.CHARGE_STOPPED),
-            (ESP32State.CABLE_DETECT.value, ESP32State.IDLE.value, EventType.CABLE_DISCONNECTED),
-            (ESP32State.EV_CONNECTED.value, ESP32State.IDLE.value, EventType.CABLE_DISCONNECTED),
-            (ESP32State.CHARGING.value, ESP32State.FAULT_HARD.value, EventType.FAULT_DETECTED),
+            (
+                ESP32State.IDLE.value,
+                ESP32State.CABLE_DETECT.value,
+                EventType.CABLE_CONNECTED,
+            ),
+            (
+                ESP32State.CABLE_DETECT.value,
+                ESP32State.EV_CONNECTED.value,
+                EventType.EV_CONNECTED,
+            ),
+            (
+                ESP32State.EV_CONNECTED.value,
+                ESP32State.READY.value,
+                EventType.CHARGE_READY,
+            ),
+            (
+                ESP32State.READY.value,
+                ESP32State.CHARGING.value,
+                EventType.CHARGE_STARTED,
+            ),
+            (
+                ESP32State.CHARGING.value,
+                ESP32State.PAUSED.value,
+                EventType.CHARGE_PAUSED,
+            ),
+            (
+                ESP32State.CHARGING.value,
+                ESP32State.STOPPED.value,
+                EventType.CHARGE_STOPPED,
+            ),
+            (
+                ESP32State.PAUSED.value,
+                ESP32State.STOPPED.value,
+                EventType.CHARGE_STOPPED,
+            ),
+            (
+                ESP32State.CABLE_DETECT.value,
+                ESP32State.IDLE.value,
+                EventType.CABLE_DISCONNECTED,
+            ),
+            (
+                ESP32State.EV_CONNECTED.value,
+                ESP32State.IDLE.value,
+                EventType.CABLE_DISCONNECTED,
+            ),
+            (
+                ESP32State.CHARGING.value,
+                ESP32State.FAULT_HARD.value,
+                EventType.FAULT_DETECTED,
+            ),
             (ESP32State.READY.value, ESP32State.IDLE.value, EventType.STATE_CHANGED),
         ],
     )
-    def test_transition_events(self, from_state: int, to_state: int, expected_event: EventType):
+    def test_transition_events(
+        self, from_state: int, to_state: int, expected_event: EventType
+    ):
         self._transition(from_state, to_state)
         assert len(self.received_events) == 1
         event_type, event_data = self.received_events[0]
@@ -70,8 +112,12 @@ class TestEventDetector:
         assert event_data["to_state"] == to_state
 
     def test_no_event_on_same_state(self):
-        self.detector._check_state_transition(ESP32State.CHARGING.value, {"STATE": ESP32State.CHARGING.value})
-        self.detector._check_state_transition(ESP32State.CHARGING.value, {"STATE": ESP32State.CHARGING.value})
+        self.detector._check_state_transition(
+            ESP32State.CHARGING.value, {"STATE": ESP32State.CHARGING.value}
+        )
+        self.detector._check_state_transition(
+            ESP32State.CHARGING.value, {"STATE": ESP32State.CHARGING.value}
+        )
         assert len(self.received_events) == 0
 
     def test_resume_candidate_suppressed_when_power_below_threshold(self, monkeypatch):
