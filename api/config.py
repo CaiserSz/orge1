@@ -1,8 +1,8 @@
 """
 Configuration Management Module
 Created: 2025-12-10 15:50:00
-Last Modified: 2025-12-15 18:35:00
-Version: 1.0.1
+Last Modified: 2025-12-22 06:23:57
+Version: 1.0.2
 Description: Merkezi configuration management - Environment variable yönetimi ve validation
 """
 
@@ -15,11 +15,7 @@ from api.logging_config import system_logger
 
 
 class Config:
-    """
-    Merkezi configuration management sınıfı
-
-    Tüm environment variable'ları merkezi bir yerden yönetir ve validate eder.
-    """
+    """Merkezi configuration yönetimi (env load + validation)."""
 
     # API Configuration
     SECRET_API_KEY: Optional[str] = None
@@ -72,18 +68,38 @@ class Config:
 
     @classmethod
     def load(cls) -> None:
-        """
-        Environment variable'ları yükle ve validate et
+        """Environment variable'ları yükle ve validate et."""
 
-        Raises:
-            ValueError: Gerekli configuration değerleri eksikse
-        """
+        def _env_bool(name: str, default: bool) -> bool:
+            raw = os.getenv(name, "true" if default else "false")
+            return str(raw).lower() == "true"
+
+        def _env_int(name: str, default: int) -> int:
+            raw = os.getenv(name, str(default))
+            try:
+                return int(raw)
+            except ValueError:
+                system_logger.warning(
+                    f"Geçersiz {name} değeri: {os.getenv(name)}, varsayılan kullanılıyor: {default}"
+                )
+                return default
+
+        def _env_float(name: str, default: float) -> float:
+            raw = os.getenv(name, str(default))
+            try:
+                return float(raw)
+            except ValueError:
+                system_logger.warning(
+                    f"Geçersiz {name}: {os.getenv(name)}, varsayılan kullanılıyor: {default}"
+                )
+                return default
+
         # API Configuration
         # SECRET_API_KEY veya X-API-Key environment variable'ından al
         # X-API-Key öncelikli (karışıklığı önlemek için)
         cls.SECRET_API_KEY = os.getenv("X-API-Key") or os.getenv("SECRET_API_KEY")
         cls.TEST_API_USER_ID = os.getenv("TEST_API_USER_ID")
-        cls.DEBUG = os.getenv("DEBUG", "false").lower() == "true"
+        cls.DEBUG = _env_bool("DEBUG", False)
 
         # CORS Configuration
         cls.CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "*")
@@ -96,13 +112,11 @@ class Config:
 
         # Cache Configuration
         cls.CACHE_BACKEND = os.getenv("CACHE_BACKEND", "memory").lower()
-        cls.CACHE_TTL = int(os.getenv("CACHE_TTL", "300"))
+        cls.CACHE_TTL = _env_int("CACHE_TTL", 300)
         cls.REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
         # Rate Limiting Configuration
-        cls.RATE_LIMIT_ENABLED = (
-            os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
-        )
+        cls.RATE_LIMIT_ENABLED = _env_bool("RATE_LIMIT_ENABLED", True)
         cls.RATE_LIMIT_DEFAULT = os.getenv("RATE_LIMIT_DEFAULT", "100/minute")
         cls.RATE_LIMIT_IP = os.getenv("RATE_LIMIT_IP", "60/minute")
         cls.RATE_LIMIT_API_KEY = os.getenv("RATE_LIMIT_API_KEY", "200/minute")
@@ -127,96 +141,29 @@ class Config:
 
         # ESP32 Configuration
         cls.ESP32_PORT = os.getenv("ESP32_PORT")
-        try:
-            cls.ESP32_BAUDRATE = int(os.getenv("ESP32_BAUDRATE", "115200"))
-        except ValueError:
-            system_logger.warning(
-                f"Geçersiz ESP32_BAUDRATE değeri: {os.getenv('ESP32_BAUDRATE')}, varsayılan kullanılıyor: 115200"
-            )
-            cls.ESP32_BAUDRATE = 115200
+        cls.ESP32_BAUDRATE = _env_int("ESP32_BAUDRATE", 115200)
 
         # Meter Configuration
         cls.METER_TYPE = os.getenv("METER_TYPE", "abb").lower()
         cls.METER_PORT = os.getenv("METER_PORT", "/dev/ttyAMA5")
-        cls.METER_AUTO_CONNECT = (
-            os.getenv("METER_AUTO_CONNECT", "true").lower() == "true"
-        )
-
-        try:
-            cls.METER_BAUDRATE = int(os.getenv("METER_BAUDRATE", "2400"))
-        except ValueError:
-            system_logger.warning(
-                f"Geçersiz METER_BAUDRATE değeri: {os.getenv('METER_BAUDRATE')}, varsayılan kullanılıyor: 2400"
-            )
-            cls.METER_BAUDRATE = 2400
-
-        try:
-            cls.METER_SLAVE_ID = int(os.getenv("METER_SLAVE_ID", "1"))
-        except ValueError:
-            system_logger.warning(
-                f"Geçersiz METER_SLAVE_ID değeri: {os.getenv('METER_SLAVE_ID')}, varsayılan kullanılıyor: 1"
-            )
-            cls.METER_SLAVE_ID = 1
-
-        try:
-            cls.METER_TIMEOUT = float(os.getenv("METER_TIMEOUT", "1.0"))
-        except ValueError:
-            system_logger.warning(
-                f"Geçersiz METER_TIMEOUT değeri: {os.getenv('METER_TIMEOUT')}, varsayılan kullanılıyor: 1.0"
-            )
-            cls.METER_TIMEOUT = 1.0
+        cls.METER_AUTO_CONNECT = _env_bool("METER_AUTO_CONNECT", True)
+        cls.METER_BAUDRATE = _env_int("METER_BAUDRATE", 2400)
+        cls.METER_SLAVE_ID = _env_int("METER_SLAVE_ID", 1)
+        cls.METER_TIMEOUT = _env_float("METER_TIMEOUT", 1.0)
 
         # Resume validation configuration
-        cls.RESUME_VALIDATION_ENABLED = (
-            os.getenv("RESUME_VALIDATION_ENABLED", "true").lower() == "true"
+        cls.RESUME_VALIDATION_ENABLED = _env_bool("RESUME_VALIDATION_ENABLED", True)
+        cls.RESUME_MIN_POWER_KW = _env_float("RESUME_MIN_POWER_KW", 1.0)
+        cls.RESUME_DEBOUNCE_SECONDS = _env_float("RESUME_DEBOUNCE_SECONDS", 10.0)
+        cls.RESUME_SAMPLE_INTERVAL_SECONDS = _env_float(
+            "RESUME_SAMPLE_INTERVAL_SECONDS", 1.0
         )
-        try:
-            cls.RESUME_MIN_POWER_KW = float(os.getenv("RESUME_MIN_POWER_KW", "1.0"))
-        except ValueError:
-            system_logger.warning(
-                f"Geçersiz RESUME_MIN_POWER_KW: {os.getenv('RESUME_MIN_POWER_KW')}, varsayılan kullanılıyor: 1.0"
-            )
-            cls.RESUME_MIN_POWER_KW = 1.0
-
-        try:
-            cls.RESUME_DEBOUNCE_SECONDS = float(
-                os.getenv("RESUME_DEBOUNCE_SECONDS", "10")
-            )
-        except ValueError:
-            system_logger.warning(
-                f"Geçersiz RESUME_DEBOUNCE_SECONDS: {os.getenv('RESUME_DEBOUNCE_SECONDS')}, varsayılan kullanılıyor: 10.0"
-            )
-            cls.RESUME_DEBOUNCE_SECONDS = 10.0
-
-        try:
-            cls.RESUME_SAMPLE_INTERVAL_SECONDS = float(
-                os.getenv("RESUME_SAMPLE_INTERVAL_SECONDS", "1")
-            )
-        except ValueError:
-            system_logger.warning(
-                f"Geçersiz RESUME_SAMPLE_INTERVAL_SECONDS: {os.getenv('RESUME_SAMPLE_INTERVAL_SECONDS')}, varsayılan kullanılıyor: 1.0"
-            )
-            cls.RESUME_SAMPLE_INTERVAL_SECONDS = 1.0
-
-        try:
-            cls.RESUME_REQUIRED_CONSECUTIVE_SAMPLES = int(
-                os.getenv("RESUME_REQUIRED_CONSECUTIVE_SAMPLES", "3")
-            )
-        except ValueError:
-            system_logger.warning(
-                f"Geçersiz RESUME_REQUIRED_CONSECUTIVE_SAMPLES: {os.getenv('RESUME_REQUIRED_CONSECUTIVE_SAMPLES')}, varsayılan kullanılıyor: 3"
-            )
-            cls.RESUME_REQUIRED_CONSECUTIVE_SAMPLES = 3
-
-        try:
-            cls.RESUME_SUPPRESS_COOLDOWN_SECONDS = float(
-                os.getenv("RESUME_SUPPRESS_COOLDOWN_SECONDS", "30")
-            )
-        except ValueError:
-            system_logger.warning(
-                f"Geçersiz RESUME_SUPPRESS_COOLDOWN_SECONDS: {os.getenv('RESUME_SUPPRESS_COOLDOWN_SECONDS')}, varsayılan kullanılıyor: 30.0"
-            )
-            cls.RESUME_SUPPRESS_COOLDOWN_SECONDS = 30.0
+        cls.RESUME_REQUIRED_CONSECUTIVE_SAMPLES = _env_int(
+            "RESUME_REQUIRED_CONSECUTIVE_SAMPLES", 3
+        )
+        cls.RESUME_SUPPRESS_COOLDOWN_SECONDS = _env_float(
+            "RESUME_SUPPRESS_COOLDOWN_SECONDS", 30.0
+        )
 
         # Pytest sırasında fiziksel meter erişimi denenmemeli
         if is_pytest:
@@ -227,14 +174,9 @@ class Config:
 
     @classmethod
     def validate(cls) -> None:
-        """
-        Configuration değerlerini validate et
-
-        Raises:
-            ValueError: Geçersiz configuration değerleri varsa
-        """
+        """Configuration değerlerini validate et."""
         # Cache backend validation
-        if cls.CACHE_BACKEND not in ["memory", "redis"]:
+        if cls.CACHE_BACKEND not in ("memory", "redis"):
             raise ValueError(
                 f"Geçersiz CACHE_BACKEND: {cls.CACHE_BACKEND} (geçerli: memory, redis)"
             )
@@ -322,15 +264,7 @@ class Config:
 
     @classmethod
     def get_secret_api_key(cls) -> str:
-        """
-        SECRET_API_KEY'i al
-
-        Returns:
-            str: API key değeri
-
-        Raises:
-            ValueError: SECRET_API_KEY tanımlı değilse
-        """
+        """SECRET_API_KEY'i al (yoksa ValueError)."""
         # Ortam değişkenlerini her çağrıda dikkate al:
         # - X-API-Key veya SECRET_API_KEY set edildiyse bunlar önceliklidir
         # - SECRET_API_KEY explicit olarak boş string ise bu bir hata olarak kabul edilir
@@ -352,22 +286,12 @@ class Config:
 
     @classmethod
     def get_user_id(cls) -> Optional[str]:
-        """
-        TEST_API_USER_ID'yi al
-
-        Returns:
-            Optional[str]: User ID veya None
-        """
+        """TEST_API_USER_ID'yi al."""
         return cls.TEST_API_USER_ID
 
     @classmethod
     def get_database_path(cls) -> str:
-        """
-        Database path'i al (varsayılan path oluşturulur)
-
-        Returns:
-            str: Database dosya yolu
-        """
+        """Database path'i al (yoksa varsayılan yaratılır)."""
         if cls.DATABASE_PATH:
             return cls.DATABASE_PATH
 
@@ -378,34 +302,19 @@ class Config:
 
     @classmethod
     def get_cors_origins(cls) -> List[str]:
-        """
-        CORS allowed origins listesini al
-
-        Returns:
-            List[str]: Allowed origins listesi
-        """
+        """CORS origins listesini al."""
         if cls.CORS_ALLOWED_ORIGINS == "*":
             return ["*"]
         return [origin.strip() for origin in cls.CORS_ALLOWED_ORIGINS.split(",")]
 
     @classmethod
     def get_cors_methods(cls) -> List[str]:
-        """
-        CORS allowed methods listesini al
-
-        Returns:
-            List[str]: Allowed methods listesi
-        """
+        """CORS methods listesini al."""
         return [method.strip() for method in cls.CORS_ALLOWED_METHODS.split(",")]
 
     @classmethod
     def get_cors_headers(cls) -> List[str]:
-        """
-        CORS allowed headers listesini al
-
-        Returns:
-            List[str]: Allowed headers listesi
-        """
+        """CORS headers listesini al."""
         return [header.strip() for header in cls.CORS_ALLOWED_HEADERS.split(",")]
 
 

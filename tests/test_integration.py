@@ -1,8 +1,8 @@
 """
 Integration Testleri - Gerçek Senaryolar
 Created: 2025-12-09 02:25:00
-Last Modified: 2025-12-22 01:01:00
-Version: 1.1.3
+Last Modified: 2025-12-22 06:27:57
+Version: 1.1.4
 Description: Gerçek kullanım senaryoları ve integration testleri (API + OCPP Remote Ops)
 """
 
@@ -26,12 +26,7 @@ from api.event_detector import ESP32State
 
 
 def _utc_now() -> str:
-    return (
-        datetime.now(timezone.utc)
-        .replace(microsecond=0)
-        .isoformat()
-        .replace("+00:00", "Z")
-    )
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def _get_auth_header(ws: Any) -> str | None:
@@ -60,9 +55,7 @@ def _tx_id_from_transaction_info(tx_info: Any) -> str | None:
         return None
     if isinstance(tx_info, dict):
         return tx_info.get("transaction_id") or tx_info.get("transactionId")
-    return getattr(tx_info, "transaction_id", None) or getattr(
-        tx_info, "transactionId", None
-    )
+    return getattr(tx_info, "transaction_id", None) or getattr(tx_info, "transactionId", None)
 
 
 @dataclass
@@ -162,12 +155,8 @@ class TestRealWorldScenarios:
             assert response.status_code == 200
 
             # Şarj başlat
-            # Charge start yalnızca EV_CONNECTED (3) state'inde geçerli.
-            # Ayrıca charge_start içinde iki kez get_status çağrısı var (ilk + final kontrol).
             mock_esp32_bridge.get_status.side_effect = None
-            mock_esp32_bridge.get_status.return_value = {
-                "STATE": ESP32State.EV_CONNECTED.value
-            }
+            mock_esp32_bridge.get_status.return_value = {"STATE": ESP32State.EV_CONNECTED.value}
             response = client.post("/api/charge/start", json={"id_tag": "TEST"})
             assert response.status_code == 200
 
@@ -203,20 +192,12 @@ class TestRealWorldScenarios:
 
 @pytest.mark.asyncio
 async def test_ocpp_remote_ops_v201_local_csms_server():
-    """
-    OCPP Phase-1: station adapter Remote Start/Stop end-to-end (local CSMS).
-
-    - Start a local websocket CSMS server (OCPP 2.0.1) with BasicAuth check
-    - Run station adapter against it
-    - Send RequestStartTransaction + RequestStopTransaction
-    - Assert station emits TransactionEvent(Started/Ended)
-    """
+    """OCPP 2.0.1: local CSMS ile Remote Start/Stop end-to-end (Phase-1)."""
     import websockets
 
     from ocpp.routing import on
     from ocpp.v201 import ChargePoint, call, call_result, datatypes, enums
 
-    # Import station adapter from /ocpp folder (not a package)
     sys.path.insert(0, str(Path(__file__).parent.parent / "ocpp"))
     from handlers import Ocpp201Adapter  # type: ignore
 
@@ -259,22 +240,12 @@ async def test_ocpp_remote_ops_v201_local_csms_server():
             tx_info = kwargs.get("transaction_info")
             transaction_id = _tx_id_from_transaction_info(tx_info)
 
-            if (
-                event_type == enums.TransactionEventEnumType.started
-                and trigger_reason == enums.TriggerReasonEnumType.remote_start
-            ):
-                started_tx_id = (
-                    str(transaction_id) if transaction_id is not None else None
-                )
+            if event_type == enums.TransactionEventEnumType.started and trigger_reason == enums.TriggerReasonEnumType.remote_start:
+                started_tx_id = str(transaction_id) if transaction_id is not None else None
                 started_seen.set()
 
-            if (
-                event_type == enums.TransactionEventEnumType.ended
-                and trigger_reason == enums.TriggerReasonEnumType.remote_stop
-            ):
-                ended_tx_id = (
-                    str(transaction_id) if transaction_id is not None else None
-                )
+            if event_type == enums.TransactionEventEnumType.ended and trigger_reason == enums.TriggerReasonEnumType.remote_stop:
+                ended_tx_id = str(transaction_id) if transaction_id is not None else None
                 ended_seen.set()
 
             return call_result.TransactionEvent()
@@ -322,9 +293,7 @@ async def test_ocpp_remote_ops_v201_local_csms_server():
             with contextlib.suppress(asyncio.CancelledError):
                 await runner
 
-    server = await websockets.serve(
-        _ws_handler, "127.0.0.1", 0, subprotocols=["ocpp2.0.1"]
-    )
+    server = await websockets.serve(_ws_handler, "127.0.0.1", 0, subprotocols=["ocpp2.0.1"])
     port = server.sockets[0].getsockname()[1]
 
     cfg = _OcppTestCfg(
@@ -352,19 +321,12 @@ async def test_ocpp_remote_ops_v201_local_csms_server():
 
 @pytest.mark.asyncio
 async def test_ocpp_v16_adapter_boot_status_heartbeat_local_csms_server():
-    """
-    OCPP 1.6J (v16) fallback adapter smoke (local CSMS).
-
-    - Start a local websocket CSMS server (OCPP 1.6) with BasicAuth check
-    - Run station v16 adapter (once_mode=True)
-    - Assert station sends BootNotification + StatusNotification + Heartbeat
-    """
+    """OCPP 1.6J (v16): local CSMS smoke (Boot + Status + Heartbeat)."""
     import websockets
 
     from ocpp.routing import on
     from ocpp.v16 import ChargePoint, call_result
 
-    # Import station adapter from /ocpp folder (not a package)
     sys.path.insert(0, str(Path(__file__).parent.parent / "ocpp"))
     from main import Ocpp16Adapter  # type: ignore
 
@@ -405,9 +367,7 @@ async def test_ocpp_v16_adapter_boot_status_heartbeat_local_csms_server():
             with contextlib.suppress(asyncio.CancelledError):
                 await runner
 
-    server = await websockets.serve(
-        _ws_handler, "127.0.0.1", 0, subprotocols=["ocpp1.6"]
-    )
+    server = await websockets.serve(_ws_handler, "127.0.0.1", 0, subprotocols=["ocpp1.6"])
     port = server.sockets[0].getsockname()[1]
 
     cfg = _OcppTestCfg(

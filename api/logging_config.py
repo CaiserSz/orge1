@@ -1,12 +1,13 @@
 """
 Logging Configuration Module
 Created: 2025-12-09 15:40:00
-Last Modified: 2025-12-13 01:55:00
-Version: 1.2.0
+Last Modified: 2025-12-22 06:17:44
+Version: 1.2.1
 Description: Structured logging + context propagation for AC Charger API
 """
 
 import contextvars
+import inspect
 import logging
 import threading
 import time
@@ -47,7 +48,7 @@ _logging_context: contextvars.ContextVar[Dict[str, Any]] = contextvars.ContextVa
     "logging_context", default={}
 )
 
-# API request log throttle (yüksek frekanslı GET endpoint'lerinde log şişmesini önlemek için)
+# API request log throttle: yüksek frekanslı GET endpoint'lerinde log şişmesini önler.
 # Not: Hata (>=400) logları her zaman yazılır; throttle sadece başarılı cevaplar içindir.
 _API_REQUEST_LOG_THROTTLE_WINDOW_SECONDS = 5.0
 _API_REQUEST_LOG_THROTTLE_ENDPOINTS = {
@@ -122,18 +123,7 @@ def log_api_request(
     user_id: Optional[str] = None,
     **kwargs: Any,
 ) -> None:
-    """
-    API isteğini logla (Thread-safe)
-
-    Args:
-        method: HTTP metodu (GET, POST, vb.)
-        path: İstek yolu
-        client_ip: İstemci IP adresi
-        status_code: HTTP durum kodu
-        response_time_ms: Yanıt süresi (milisaniye)
-        user_id: Kullanıcı ID (opsiyonel, audit trail için)
-        **kwargs: Ekstra alanlar
-    """
+    """API isteğini logla (thread-safe, throttle destekli)."""
     try:
         with _log_lock:  # Thread-safe logging
             # Throttle: bazı yüksek frekanslı GET endpoint'lerinde başarılı cevap loglarını seyrekleştir
@@ -184,9 +174,6 @@ def log_api_request(
             if user_id:
                 extra_fields["user_id"] = user_id
 
-            # Log kaydına ekstra alanları ekle
-            import inspect
-
             frame = inspect.currentframe().f_back
             record = logging.LogRecord(
                 name=api_logger.name,
@@ -214,15 +201,7 @@ def log_esp32_message(
     data: Optional[Any] = None,
     **kwargs: Any,
 ) -> None:
-    """
-    ESP32 mesajını logla (Thread-safe)
-
-    Args:
-        message_type: Mesaj tipi (status, command, error, vb.)
-        direction: Mesaj yönü ("tx" veya "rx")
-        data: Mesaj verisi
-        **kwargs: Ekstra alanlar
-    """
+    """ESP32 mesajını logla (thread-safe)."""
     try:
         with _log_lock:  # Thread-safe logging
             extra_fields = {
@@ -234,8 +213,6 @@ def log_esp32_message(
 
             if data is not None:
                 extra_fields["data"] = data
-
-            import inspect
 
             frame = inspect.currentframe().f_back
             record = logging.LogRecord(
@@ -266,23 +243,13 @@ def log_event(
     incident: bool = False,
     **kwargs: Any,
 ) -> None:
-    """
-    Genel event logla (Thread-safe)
-
-    Args:
-        event_type: Event tipi
-        event_data: Event verisi
-        level: Log seviyesi
-        **kwargs: Ekstra alanlar
-    """
+    """Genel event logla (thread-safe)."""
     try:
         with _log_lock:  # Thread-safe logging
             extra_fields = {"type": "event", "event_type": event_type, **kwargs}
 
             if event_data:
                 extra_fields["event_data"] = event_data
-
-            import inspect
 
             frame = inspect.currentframe().f_back
 
@@ -315,30 +282,14 @@ _log_lock = threading.Lock()
 
 
 def get_logger(name: str) -> logging.Logger:
-    """
-    Logger instance'ı al (convenience function)
-
-    Args:
-        name: Logger adı
-
-    Returns:
-        Logger instance
-    """
+    """Logger instance'ı al (convenience)."""
     return logging.getLogger(name)
 
 
 def thread_safe_log(
     logger: logging.Logger, level: int, message: str, **kwargs: Any
 ) -> None:
-    """
-    Thread-safe log yazma
-
-    Args:
-        logger: Logger instance
-        level: Log seviyesi
-        message: Log mesajı
-        **kwargs: Ekstra alanlar
-    """
+    """Thread-safe log yazma."""
     with _log_lock:
         if kwargs:
             record = logging.LogRecord(

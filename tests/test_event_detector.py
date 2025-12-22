@@ -1,8 +1,8 @@
 """
 Event Detector Unit Tests
 Created: 2025-12-09 23:00:00
-Last Modified: 2025-12-15 18:35:00
-Version: 1.0.0
+Last Modified: 2025-12-22 06:29:15
+Version: 1.0.1
 Description: Event Detection modülü için unit testler
 """
 
@@ -11,6 +11,8 @@ import time
 import threading
 from unittest.mock import Mock
 from pathlib import Path
+
+import pytest
 
 # Proje root'unu path'e ekle
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -39,188 +41,38 @@ class TestEventDetector:
 
         self.detector.register_callback(event_callback)
 
-    def test_cable_connected_event(self):
-        """CABLE_CONNECTED event tespit ediliyor mu?"""
-        # STATE: IDLE → CABLE_DETECT
-        self.detector._check_state_transition(
-            ESP32State.IDLE.value, {"STATE": ESP32State.IDLE.value}
-        )
-        self.detector._check_state_transition(
-            ESP32State.CABLE_DETECT.value, {"STATE": ESP32State.CABLE_DETECT.value}
-        )
+    def _transition(self, from_state: int, to_state: int) -> None:
+        self.detector._check_state_transition(from_state, {"STATE": from_state})
+        self.detector._check_state_transition(to_state, {"STATE": to_state})
 
+    @pytest.mark.parametrize(
+        ("from_state", "to_state", "expected_event"),
+        [
+            (ESP32State.IDLE.value, ESP32State.CABLE_DETECT.value, EventType.CABLE_CONNECTED),
+            (ESP32State.CABLE_DETECT.value, ESP32State.EV_CONNECTED.value, EventType.EV_CONNECTED),
+            (ESP32State.EV_CONNECTED.value, ESP32State.READY.value, EventType.CHARGE_READY),
+            (ESP32State.READY.value, ESP32State.CHARGING.value, EventType.CHARGE_STARTED),
+            (ESP32State.CHARGING.value, ESP32State.PAUSED.value, EventType.CHARGE_PAUSED),
+            (ESP32State.CHARGING.value, ESP32State.STOPPED.value, EventType.CHARGE_STOPPED),
+            (ESP32State.PAUSED.value, ESP32State.STOPPED.value, EventType.CHARGE_STOPPED),
+            (ESP32State.CABLE_DETECT.value, ESP32State.IDLE.value, EventType.CABLE_DISCONNECTED),
+            (ESP32State.EV_CONNECTED.value, ESP32State.IDLE.value, EventType.CABLE_DISCONNECTED),
+            (ESP32State.CHARGING.value, ESP32State.FAULT_HARD.value, EventType.FAULT_DETECTED),
+            (ESP32State.READY.value, ESP32State.IDLE.value, EventType.STATE_CHANGED),
+        ],
+    )
+    def test_transition_events(self, from_state: int, to_state: int, expected_event: EventType):
+        self._transition(from_state, to_state)
         assert len(self.received_events) == 1
         event_type, event_data = self.received_events[0]
-        assert event_type == EventType.CABLE_CONNECTED
-        assert event_data["from_state"] == ESP32State.IDLE.value
-        assert event_data["to_state"] == ESP32State.CABLE_DETECT.value
-
-    def test_ev_connected_event(self):
-        """EV_CONNECTED event tespit ediliyor mu?"""
-        # STATE: CABLE_DETECT → EV_CONNECTED
-        self.detector._check_state_transition(
-            ESP32State.CABLE_DETECT.value, {"STATE": ESP32State.CABLE_DETECT.value}
-        )
-        self.detector._check_state_transition(
-            ESP32State.EV_CONNECTED.value, {"STATE": ESP32State.EV_CONNECTED.value}
-        )
-
-        assert len(self.received_events) == 1
-        event_type, event_data = self.received_events[0]
-        assert event_type == EventType.EV_CONNECTED
-        assert event_data["from_state"] == ESP32State.CABLE_DETECT.value
-        assert event_data["to_state"] == ESP32State.EV_CONNECTED.value
-
-    def test_charge_ready_event(self):
-        """CHARGE_READY event tespit ediliyor mu?"""
-        # STATE: EV_CONNECTED → READY
-        self.detector._check_state_transition(
-            ESP32State.EV_CONNECTED.value, {"STATE": ESP32State.EV_CONNECTED.value}
-        )
-        self.detector._check_state_transition(
-            ESP32State.READY.value, {"STATE": ESP32State.READY.value}
-        )
-
-        assert len(self.received_events) == 1
-        event_type, event_data = self.received_events[0]
-        assert event_type == EventType.CHARGE_READY
-        assert event_data["from_state"] == ESP32State.EV_CONNECTED.value
-        assert event_data["to_state"] == ESP32State.READY.value
-
-    def test_charge_started_event(self):
-        """CHARGE_STARTED event tespit ediliyor mu?"""
-        # STATE: READY → CHARGING
-        self.detector._check_state_transition(
-            ESP32State.READY.value, {"STATE": ESP32State.READY.value}
-        )
-        self.detector._check_state_transition(
-            ESP32State.CHARGING.value, {"STATE": ESP32State.CHARGING.value}
-        )
-
-        assert len(self.received_events) == 1
-        event_type, event_data = self.received_events[0]
-        assert event_type == EventType.CHARGE_STARTED
-        assert event_data["from_state"] == ESP32State.READY.value
-        assert event_data["to_state"] == ESP32State.CHARGING.value
-
-    def test_charge_paused_event(self):
-        """CHARGE_PAUSED event tespit ediliyor mu?"""
-        # STATE: CHARGING → PAUSED
-        self.detector._check_state_transition(
-            ESP32State.CHARGING.value, {"STATE": ESP32State.CHARGING.value}
-        )
-        self.detector._check_state_transition(
-            ESP32State.PAUSED.value, {"STATE": ESP32State.PAUSED.value}
-        )
-
-        assert len(self.received_events) == 1
-        event_type, event_data = self.received_events[0]
-        assert event_type == EventType.CHARGE_PAUSED
-        assert event_data["from_state"] == ESP32State.CHARGING.value
-        assert event_data["to_state"] == ESP32State.PAUSED.value
-
-    def test_charge_stopped_event_from_charging(self):
-        """CHARGE_STOPPED event (CHARGING → STOPPED) tespit ediliyor mu?"""
-        # STATE: CHARGING → STOPPED
-        self.detector._check_state_transition(
-            ESP32State.CHARGING.value, {"STATE": ESP32State.CHARGING.value}
-        )
-        self.detector._check_state_transition(
-            ESP32State.STOPPED.value, {"STATE": ESP32State.STOPPED.value}
-        )
-
-        assert len(self.received_events) == 1
-        event_type, event_data = self.received_events[0]
-        assert event_type == EventType.CHARGE_STOPPED
-        assert event_data["from_state"] == ESP32State.CHARGING.value
-        assert event_data["to_state"] == ESP32State.STOPPED.value
-
-    def test_charge_stopped_event_from_paused(self):
-        """CHARGE_STOPPED event (PAUSED → STOPPED) tespit ediliyor mu?"""
-        # STATE: PAUSED → STOPPED
-        self.detector._check_state_transition(
-            ESP32State.PAUSED.value, {"STATE": ESP32State.PAUSED.value}
-        )
-        self.detector._check_state_transition(
-            ESP32State.STOPPED.value, {"STATE": ESP32State.STOPPED.value}
-        )
-
-        assert len(self.received_events) == 1
-        event_type, event_data = self.received_events[0]
-        assert event_type == EventType.CHARGE_STOPPED
-        assert event_data["from_state"] == ESP32State.PAUSED.value
-        assert event_data["to_state"] == ESP32State.STOPPED.value
-
-    def test_cable_disconnected_from_cable_detect(self):
-        """CABLE_DISCONNECTED event (CABLE_DETECT → IDLE) tespit ediliyor mu?"""
-        # STATE: CABLE_DETECT → IDLE
-        self.detector._check_state_transition(
-            ESP32State.CABLE_DETECT.value, {"STATE": ESP32State.CABLE_DETECT.value}
-        )
-        self.detector._check_state_transition(
-            ESP32State.IDLE.value, {"STATE": ESP32State.IDLE.value}
-        )
-
-        assert len(self.received_events) == 1
-        event_type, event_data = self.received_events[0]
-        assert event_type == EventType.CABLE_DISCONNECTED
-        assert event_data["from_state"] == ESP32State.CABLE_DETECT.value
-        assert event_data["to_state"] == ESP32State.IDLE.value
-
-    def test_cable_disconnected_from_ev_connected(self):
-        """CABLE_DISCONNECTED event (EV_CONNECTED → IDLE) tespit ediliyor mu?"""
-        # STATE: EV_CONNECTED → IDLE
-        self.detector._check_state_transition(
-            ESP32State.EV_CONNECTED.value, {"STATE": ESP32State.EV_CONNECTED.value}
-        )
-        self.detector._check_state_transition(
-            ESP32State.IDLE.value, {"STATE": ESP32State.IDLE.value}
-        )
-
-        assert len(self.received_events) == 1
-        event_type, event_data = self.received_events[0]
-        assert event_type == EventType.CABLE_DISCONNECTED
-        assert event_data["from_state"] == ESP32State.EV_CONNECTED.value
-        assert event_data["to_state"] == ESP32State.IDLE.value
-
-    def test_fault_detected_event(self):
-        """FAULT_DETECTED event tespit ediliyor mu?"""
-        # STATE: CHARGING → FAULT_HARD
-        self.detector._check_state_transition(
-            ESP32State.CHARGING.value, {"STATE": ESP32State.CHARGING.value}
-        )
-        self.detector._check_state_transition(
-            ESP32State.FAULT_HARD.value, {"STATE": ESP32State.FAULT_HARD.value}
-        )
-
-        assert len(self.received_events) == 1
-        event_type, event_data = self.received_events[0]
-        assert event_type == EventType.FAULT_DETECTED
-        assert event_data["from_state"] == ESP32State.CHARGING.value
-        assert event_data["to_state"] == ESP32State.FAULT_HARD.value
-
-    def test_unknown_transition(self):
-        """Bilinmeyen transition STATE_CHANGED event oluşturuyor mu?"""
-        # STATE: READY → IDLE - bilinmeyen transition
-        self.detector._check_state_transition(
-            ESP32State.READY.value, {"STATE": ESP32State.READY.value}
-        )
-        self.detector._check_state_transition(
-            ESP32State.IDLE.value, {"STATE": ESP32State.IDLE.value}
-        )
-
-        assert len(self.received_events) == 1
-        event_type, event_data = self.received_events[0]
-        assert event_type == EventType.STATE_CHANGED
-        assert event_data["from_state"] == ESP32State.READY.value
-        assert event_data["to_state"] == ESP32State.IDLE.value
+        assert event_type == expected_event
+        assert event_data["from_state"] == from_state
+        assert event_data["to_state"] == to_state
 
     def test_no_event_on_same_state(self):
-        """Aynı state'de event oluşturulmuyor mu?"""
-        # STATE: CHARGING → CHARGING - değişiklik yok
-        self.detector._check_state_transition(
-            ESP32State.CHARGING.value, {"STATE": ESP32State.CHARGING.value}
-        )
+        self.detector._check_state_transition(ESP32State.CHARGING.value, {"STATE": ESP32State.CHARGING.value})
+        self.detector._check_state_transition(ESP32State.CHARGING.value, {"STATE": ESP32State.CHARGING.value})
+        assert len(self.received_events) == 0
 
     def test_resume_candidate_suppressed_when_power_below_threshold(self, monkeypatch):
         """
@@ -327,24 +179,19 @@ class TestEventDetector:
         assert event_data["to_state"] == ESP32State.CHARGING.value
 
     def test_get_state_names(self):
-        """State name'ler doğru döndürülüyor mu?"""
-        assert self.detector._get_state_name(ESP32State.IDLE.value) == "IDLE"
-        assert (
-            self.detector._get_state_name(ESP32State.CABLE_DETECT.value)
-            == "CABLE_DETECT"
-        )
-        assert (
-            self.detector._get_state_name(ESP32State.EV_CONNECTED.value)
-            == "EV_CONNECTED"
-        )
-        assert self.detector._get_state_name(ESP32State.READY.value) == "READY"
-        assert self.detector._get_state_name(ESP32State.CHARGING.value) == "CHARGING"
-        assert self.detector._get_state_name(ESP32State.PAUSED.value) == "PAUSED"
-        assert self.detector._get_state_name(ESP32State.STOPPED.value) == "STOPPED"
-        assert (
-            self.detector._get_state_name(ESP32State.FAULT_HARD.value) == "FAULT_HARD"
-        )
-        assert self.detector._get_state_name(99) == "UNKNOWN_99"
+        cases = [
+            (ESP32State.IDLE.value, "IDLE"),
+            (ESP32State.CABLE_DETECT.value, "CABLE_DETECT"),
+            (ESP32State.EV_CONNECTED.value, "EV_CONNECTED"),
+            (ESP32State.READY.value, "READY"),
+            (ESP32State.CHARGING.value, "CHARGING"),
+            (ESP32State.PAUSED.value, "PAUSED"),
+            (ESP32State.STOPPED.value, "STOPPED"),
+            (ESP32State.FAULT_HARD.value, "FAULT_HARD"),
+            (99, "UNKNOWN_99"),
+        ]
+        for state, expected in cases:
+            assert self.detector._get_state_name(state) == expected
 
     def test_get_current_state(self):
         """Mevcut state doğru döndürülüyor mu?"""

@@ -1,8 +1,8 @@
 """
 Session API Router
 Created: 2025-12-10 03:15:00
-Last Modified: 2025-12-13 23:06:00
-Version: 1.0.1
+Last Modified: 2025-12-22 06:26:39
+Version: 1.0.2
 Description: Session yönetimi için REST API endpoint'leri
 """
 
@@ -26,12 +26,7 @@ router = APIRouter(prefix="/api/sessions", tags=["Sessions"])
 async def get_current_session(
     request: Request, bridge: ESP32Bridge = Depends(get_bridge)
 ):
-    """
-    Aktif session'ı döndür
-
-    Returns:
-        Aktif session dict'i veya null
-    """
+    """Aktif session'ı döndür."""
     try:
         session_manager = get_session_manager()
         current_session = session_manager.get_current_session()
@@ -77,10 +72,11 @@ async def get_current_session(
         except Exception:
             pass
 
-        if current_session:
-            return {"success": True, "session": current_session}
-        else:
-            return {"success": True, "session": None, "message": "Aktif session yok"}
+        return (
+            {"success": True, "session": current_session}
+            if current_session
+            else {"success": True, "session": None, "message": "Aktif session yok"}
+        )
     except Exception as e:
         system_logger.error(f"Current session get error: {e}", exc_info=True)
         raise HTTPException(
@@ -94,15 +90,7 @@ async def get_current_session(
     ttl=300, key_prefix="session_detail"
 )  # 5 dakika cache (session detayları nadiren değişir)
 async def get_session(session_id: str):
-    """
-    Belirli bir session'ı döndür
-
-    Args:
-        session_id: Session UUID
-
-    Returns:
-        Session dict'i
-    """
+    """Belirli bir session'ı döndür."""
     try:
         session_manager = get_session_manager()
         session = session_manager.get_session(session_id)
@@ -127,15 +115,7 @@ async def get_session(session_id: str):
 @router.get("/{session_id}/metrics")
 @cache_response(ttl=60, key_prefix="session_metrics")  # 1 dakika cache
 async def get_session_metrics(session_id: str):
-    """
-    Belirli bir session'ın metriklerini döndür
-
-    Args:
-        session_id: Session UUID
-
-    Returns:
-        Session metrikleri dict'i
-    """
+    """Belirli bir session'ın metriklerini döndür."""
     try:
         session_manager = get_session_manager()
         session = session_manager.get_session(session_id)
@@ -197,18 +177,7 @@ async def get_sessions(
         None, description="User ID filtresi (belirli bir kullanıcının session'ları)"
     ),
 ):
-    """
-    Session listesini döndür
-
-    Args:
-        limit: Maksimum döndürülecek session sayısı
-        offset: Başlangıç offset'i
-        status_filter: Session durumu filtresi
-        user_id: User ID filtresi (belirli bir kullanıcının session'ları)
-
-    Returns:
-        Session listesi
-    """
+    """Session listesini döndür."""
     try:
         session_manager = get_session_manager()
 
@@ -265,27 +234,10 @@ async def get_user_sessions(
         description="Session durumu filtresi (ACTIVE, COMPLETED, CANCELLED, FAULTED)",
     ),
 ):
-    """
-    Belirli bir kullanıcının geçmiş session'larını döndür
-
-    **Not:** Varsayılan olarak sadece geçmiş session'ları (ACTIVE hariç) döndürür.
-    Aktif session'ı görmek için `/api/sessions/users/{user_id}/current` endpoint'ini kullanın.
-
-    Args:
-        user_id: User ID
-        limit: Maksimum döndürülecek session sayısı
-        offset: Başlangıç offset'i
-        status_filter: Session durumu filtresi (ACTIVE, COMPLETED, CANCELLED, FAULTED)
-                      Belirtilmezse ACTIVE hariç tüm geçmiş session'lar döndürülür
-
-    Returns:
-        User'ın geçmiş session listesi (ACTIVE hariç)
-    """
+    """Belirli bir kullanıcının session'larını döndür (varsayılan: ACTIVE hariç)."""
     try:
         session_manager = get_session_manager()
 
-        # Status filtresi
-        # Varsayılan olarak ACTIVE hariç tüm session'ları göster (sadece geçmiş session'lar)
         session_status = None
         if status_filter:
             try:
@@ -296,23 +248,18 @@ async def get_user_sessions(
                     detail=f"Geçersiz status filtresi: {status_filter}. Geçerli değerler: ACTIVE, COMPLETED, CANCELLED, FAULTED",
                 )
 
-        # Status filtresi yoksa ACTIVE hariç tüm session'ları al
         if not status_filter:
-            # Tüm session'ları al (ACTIVE dahil)
             all_sessions = session_manager.get_sessions(
-                limit=limit * 2,  # ACTIVE session'ları filtrelemek için daha fazla al
+                limit=limit * 2,  # ACTIVE filtrelemek için daha fazla al
                 offset=offset,
                 status=None,
                 user_id=user_id,
             )
-            # ACTIVE session'ları filtrele
             sessions = [
                 s for s in all_sessions if s.get("status") != SessionStatus.ACTIVE.value
             ]
-            # Limit'e uygun şekilde kes
             sessions = sessions[:limit]
 
-            # Total count: ACTIVE hariç tüm session sayısı
             total_count = session_manager.get_session_count(
                 status=None, user_id=user_id
             )
@@ -321,7 +268,6 @@ async def get_user_sessions(
             )
             total_count = total_count - active_count
         else:
-            # Status filtresi varsa normal filtreleme
             sessions = session_manager.get_sessions(
                 limit=limit, offset=offset, status=session_status, user_id=user_id
             )
@@ -351,28 +297,20 @@ async def get_user_sessions(
 @router.get("/users/{user_id}/current")
 @cache_response(ttl=10, key_prefix="user_session_current")  # 10 saniye cache
 async def get_user_current_session(user_id: str):
-    """
-    Belirli bir kullanıcının aktif session'ını döndür
-
-    Args:
-        user_id: User ID
-
-    Returns:
-        Aktif session dict'i veya null
-    """
+    """Belirli bir kullanıcının aktif session'ını döndür."""
     try:
         session_manager = get_session_manager()
         current_session = session_manager.get_current_session()
 
-        # Aktif session varsa ve user_id eşleşiyorsa döndür
-        if current_session and current_session.get("user_id") == user_id:
-            return {"success": True, "session": current_session}
-        else:
-            return {
+        return (
+            {"success": True, "session": current_session}
+            if current_session and current_session.get("user_id") == user_id
+            else {
                 "success": True,
                 "session": None,
                 "message": f"User {user_id} için aktif session yok",
             }
+        )
     except Exception as e:
         system_logger.error(f"User current session get error: {e}", exc_info=True)
         raise HTTPException(
@@ -384,12 +322,7 @@ async def get_user_current_session(user_id: str):
 @router.get("/count/stats")
 @cache_response(ttl=60, key_prefix="session_stats")  # 1 dakika cache
 async def get_session_stats():
-    """
-    Session istatistiklerini döndür
-
-    Returns:
-        Session istatistikleri
-    """
+    """Session istatistiklerini döndür."""
     try:
         session_manager = get_session_manager()
 

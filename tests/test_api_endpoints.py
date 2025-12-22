@@ -1,8 +1,8 @@
 """
 API Endpoints Unit Tests
 Created: 2025-12-09 02:00:00
-Last Modified: 2025-12-22 00:32:00
-Version: 1.1.3
+Last Modified: 2025-12-22 06:35:31
+Version: 1.1.4
 Description: API endpoint'leri için unit testler - Mock ESP32 bridge ile
 """
 
@@ -20,6 +20,48 @@ from api.event_detector import ESP32State
 # conftest.py'den fixture'ları import et
 # pytest otomatik olarak conftest.py'deki fixture'ları bulur
 # mock_esp32_bridge, client, test_headers fixture'ları conftest.py'den gelir
+
+
+def _valid_meter_reading():
+    return SimpleNamespace(
+        is_valid=True,
+        voltage_v=230.0,
+        current_a=10.0,
+        power_w=2300.0,
+        power_kw=2.3,
+        energy_kwh=100.5,
+        frequency_hz=50.0,
+        power_factor=0.98,
+        timestamp="2025-12-16T09:40:00Z",
+        phase_values={"l1": {"v": 230.0}},
+        totals={"energy_import_kwh": 100.5},
+    )
+
+
+class _FakeMeter:
+    def __init__(
+        self, connected: bool, reading=None, read_exc: Exception | None = None
+    ):
+        self._connected = connected
+        self._reading = reading
+        self._read_exc = read_exc
+
+    def is_connected(self):
+        return self._connected
+
+    def connect(self):
+        return True
+
+    def read_all(self):
+        if self._read_exc:
+            raise self._read_exc
+        return self._reading
+
+
+def _patch_get_meter(monkeypatch, value):
+    import api.meter as meter_module
+
+    monkeypatch.setattr(meter_module, "get_meter", lambda: value, raising=True)
 
 
 class TestAPIEndpoints:
@@ -121,18 +163,10 @@ class TestAPIEndpoints:
 
 
 class TestMeterEndpoints:
-    """
-    Meter endpoint testleri (router seviyesinde)
-
-    Not:
-      Bu testler donanım/RS485 erişimi yapmaz; `api.meter.get_meter` patch edilerek
-      router'ın tüm branch'leri güvenli şekilde kapsanır.
-    """
+    """Meter endpoint testleri (router seviyesinde, donanım/RS485 erişimi yok)."""
 
     def test_meter_status_when_module_returns_none(self, client, monkeypatch):
-        import api.meter as meter_module
-
-        monkeypatch.setattr(meter_module, "get_meter", lambda: None, raising=True)
+        _patch_get_meter(monkeypatch, None)
 
         res = client.get("/api/meter/status")
         assert res.status_code == 200
@@ -143,18 +177,7 @@ class TestMeterEndpoints:
         assert body["data"]["available"] is False
 
     def test_meter_status_when_not_connected(self, client, monkeypatch):
-        import api.meter as meter_module
-
-        class FakeMeter:
-            def is_connected(self):
-                return False
-
-            def connect(self):
-                return True
-
-        monkeypatch.setattr(
-            meter_module, "get_meter", lambda: FakeMeter(), raising=True
-        )
+        _patch_get_meter(monkeypatch, _FakeMeter(connected=False))
 
         res = client.get("/api/meter/status")
         assert res.status_code == 200
@@ -165,31 +188,8 @@ class TestMeterEndpoints:
         assert body["data"]["available"] is True
 
     def test_meter_status_when_connected_and_valid_reading(self, client, monkeypatch):
-        import api.meter as meter_module
-
-        reading = SimpleNamespace(
-            is_valid=True,
-            voltage_v=230.0,
-            current_a=10.0,
-            power_w=2300.0,
-            power_kw=2.3,
-            energy_kwh=100.5,
-            frequency_hz=50.0,
-            power_factor=0.98,
-            timestamp="2025-12-16T09:40:00Z",
-            phase_values={"l1": {"v": 230.0}},
-            totals={"energy_import_kwh": 100.5},
-        )
-
-        class FakeMeter:
-            def is_connected(self):
-                return True
-
-            def read_all(self):
-                return reading
-
-        monkeypatch.setattr(
-            meter_module, "get_meter", lambda: FakeMeter(), raising=True
+        _patch_get_meter(
+            monkeypatch, _FakeMeter(connected=True, reading=_valid_meter_reading())
         )
 
         res = client.get("/api/meter/status")
@@ -203,19 +203,9 @@ class TestMeterEndpoints:
         assert body["data"]["energy_kwh"] == 100.5
 
     def test_meter_status_when_connected_but_invalid_reading(self, client, monkeypatch):
-        import api.meter as meter_module
-
-        reading = SimpleNamespace(is_valid=False)
-
-        class FakeMeter:
-            def is_connected(self):
-                return True
-
-            def read_all(self):
-                return reading
-
-        monkeypatch.setattr(
-            meter_module, "get_meter", lambda: FakeMeter(), raising=True
+        _patch_get_meter(
+            monkeypatch,
+            _FakeMeter(connected=True, reading=SimpleNamespace(is_valid=False)),
         )
 
         res = client.get("/api/meter/status")
@@ -228,17 +218,9 @@ class TestMeterEndpoints:
         assert body["data"]["valid"] is False
 
     def test_meter_status_when_read_raises_exception(self, client, monkeypatch):
-        import api.meter as meter_module
-
-        class FakeMeter:
-            def is_connected(self):
-                return True
-
-            def read_all(self):
-                raise RuntimeError("read failed")
-
-        monkeypatch.setattr(
-            meter_module, "get_meter", lambda: FakeMeter(), raising=True
+        _patch_get_meter(
+            monkeypatch,
+            _FakeMeter(connected=True, read_exc=RuntimeError("read failed")),
         )
 
         res = client.get("/api/meter/status")
@@ -251,9 +233,7 @@ class TestMeterEndpoints:
         assert "read failed" in body["data"]["error"]
 
     def test_meter_reading_when_module_returns_none(self, client, monkeypatch):
-        import api.meter as meter_module
-
-        monkeypatch.setattr(meter_module, "get_meter", lambda: None, raising=True)
+        _patch_get_meter(monkeypatch, None)
 
         res = client.get("/api/meter/reading")
         assert res.status_code == 200
@@ -263,18 +243,7 @@ class TestMeterEndpoints:
         assert body["data"] is None
 
     def test_meter_reading_when_not_connected(self, client, monkeypatch):
-        import api.meter as meter_module
-
-        class FakeMeter:
-            def is_connected(self):
-                return False
-
-            def connect(self):
-                return True
-
-        monkeypatch.setattr(
-            meter_module, "get_meter", lambda: FakeMeter(), raising=True
-        )
+        _patch_get_meter(monkeypatch, _FakeMeter(connected=False))
 
         res = client.get("/api/meter/reading")
         assert res.status_code == 200
@@ -284,31 +253,8 @@ class TestMeterEndpoints:
         assert body["data"] is None
 
     def test_meter_reading_when_valid(self, client, monkeypatch):
-        import api.meter as meter_module
-
-        reading = SimpleNamespace(
-            is_valid=True,
-            voltage_v=230.0,
-            current_a=10.0,
-            power_w=2300.0,
-            power_kw=2.3,
-            energy_kwh=100.5,
-            frequency_hz=50.0,
-            power_factor=0.98,
-            timestamp="2025-12-16T09:40:00Z",
-            phase_values={"l1": {"v": 230.0}},
-            totals={"energy_import_kwh": 100.5},
-        )
-
-        class FakeMeter:
-            def is_connected(self):
-                return True
-
-            def read_all(self):
-                return reading
-
-        monkeypatch.setattr(
-            meter_module, "get_meter", lambda: FakeMeter(), raising=True
+        _patch_get_meter(
+            monkeypatch, _FakeMeter(connected=True, reading=_valid_meter_reading())
         )
 
         res = client.get("/api/meter/reading")
@@ -320,19 +266,9 @@ class TestMeterEndpoints:
         assert body["data"]["energy_kwh"] == 100.5
 
     def test_meter_reading_when_invalid(self, client, monkeypatch):
-        import api.meter as meter_module
-
-        reading = SimpleNamespace(is_valid=False)
-
-        class FakeMeter:
-            def is_connected(self):
-                return True
-
-            def read_all(self):
-                return reading
-
-        monkeypatch.setattr(
-            meter_module, "get_meter", lambda: FakeMeter(), raising=True
+        _patch_get_meter(
+            monkeypatch,
+            _FakeMeter(connected=True, reading=SimpleNamespace(is_valid=False)),
         )
 
         res = client.get("/api/meter/reading")
@@ -344,11 +280,7 @@ class TestMeterEndpoints:
 
 
 class TestMeterParsingHelpers:
-    """
-    Meter register decode / convert helper testleri.
-
-    Not: Bu testler donanım/serial erişimi yapmaz; saf converter fonksiyonları kapsar.
-    """
+    """Meter register decode / convert helper testleri (donanım/serial yok)."""
 
     def test_modbus_u32_from_regs(self):
         from api.meter.modbus import _u32_from_regs
@@ -356,15 +288,10 @@ class TestMeterParsingHelpers:
         assert _u32_from_regs(0x0000, 0x0001) == 1
         assert _u32_from_regs(0x1234, 0x5678) == 0x12345678
 
-    def test_modbus_s32_from_regs_positive(self):
+    def test_modbus_s32_from_regs(self):
         from api.meter.modbus import _s32_from_regs
 
         assert _s32_from_regs(0x0000, 0x0001) == 1
-
-    def test_modbus_s32_from_regs_negative(self):
-        from api.meter.modbus import _s32_from_regs
-
-        # 0xFFFFFFFF -> -1 (signed 32-bit)
         assert _s32_from_regs(0xFFFF, 0xFFFF) == -1
 
     def test_acrel_to_float(self):

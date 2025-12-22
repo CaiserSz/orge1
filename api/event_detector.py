@@ -1,8 +1,8 @@
 """
 Event Detection Module
 Created: 2025-12-09 22:50:00
-Last Modified: 2025-12-22 06:05:00
-Version: 1.1.1
+Last Modified: 2025-12-22 06:42:36
+Version: 1.1.3
 Description: ESP32 state transition detection ve event classification modülü
 """
 
@@ -47,7 +47,6 @@ class EventDetector:
         self._monitor_thread: Optional[threading.Thread] = None
         self.event_callbacks: list[Callable] = []
 
-        # Resume validation (PAUSED -> CHARGING) için stateful kontrol
         self._resume_validation_lock = threading.Lock()
         self._resume_validation_in_progress = False
         self._resume_last_suppressed_monotonic: Optional[float] = None
@@ -56,7 +55,6 @@ class EventDetector:
         """Event detection monitoring'i başlat."""
         if self.is_monitoring:
             return
-
         self.is_monitoring = True
         self._monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)
         self._monitor_thread.start()
@@ -79,46 +77,38 @@ class EventDetector:
                     if status and "STATE" in status:
                         state = status["STATE"]
                         self._check_state_transition(state, status)
-                time.sleep(0.5)  # 500ms bekleme
+                time.sleep(0.5)
             except Exception as e:
                 system_logger.error(
                     f"Event detection monitor loop error: {e}", exc_info=True
                 )
-                time.sleep(1.0)  # Hata durumunda daha uzun bekle
+                time.sleep(1.0)
 
     def _check_state_transition(self, new_state: int, status: Dict[str, Any]):
         """State transition kontrolü ve event üretimi."""
-        # Not: PAUSED -> CHARGING transition bazı araçlarda UI paused iken kısa süreli "bounce" yapabilir.
-        # Bu nedenle bu transition'ı "resume" olarak kabul etmeden önce meter power + debounce ile doğruluyoruz.
         with self.state_lock:
             prev_state = self.current_state
 
-            # İlk durum - event oluşturma
             if prev_state is None:
                 self.previous_state = None
                 self.current_state = new_state
                 system_logger.debug(f"İlk state tespit edildi: {new_state}")
                 return
 
-            # State değişmemişse event oluşturma
             if prev_state == new_state:
                 return
 
-            # Resume adayı: PAUSED -> CHARGING (doğrulama yapılacak)
             if (
                 prev_state == ESP32State.PAUSED.value
                 and new_state == ESP32State.CHARGING.value
                 and bool(getattr(config, "RESUME_VALIDATION_ENABLED", True))
             ):
-                # current_state'i PAUSED olarak bırakıyoruz; doğrulama geçerse CHARGING'e geçirip event üreteceğiz
                 self._schedule_resume_validation(status=status)
                 return
 
-            # Normal transition: state'i güncelle ve event oluştur
             self.previous_state = prev_state
             self.current_state = new_state
 
-        # Lock dışında event üret (callback'ler ağır olabilir)
         event_type = self._classify_event(prev_state, new_state)
         if event_type:
             self._create_event(event_type, prev_state, new_state, status)
@@ -170,14 +160,12 @@ class EventDetector:
                 meter = get_meter()
                 if not meter:
                     return None
-                # best-effort connect
                 try:
                     if hasattr(meter, "connect") and hasattr(meter, "is_connected"):
                         if not meter.is_connected():
                             meter.connect()
                 except Exception:
                     pass
-
                 reading = meter.read_all() if hasattr(meter, "read_all") else None
                 if not reading or not getattr(reading, "is_valid", False):
                     return None
@@ -188,8 +176,6 @@ class EventDetector:
 
         try:
             while (time.monotonic() - start_mono) <= debounce_seconds:
-                # En güncel status'ı al (araç fiilen CHARGING değilse doğrulamayı kes)
-                bridge = None
                 try:
                     bridge = self.bridge_getter()
                 except Exception:
@@ -203,11 +189,10 @@ class EventDetector:
                 except Exception:
                     last_status = None
 
-                state_val = None
-                if isinstance(last_status, dict):
-                    state_val = last_status.get("STATE")
+                state_val = (
+                    last_status.get("STATE") if isinstance(last_status, dict) else None
+                )
 
-                # Araç tekrar PAUSED/STOPPED/IDLE'a döndüyse resume doğrulamasını iptal et
                 if (
                     state_val is not None
                     and int(state_val) != ESP32State.CHARGING.value
@@ -218,7 +203,6 @@ class EventDetector:
                 if last_power_kw is not None and last_power_kw >= min_power_kw:
                     consecutive += 1
                     if consecutive >= required_consecutive:
-                        # Resume doğrulandı: state'i güncelle ve CHARGE_STARTED event'i üret
                         with self.state_lock:
                             self.previous_state = ESP32State.PAUSED.value
                             self.current_state = ESP32State.CHARGING.value
@@ -238,7 +222,6 @@ class EventDetector:
 
                 time.sleep(sample_interval)
 
-            # Resume doğrulanamadı → suppress et (event üretme)
             self._resume_last_suppressed_monotonic = time.monotonic()
             log_event(
                 event_type="RESUME_SUPPRESSED",
@@ -259,7 +242,6 @@ class EventDetector:
 
     def _classify_event(self, from_state: int, to_state: int) -> Optional[EventType]:
         """State transition -> EventType (bilinen mapping yoksa STATE_CHANGED)."""
-        # Not: ESP32 firmware bazı akışlarda READY'yi atlayıp EV_CONNECTED/IDLE -> CHARGING geçebilir.
         s = ESP32State
         transitions = {
             (s.IDLE.value, s.CABLE_DETECT.value): EventType.CABLE_CONNECTED,
@@ -276,26 +258,21 @@ class EventDetector:
             (s.PAUSED.value, s.IDLE.value): EventType.CHARGE_STOPPED,
             (s.CABLE_DETECT.value, s.IDLE.value): EventType.CABLE_DISCONNECTED,
             (s.EV_CONNECTED.value, s.IDLE.value): EventType.CABLE_DISCONNECTED,
-            # Firmware davranışı: PAUSED -> READY görülebiliyor; genel state değişikliği olarak loglanır.
             (s.PAUSED.value, s.READY.value): EventType.STATE_CHANGED,
             (s.FAULT_HARD.value, s.HARDFAULT_END.value): EventType.FAULT_DETECTED,
             (s.HARDFAULT_END.value, s.IDLE.value): EventType.STATE_CHANGED,
         }
 
-        # Fault detection (herhangi bir state'den FAULT_HARD'a geçiş)
-        # NOT: FAULT_HARD → HARDFAULT_END transition'ı yukarıda tanımlı
         if (
             to_state == ESP32State.FAULT_HARD.value
             and from_state != ESP32State.HARDFAULT_END.value
         ):
             return EventType.FAULT_DETECTED
 
-        # Bilinen transition
         transition_key = (from_state, to_state)
         if transition_key in transitions:
             return transitions[transition_key]
 
-        # Bilinmeyen transition - genel state değişikliği
         return EventType.STATE_CHANGED
 
     def _create_event(
@@ -397,7 +374,6 @@ class EventDetector:
             return self.previous_state
 
 
-# Singleton instance
 event_detector_instance: Optional[EventDetector] = None
 event_detector_lock = threading.Lock()
 

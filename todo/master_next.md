@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-22 06:11:00
+**Son Güncelleme:** 2025-12-22 06:39:12
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -31,58 +31,53 @@
   - Notlar:
     - Öneri: resmi/kaliteli 5.1V/3A PSU + kısa/kalın USB‑C kablo; yüksek akım çeken USB cihazları için powered hub
 
-### Öncelik 3: Standart Uyarısı (2025-12-22) - `api/event_detector.py` satır limiti uyarısı
+### ✅ Kapatıldı: Standart uyarıları (2025-12-22) — satır limiti “uyarı eşiği yakın” temizlendi
 
 ### Öncelik 3: Standart Uyarıları (2025-12-16) - Uyarı Eşiği Yakın Dosyalar
 
-- [ ] **Görev:** `api/logging_config.py` modüllere bölme planı
-  - Açıklama: `standards_auto_check` raporu dosya 407 satır (Limit: 500). Uyarı eşiğine yakın; uygun zamanda modüllere bölünmeli.
+- [x] **Görev:** `api/logging_config.py` satır limiti payı açma
+  - Açıklama: Dosya 407 → 358 satır; `standards_auto_check` uyarısı kapatıldı.
   - Öncelik: 3 (Orta/Düşük)
   - Tahmini Süre: 1-2 saat
-  - Durum: 🟡 Uyarı eşiği yakın
-  - Detaylar: Rapor zamanı: 2025-12-16 04:40
+  - Durum: ✅ Kapatıldı (2025-12-22)
 
-- [ ] **Görev:** `api/event_detector.py` kompaktlaştırma (satır limiti payı)
-  - Açıklama: Dosya 477 satırdan 414 satıra indirildi; halen uyarı eşiğinde (Limit: 500). Yeni feature eklenirken 500’ü aşmamak için kompakt tut.
+- [x] **Görev:** `api/event_detector.py` satır limiti payı açma
+  - Açıklama: Dosya 477 → 390 satır; `standards_auto_check` uyarısı kapatıldı.
   - Öncelik: 3 (Orta/Düşük)
   - Tahmini Süre: 1-2 saat
-  - Durum: 🟡 Uyarı eşiği yakın (414/500)
+  - Durum: ✅ Kapatıldı (2025-12-22)
   - Test/Doğrulama: `./env/bin/python -m py_compile api/event_detector.py` + `./env/bin/pytest -q tests/test_event_detector.py` ✅
 
-- [ ] **Görev:** `api/config.py` modüllere bölme planı
-  - Açıklama: `standards_auto_check` raporu dosya 416 satır (Limit: 500). Uyarı eşiğine yakın; config alanları kategori bazlı ayrılabilir.
+- [x] **Görev:** `api/config.py` satır limiti payı açma
+  - Açıklama: Dosya 416 → 318 satır; `standards_auto_check` uyarısı kapatıldı.
   - Öncelik: 3 (Orta/Düşük)
   - Tahmini Süre: 1-2 saat
-  - Durum: 🟡 Uyarı eşiği yakın
-  - Detaylar: Rapor zamanı: 2025-12-16 04:40
+  - Durum: ✅ Kapatıldı (2025-12-22)
 
-- [ ] **Görev:** `tests/test_event_detector.py` test suite’e bölme planı
-  - Açıklama: `standards_auto_check` raporu dosya 467 satır (Limit: 500). Uyarı eşiğine yakın; entegrasyon/unit ayrımıyla bölünebilir.
+- [x] **Görev:** `tests/test_event_detector.py` satır limiti payı açma
+  - Açıklama: Dosya 467 → 314 satır (parametrize ile tekrar azaltma); `standards_auto_check` uyarısı kapatıldı.
   - Öncelik: 3 (Orta/Düşük)
   - Tahmini Süre: 1-2 saat
-  - Durum: 🟡 Uyarı eşiği yakın
-  - Detaylar: Rapor zamanı: 2025-12-16 04:40
+  - Durum: ✅ Kapatıldı (2025-12-22)
 
-- [ ] **Görev:** `tests/test_protocol_rules.py` kompaktlaştırma (satır limiti payı)
-  - Açıklama: Dosya 473 satırdan 410 satıra indirildi; halen uyarı eşiğinde (Limit: 500). Uygun zamanda daha da sadeleştirilebilir.
+- [x] **Görev:** `tests/test_protocol_rules.py` satır limiti payı açma
+  - Açıklama: Dosya 473 → 399 satır; `standards_auto_check` uyarısı kapatıldı.
   - Öncelik: 3 (Orta/Düşük)
   - Tahmini Süre: 1-2 saat
-  - Durum: 🟡 Uyarı eşiği yakın (410/500)
+  - Durum: ✅ Kapatıldı (2025-12-22)
   - Test/Doğrulama: `./env/bin/python -m py_compile tests/test_protocol_rules.py` + `./env/bin/pytest -q tests/test_protocol_rules.py` ✅
 
-- [ ] **Görev:** `tests/test_integration.py` büyüme kontrolü (satır sayısı uyarı eşiği yakın)
-  - Açıklama: `standards_auto_check` raporu dosya 433 satır (Limit: 500). Uyarı eşiğine yakın; yeni test eklerken tekrarları azalt ve mümkünse mevcut helper/fixture’ları kullan (yeni test dosyası oluşturmadan).
+- [x] **Görev:** `tests/test_integration.py` satır limiti payı açma
+  - Açıklama: Dosya 433 → 393 satır; `standards_auto_check` uyarısı kapatıldı.
   - Öncelik: 3 (Orta/Düşük)
   - Tahmini Süre: 30-60 dk
-  - Durum: 🟡 Uyarı eşiği yakın (433/500)
-  - Detaylar: Güncelleme: 2025-12-22
+  - Durum: ✅ Kapatıldı (2025-12-22)
 
-- [ ] **Görev:** `tests/test_api_endpoints.py` büyüme kontrolü (satır sayısı uyarı eşiği yakın)
-  - Açıklama: `standards_auto_check` raporu dosya 464 satır (Limit: 500). Uyarı eşiğine yakın; yeni testler mümkünse diğer mevcut test dosyalarına dağıtılmalı veya tekrar eden bloklar fixture/helper ile sadeleştirilmeli (**yeni test dosyası oluşturmadan**).
+- [x] **Görev:** `tests/test_api_endpoints.py` satır limiti payı açma
+  - Açıklama: Dosya 464 → 391 satır; `standards_auto_check` uyarısı kapatıldı.
   - Öncelik: 3 (Orta/Düşük)
   - Tahmini Süre: 30-60 dk
-  - Durum: 🟡 Uyarı eşiği yakın (464/500)
-  - Detaylar: Güncelleme: 2025-12-22
+  - Durum: ✅ Kapatıldı (2025-12-22)
 
 
 ### Öncelik 1: EV Gerçek Test Bulguları (2025-12-13) - Güç/Enerji Tutarlılığı ve UI Stabilitesi
@@ -100,19 +95,17 @@
   - Tahmini Süre: 0.5-1 saat
   - Durum: 💡 İyileştirme fırsatı
 
-- [ ] **Görev:** `api/database/session_queries.py` refactor (satır sayısı uyarı eşiği yakın)
-  - Açıklama: `scripts/standards_auto_check.py` raporuna göre dosya 404 satır (Limit: 500). Uyarı eşiği yaklaştığı için mixin’leri daha küçük modüllere bölmek planlanmalı.
+- [x] **Görev:** `api/database/session_queries.py` satır limiti payı açma
+  - Açıklama: Dosya 404 → 387 satır; `standards_auto_check` uyarısı kapatıldı.
   - Öncelik: 2 (Orta)
   - Tahmini Süre: 1-2 saat
-  - Durum: 🟡 Uyarı eşiği yakın
-  - Detaylar: Standart kontrol raporu (2025-12-13 22:59)
+  - Durum: ✅ Kapatıldı (2025-12-22)
 
-- [ ] **Görev:** `api/routers/sessions.py` refactor (satır sayısı uyarı eşiği yakın)
-  - Açıklama: `scripts/standards_auto_check.py` raporuna göre dosya 415 satır (Limit: 500). Router içeriği büyüdüğü için endpoint'leri daha küçük router dosyalarına bölmek planlanmalı.
+- [x] **Görev:** `api/routers/sessions.py` satır limiti payı açma
+  - Açıklama: Dosya 417 → 350 satır; `standards_auto_check` uyarısı kapatıldı.
   - Öncelik: 2 (Orta)
   - Tahmini Süre: 1-2 saat
-  - Durum: 🟡 Uyarı eşiği yakın
-  - Detaylar: Standart kontrol raporu (2025-12-13 23:21)
+  - Durum: ✅ Kapatıldı (2025-12-22)
 
 ### Faz 1: Temel Altyapı (Kritik) - Devam Ediyor
 

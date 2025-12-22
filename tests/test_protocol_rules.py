@@ -1,8 +1,8 @@
 """
 Protocol Rule Tests
 Created: 2025-12-13 02:40:00
-Last Modified: 2025-12-22 06:10:00
-Version: 1.1.0
+Last Modified: 2025-12-22 06:30:58
+Version: 1.1.1
 Description: ESP32 protokol kuralları ve edge case testleri.
 """
 
@@ -15,19 +15,18 @@ import sys
 
 import pytest
 
+ROOT = Path(__file__).parent.parent
+
 
 def _load_protocol_json() -> dict:
-    protocol_path = Path(__file__).parent.parent / "esp32" / "protocol.json"
+    protocol_path = ROOT / "esp32" / "protocol.json"
     with open(protocol_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 class TestProtocolRules:
-    """Protocol rules validation tests"""
-
     @pytest.fixture
     def rules(self):
-        """Load rules section"""
         return _load_protocol_json().get("rules", {})
 
     def test_rules_exist(self, rules):
@@ -35,13 +34,13 @@ class TestProtocolRules:
 
     @pytest.mark.parametrize(
         "rule_key",
-        [
+        (
             "current_set_only_before_charging",
             "only_defined_commands",
             "current_set_range",
-        ],
+        ),
     )
-    def test_rule_key_exists(self, rules, rule_key: str):
+    def test_rule_key_exists(self, rules, rule_key):
         assert rule_key in rules, f"{rule_key} kuralı bulunamadı"
 
     def test_current_set_range_mentions_6_32(self, rules):
@@ -52,15 +51,11 @@ class TestProtocolRules:
 
 
 class TestProtocolEdgeCases:
-    """Protocol edge case tests"""
-
     @pytest.fixture
     def protocol_data(self):
-        """Load protocol.json data"""
         return _load_protocol_json()
 
     def test_no_duplicate_command_ids(self, protocol_data):
-        """Test that no two commands have same ID and value combination"""
         commands = protocol_data.get("commands", {})
         id_value_pairs = {}
         for cmd_name, cmd_data in commands.items():
@@ -68,7 +63,6 @@ class TestProtocolEdgeCases:
             cmd_value = cmd_data.get("value")
             pair = (cmd_id, cmd_value)
             if pair in id_value_pairs:
-                # current_set commands can have same ID but different values
                 if not cmd_name.startswith("current_set_"):
                     pytest.fail(
                         f"{cmd_name} ve {id_value_pairs[pair]} aynı ID ve value'ya sahip"
@@ -76,64 +70,45 @@ class TestProtocolEdgeCases:
             else:
                 id_value_pairs[pair] = cmd_name
 
-    def test_all_hex_values_valid(self, protocol_data):
-        """Test that all hex values are valid"""
+    def test_commands_fields_valid(self, protocol_data):
         commands = protocol_data.get("commands", {})
-        for cmd_name, cmd_data in commands.items():
-            hex_str = cmd_data.get("hex", "")
-            if hex_str:
-                # Hex string'i parse etmeye çalış
-                hex_bytes = hex_str.split()
-                for hex_byte in hex_bytes:
-                    try:
-                        int(hex_byte, 16)
-                    except ValueError:
-                        pytest.fail(
-                            f"{cmd_name} komutunda geçersiz hex değer: {hex_byte}"
-                        )
-
-    def test_byte_array_matches_hex(self, protocol_data):
-        """Test that byte_array matches hex string"""
-        commands = protocol_data.get("commands", {})
-        for cmd_name, cmd_data in commands.items():
-            hex_str = cmd_data.get("hex", "")
-            byte_array = cmd_data.get("byte_array", [])
-            if hex_str and byte_array:
-                hex_bytes = [int(b, 16) for b in hex_str.split()]
-                assert (
-                    byte_array == hex_bytes
-                ), f"{cmd_name} byte_array hex ile eşleşmiyor"
-
-    def test_no_missing_categories(self, protocol_data):
-        """Test that all commands have valid categories"""
-        commands = protocol_data.get("commands", {})
-        valid_categories = ["status", "charge_control", "current_set"]
+        valid_categories = {"status", "charge_control", "current_set"}
         for cmd_name, cmd_data in commands.items():
             category = cmd_data.get("category", "")
             assert (
                 category in valid_categories
             ), f"{cmd_name} geçersiz category: {category}"
 
+            hex_str = cmd_data.get("hex", "")
+            if not hex_str:
+                continue
+
+            for hex_byte in hex_str.split():
+                try:
+                    int(hex_byte, 16)
+                except ValueError:
+                    pytest.fail(f"{cmd_name} komutunda geçersiz hex değer: {hex_byte}")
+
+            byte_array = cmd_data.get("byte_array", [])
+            if byte_array:
+                assert byte_array == [
+                    int(b, 16) for b in hex_str.split()
+                ], f"{cmd_name} byte_array hex ile eşleşmiyor"
+
 
 def _load_module_from_path(module_name: str, file_path: Path):
-    """Load module from file path (ocpp/ package değil; path-based import gerekir)."""
     spec = importlib.util.spec_from_file_location(module_name, str(file_path))
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
-    # dataclasses (py3.13) bazı type resolution adımlarında sys.modules kaydı bekliyor
     sys.modules[module_name] = module
     spec.loader.exec_module(module)
     return module
 
 
 class TestOcppStateHelpers:
-    """OCPP Phase-1 helper fonksiyonları ve LocalApiPoller unit testleri"""
-
     @pytest.fixture
     def ocpp_states(self):
-        root = Path(__file__).parent.parent
-        states_path = root / "ocpp" / "states.py"
-        return _load_module_from_path("ocpp_states", states_path)
+        return _load_module_from_path("ocpp_states", ROOT / "ocpp" / "states.py")
 
     def test_basic_auth_header_roundtrip(self, ocpp_states):
         header = ocpp_states.basic_auth_header("station", "secret")
@@ -148,8 +123,7 @@ class TestOcppStateHelpers:
         assert ctx is not None
 
     @pytest.mark.parametrize(
-        ("value", "expected"),
-        [(None, None), ("12.5", 12.5), (3, 3.0), ("nope", None)],
+        ("value", "expected"), [(None, None), ("12.5", 12.5), (3, 3.0), ("nope", None)]
     )
     def test_safe_float(self, ocpp_states, value, expected):
         assert ocpp_states.safe_float(value) == expected
@@ -158,9 +132,7 @@ class TestOcppStateHelpers:
         ("name", "expected"),
         [("", "UNKNOWN"), ("   ", "UNKNOWN"), ("ORGE_AC_001", "ORGE_AC_001")],
     )
-    def test_serial_number_for_station_name(
-        self, ocpp_states, name: str, expected: str
-    ):
+    def test_serial_number_for_station_name(self, ocpp_states, name, expected):
         assert ocpp_states.serial_number_for_station_name(name) == expected
         long_name = "X" * 100
         assert len(ocpp_states.serial_number_for_station_name(long_name)) == 25
@@ -188,11 +160,13 @@ class TestOcppStateHelpers:
             }
 
         assert (
-            ocpp_states.derive_connector_status_label_from_station_payload(None) is None
-        )
-        assert (
             ocpp_states.derive_connector_status_label_from_station_payload(_payload())
             == expected
+        )
+
+    def test_derive_connector_status_label_none(self, ocpp_states):
+        assert (
+            ocpp_states.derive_connector_status_label_from_station_payload(None) is None
         )
 
     @pytest.mark.parametrize(
@@ -274,7 +248,6 @@ class TestOcppStateHelpers:
             events["ended"].append((session_id, energy_kwh, old_status))
 
         responses = [
-            # Iteration-1: status->occupied, energy=1.0, session ACTIVE -> started
             {
                 "data": {
                     "status": {"state_name": "CHARGING", "availability": "available"}
@@ -282,7 +255,6 @@ class TestOcppStateHelpers:
             },
             {"data": {"totals": {"energy_import_kwh": 1.0}}},
             {"session": {"session_id": "S1", "status": "ACTIVE"}},
-            # Iteration-2: status->available, energy decreases (monotonic guard), session None -> ended
             {"data": {"status": {"state_name": "IDLE", "availability": "available"}}},
             {"data": {"totals": {"energy_import_kwh": 0.5}}},
             {"session": None},
@@ -358,23 +330,18 @@ class TestOcppStateHelpers:
 
 
 class TestOcppRunnerHelpers:
-    """ocpp/handlers.py ve ocpp/main.py helper fonksiyonlarını (IO açmadan) kapsar"""
-
     @pytest.fixture
     def ocpp_states_as_package_name(self):
         # handlers.py ve main.py, `states` ismiyle import bekliyor
-        root = Path(__file__).parent.parent
-        return _load_module_from_path("states", root / "ocpp" / "states.py")
+        return _load_module_from_path("states", ROOT / "ocpp" / "states.py")
 
     @pytest.fixture
     def ocpp_handlers(self, ocpp_states_as_package_name):
-        root = Path(__file__).parent.parent
-        return _load_module_from_path("handlers", root / "ocpp" / "handlers.py")
+        return _load_module_from_path("handlers", ROOT / "ocpp" / "handlers.py")
 
     @pytest.fixture
     def ocpp_main(self, ocpp_handlers, ocpp_states_as_package_name):
-        root = Path(__file__).parent.parent
-        return _load_module_from_path("ocpp_main", root / "ocpp" / "main.py")
+        return _load_module_from_path("ocpp_main", ROOT / "ocpp" / "main.py")
 
     def test_handlers_retryable_error(self, ocpp_handlers):
         assert ocpp_handlers._is_retryable_ws_error(RuntimeError("x")) is True

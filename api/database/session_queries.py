@@ -1,8 +1,8 @@
 """
 Session Queries Module
 Created: 2025-12-10 21:09:49
-Last Modified: 2025-12-13 20:47:00
-Version: 1.0.1
+Last Modified: 2025-12-22 06:25:34
+Version: 1.0.2
 Description: Session CRUD ve sorgu operasyonları mixin'i.
 """
 
@@ -27,25 +27,19 @@ class SessionQueryMixin:
         metadata: Dict[str, Any],
         user_id: Optional[str] = None,
     ) -> bool:
-        """
-        Yeni session kaydı oluşturur.
-
-        Returns:
-            İşlem başarı durumu.
-        """
+        """Yeni session kaydı oluşturur."""
         with self.lock:
             conn = self._get_connection()
             try:
                 cursor = conn.cursor()
                 now_timestamp = int(datetime.now().timestamp())
                 start_time_timestamp = int(start_time.timestamp())
-                start_energy_kwh = None
-                try:
-                    meta_val = metadata.get("start_energy_kwh")
-                    if isinstance(meta_val, (int, float)) and meta_val >= 0:
-                        start_energy_kwh = float(meta_val)
-                except Exception:
-                    start_energy_kwh = None
+                meta_val = metadata.get("start_energy_kwh")
+                start_energy_kwh = (
+                    float(meta_val)
+                    if isinstance(meta_val, (int, float)) and meta_val >= 0
+                    else None
+                )
 
                 cursor.execute(
                     """
@@ -88,13 +82,7 @@ class SessionQueryMixin:
         end_state: Optional[int] = None,
         status: str = "CANCELLED",
     ) -> int:
-        """
-        Tek konnektör varsayımıyla, aynı anda birden fazla ACTIVE session kalmasını önlemek için
-        ACTIVE & end_time IS NULL kayıtlarını topluca kapatır.
-
-        Returns:
-            Güncellenen satır sayısı.
-        """
+        """ACTIVE & end_time IS NULL kayıtlarını topluca kapatır (tek konnektör varsayımı)."""
         with self.lock:
             conn = self._get_connection()
             try:
@@ -160,12 +148,7 @@ class SessionQueryMixin:
         min_voltage_v: Optional[float] = None,
         event_count: Optional[int] = None,
     ) -> bool:
-        """
-        Session günceller ve gerekli alanları set eder.
-
-        Returns:
-            İşlem başarı durumu.
-        """
+        """Session günceller ve gerekli alanları set eder."""
         with self.lock:
             conn = self._get_connection()
             try:
