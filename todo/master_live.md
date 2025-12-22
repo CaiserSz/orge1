@@ -1,24 +1,14 @@
 # Aktif Görevler (Şu Anda Yapılanlar)
 
-**Son Güncelleme:** 2025-12-21 23:05:00
+**Son Güncelleme:** 2025-12-22 05:48:31
 
 ---
 
 ## Aktif Görevler
 
-- **OCPP Phase-1 (Station Client)** – 2025-12-16 (ocpp/phase1 branch)
-  - Durum: 🔄 Devam ediyor
-  - Kapsam: Tek transport + iki adapter (Primary: OCPP 2.0.1, Fallback: OCPP 1.6j)
-  - CSMS: `lixhium.xyz` (BasicAuth + ocpp2.0.1 / ocpp1.6)
-  - İlerleme: Daemon mode (Boot/Status/Heartbeat + reconnect) + local API read-only polling (station status + meter values + sessions→TransactionEvent) ✅
-  - İlerleme: Phase‑1.4 Runbook (A/B/C) evidence ✅ + UI Remote Ops (daemon) Remote Start/Stop evidence ✅ (SSOT: `docs/csms/CSMS_CONNECTION_PARAMETERS.md`)
-  - İlerleme: OCPP modüler refactor ✅ (tüm `ocpp/*.py` <= 500 satır; `main.py`/`handlers.py` bakım riski azaltıldı)
-  - Not: Mevcut API/ESP32/session sistemi bozulmayacak; OCPP ayrı proses olarak ilerleyecek.
-
-- **RPi Undervoltage (Sistem Sağlığı)** – 2025-12-21 (ocpp/phase1 branch)
-  - Durum: ⏸️ Ertelendi (fiziksel erişim yok; kullanıcı bildirecek)
-  - Kapsam: Yazılımsal kanıt + runbook + monitoring tamamlandı; kalıcı çözüm için PSU/kablo/USB yükü fiziksel doğrulama gerekiyor.
-  - Not: Done kriteri reboot sonrası `vcgencmd get_throttled` → `throttled=0x0`.
+- Şu anda aktif görev yok.
+- Not: OCPP Phase‑1 çalışmaları tamamlandı ve son durum `todo/checkpoint.md` içinde CP-20251222-046 olarak güncellendi.
+- Not: RPi undervoltage “hardware” aksiyonu bekliyor (fiziksel erişim yok); detay `todo/master_next.md` içinde.
 
 - Şu anda başka aktif görev yok. Son tamamlanan işler:
   0. **RL/LOCK telemetri açıklaması** – 2025-12-14 03:50 (`/api/status` telemetry + warnings)
