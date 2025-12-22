@@ -158,7 +158,9 @@ class TestOcppStateHelpers:
         ("name", "expected"),
         [("", "UNKNOWN"), ("   ", "UNKNOWN"), ("ORGE_AC_001", "ORGE_AC_001")],
     )
-    def test_serial_number_for_station_name(self, ocpp_states, name: str, expected: str):
+    def test_serial_number_for_station_name(
+        self, ocpp_states, name: str, expected: str
+    ):
         assert ocpp_states.serial_number_for_station_name(name) == expected
         long_name = "X" * 100
         assert len(ocpp_states.serial_number_for_station_name(long_name)) == 25
@@ -175,11 +177,19 @@ class TestOcppStateHelpers:
             ("UNKNOWN", "something", "unavailable"),
         ],
     )
-    def test_derive_connector_status_label(self, ocpp_states, state_name, availability, expected):
+    def test_derive_connector_status_label(
+        self, ocpp_states, state_name, availability, expected
+    ):
         def _payload():
-            return {"data": {"status": {"state_name": state_name, "availability": availability}}}
+            return {
+                "data": {
+                    "status": {"state_name": state_name, "availability": availability}
+                }
+            }
 
-        assert ocpp_states.derive_connector_status_label_from_station_payload(None) is None
+        assert (
+            ocpp_states.derive_connector_status_label_from_station_payload(None) is None
+        )
         assert (
             ocpp_states.derive_connector_status_label_from_station_payload(_payload())
             == expected
@@ -195,11 +205,21 @@ class TestOcppStateHelpers:
         ],
     )
     def test_extract_energy_import_kwh(self, ocpp_states, payload, expected):
-        assert ocpp_states.extract_energy_import_kwh_from_meter_payload(payload) == expected
+        assert (
+            ocpp_states.extract_energy_import_kwh_from_meter_payload(payload)
+            == expected
+        )
 
     @pytest.mark.parametrize(
         ("payload", "expected"),
-        [(None, None), ({"session": None}, None), ({"session": {"session_id": "S1", "status": "ACTIVE"}}, {"session_id": "S1", "status": "ACTIVE"})],
+        [
+            (None, None),
+            ({"session": None}, None),
+            (
+                {"session": {"session_id": "S1", "status": "ACTIVE"}},
+                {"session_id": "S1", "status": "ACTIVE"},
+            ),
+        ],
     )
     def test_extract_current_session(self, ocpp_states, payload, expected):
         assert (
@@ -225,7 +245,9 @@ class TestOcppStateHelpers:
         monkeypatch.setattr(
             ocpp_states.urllib.request, "urlopen", fake_urlopen, raising=True
         )
-        assert ocpp_states._http_get_json_sync("http://x", timeout_seconds=0.1) == {"ok": True}
+        assert ocpp_states._http_get_json_sync("http://x", timeout_seconds=0.1) == {
+            "ok": True
+        }
 
         def fake_urlopen_error(req, timeout):
             raise ocpp_states.urllib.error.URLError("boom")
