@@ -2,8 +2,8 @@
 OCPP Station Client Runner (Phase-1)
 
 Created: 2025-12-16 01:20
-Last Modified: 2025-12-21 20:35
-Version: 0.6.0
+Last Modified: 2025-12-22 05:03
+Version: 0.6.2
 Description:
   OCPP station client entrypoint for Raspberry Pi (Python runtime).
   - Primary: OCPP 2.0.1 (v201)
@@ -64,6 +64,7 @@ def _verify_python_ocpp_package() -> None:
     import importlib
 
     repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    local_ocpp_dir = os.path.abspath(os.path.join(repo_root, "ocpp"))
 
     try:
         ocpp_pkg = importlib.import_module("ocpp")
@@ -84,7 +85,13 @@ def _verify_python_ocpp_package() -> None:
         )
 
     pkg_file_abs = os.path.abspath(str(pkg_file))
-    if pkg_file_abs.startswith(repo_root + os.sep):
+    # NOTE:
+    # - Repo lives at `/home/basar/charger/` and also contains a venv at `./env/`.
+    # - When the venv is inside the repo, site-packages also lives under repo_root.
+    # Therefore, we only fail fast if `import ocpp` resolves to the *project's*
+    # `./ocpp/` directory (shadowing the python-ocpp library), not merely any path
+    # under repo_root.
+    if pkg_file_abs.startswith(local_ocpp_dir + os.sep):
         raise RuntimeError(
             "Python package conflict: `import ocpp` resolved to the repo path "
             f"({pkg_file_abs}). Expected python-ocpp from site-packages. "
@@ -243,7 +250,7 @@ async def _run_primary_then_fallback(cfg: Any) -> None:
             adapter = Ocpp201Adapter(cfg)
             await adapter.run()
             return
-        except BaseException as e:
+        except Exception as e:
             sys.stderr.write(f"[OCPP] Primary (2.0.1) failed: {e}\n")
             sys.stderr.flush()
 
@@ -256,7 +263,7 @@ async def _run_primary_then_fallback(cfg: Any) -> None:
         adapter = Ocpp16Adapter(cfg)
         await adapter.run()
         return
-    except BaseException as e:
+    except Exception as e:
         sys.stderr.write(f"[OCPP] Primary (1.6J) failed: {e}\n")
         sys.stderr.flush()
 
