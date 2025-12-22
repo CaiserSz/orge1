@@ -1,8 +1,8 @@
 """
 Database Core Module
 Created: 2025-12-10 19:00:00
-Last Modified: 2025-12-10 19:00:00
-Version: 2.0.0
+Last Modified: 2025-12-22 04:17:24
+Version: 2.0.1
 Description: SQLite database yönetimi ve session storage - Core module
 """
 
@@ -41,7 +41,9 @@ class Database(DatabaseSchemaMixin, DatabaseQueryMixin):
             db_path = str(data_dir / "sessions.db")
 
         self.db_path = db_path
-        self.lock = threading.Lock()
+        # NOTE: Query mixin'leri iç içe birbirini çağırabiliyor (örn. migrate -> create_event)
+        # Bu nedenle reentrant lock kullanıyoruz; aksi halde aynı thread içinde deadlock oluşur.
+        self.lock = threading.RLock()
         self._connection: Optional[sqlite3.Connection] = None
         self._connection_lock = threading.Lock()
         # Query result cache (basit in-memory cache)

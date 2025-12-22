@@ -1,28 +1,29 @@
 """
 Database Optimization Testleri
 Created: 2025-12-10 15:10:00
-Last Modified: 2025-12-10 15:10:00
-Version: 1.0.0
-Description: Database optimization modülü için testler
+Last Modified: 2025-12-22 01:30:00
+Version: 1.1.0
+Description: Database optimization modülü ve core DB query mixin'leri için testler
 """
 
 import sys
 import time
+from datetime import datetime, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import os
 import sqlite3
 import tempfile
-import os
 
-from api.database_optimization import (
-    analyze_query_plan,
-    optimize_indexes,
-    batch_update_sessions,
-    get_query_statistics,
-    analyze_slow_queries,
-)
+import pytest
+
+from api.database.core import Database
+from api.database_optimization import (analyze_query_plan,
+                                       analyze_slow_queries,
+                                       batch_update_sessions,
+                                       get_query_statistics, optimize_indexes)
 
 
 class TestDatabaseOptimization:
@@ -142,3 +143,133 @@ class TestDatabaseOptimization:
             assert "query" in query_info
             assert "plan" in query_info
             assert "uses_index" in query_info
+
+
+class TestEventQueryMixin:
+    """api/database/event_queries.py için core DB üstünden integration-style unit testler (in-memory)."""
+
+    def test_create_and_get_session_events(self):
+        db = Database(db_path=":memory:")
+        session_id = "S1"
+
+        t0 = datetime(2025, 1, 1, 0, 0, 0)
+        assert db.create_session(
+            session_id=session_id,
+            start_time=t0,
+            start_state=1,
+            events=[],
+            metadata={},
+            user_id="U1",
+        )
+
+        t1 = t0 + timedelta(seconds=1)
+        ok1 = db.create_event(
+            session_id=session_id,
+            user_id="U1",
+            event_type="STATE_CHANGE",
+            event_timestamp=t1,
+            from_state=1,
+            to_state=2,
+            from_state_name="EV_CONNECTED",
+            to_state_name="CHARGING",
+            current_a=10.0,
+            voltage_v=230.0,
+            power_kw=2.3,
+            event_data={"foo": "bar"},
+            status_data={"CABLE": 16, "CPV": 230},
+        )
+        assert ok1 is True
+
+        t2 = t0 + timedelta(seconds=2)
+        ok2 = db.create_event(
+            session_id=session_id,
+            user_id="U1",
+            event_type="HEARTBEAT",
+            event_timestamp=t2,
+        )
+        assert ok2 is True
+
+        events = db.get_session_events(session_id=session_id)
+        assert len(events) == 2
+        assert events[0]["event_type"] == "HEARTBEAT"
+        assert events[1]["event_type"] == "STATE_CHANGE"
+
+        filtered = db.get_session_events(
+            session_id=session_id, event_type="STATE_CHANGE"
+        )
+        assert len(filtered) == 1
+        assert filtered[0]["event_data"]["foo"] == "bar"
+        assert filtered[0]["status_data"]["CPV"] == 230
+
+    def test_create_event_requires_existing_session(self):
+        db = Database(db_path=":memory:")
+        ok = db.create_event(
+            session_id="MISSING",
+            user_id=None,
+            event_type="STATE_CHANGE",
+            event_timestamp=datetime(2025, 1, 1, 0, 0, 0),
+        )
+        assert ok is False
+
+    def test_migrate_events_to_table_success(self):
+        db = Database(db_path=":memory:")
+        session_id = "S2"
+        t0 = datetime(2025, 1, 1, 0, 0, 0)
+
+        events = [
+            {
+                "event_type": "STATE_CHANGE",
+                "timestamp": t0.isoformat(),
+                "data": {
+                    "from_state": 1,
+                    "to_state": 2,
+                    "from_state_name": "EV_CONNECTED",
+                    "to_state_name": "CHARGING",
+                    "status": {"CABLE": 16, "CPV": 230},
+                },
+            }
+        ]
+        assert db.create_session(
+            session_id=session_id,
+            start_time=t0,
+            start_state=1,
+            events=events,
+            metadata={},
+            user_id=None,
+        )
+
+        migrated = db.migrate_events_to_table(session_id=session_id)
+        assert migrated == 1
+
+        rows = db.get_session_events(session_id=session_id)
+        assert len(rows) == 1
+        row = rows[0]
+        assert row["event_type"] == "STATE_CHANGE"
+        assert row["from_state"] == 1
+        assert row["to_state"] == 2
+        assert row["current_a"] == pytest.approx(16.0)
+        assert row["voltage_v"] == pytest.approx(230.0)
+        assert row["status_data"]["CPV"] == 230
+
+    def test_migrate_events_to_table_skips_invalid_json(self):
+        db = Database(db_path=":memory:")
+        session_id = "S3"
+        t0 = datetime(2025, 1, 1, 0, 0, 0)
+
+        assert db.create_session(
+            session_id=session_id,
+            start_time=t0,
+            start_state=1,
+            events=[],
+            metadata={},
+            user_id=None,
+        )
+
+        conn = db._get_connection()
+        conn.execute(
+            "UPDATE sessions SET events = ? WHERE session_id = ?",
+            ("{bad_json", session_id),
+        )
+        conn.commit()
+
+        assert db.migrate_events_to_table(session_id=session_id) == 0

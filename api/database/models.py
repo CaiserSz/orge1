@@ -1,8 +1,8 @@
 """
 Database Models Module
 Created: 2025-12-10 19:00:00
-Last Modified: 2025-12-10 19:00:00
-Version: 1.0.0
+Last Modified: 2025-12-22 04:17:24
+Version: 1.0.1
 Description: Database row to dict conversion helpers
 """
 
@@ -112,10 +112,12 @@ def event_row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:
     Returns:
         Event dict'i
     """
+    user_id = row["user_id"] if "user_id" in row.keys() else None
+
     return {
         "id": row["id"],
         "session_id": row["session_id"],
-        "user_id": row.get("user_id"),
+        "user_id": user_id,
         "event_type": row["event_type"],
         "event_timestamp": datetime.fromtimestamp(row["event_timestamp"]).isoformat(),
         "from_state": row["from_state"],

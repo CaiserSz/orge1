@@ -1,8 +1,8 @@
 """
 Database Migrations Module
 Created: 2025-12-10 19:00:00
-Last Modified: 2025-12-10 19:00:00
-Version: 1.0.0
+Last Modified: 2025-12-22 04:17:24
+Version: 1.0.1
 Description: Database migration operations
 """
 
@@ -120,6 +120,14 @@ def migrate_user_id_column(cursor):
             system_logger.info("user_id kolonu sessions tablosuna eklendi")
 
         # session_events tablosuna user_id ekle
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='session_events'"
+        )
+        if cursor.fetchone() is None:
+            # Yeni DB init akışında session_events henüz oluşturulmadan burası çağrılabiliyor.
+            # Bu durumda migration sessizce skip edilir.
+            return
+
         cursor.execute("PRAGMA table_info(session_events)")
         columns = [col[1] for col in cursor.fetchall()]
         if "user_id" not in columns:
