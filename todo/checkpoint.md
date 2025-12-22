@@ -1,8 +1,8 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-22 00:26:33
-**Version:** 1.18.0
+**Son Güncelleme:** 2025-12-22 04:32:07
+**Version:** 1.19.0
 
 ---
 
@@ -14,8 +14,18 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251222-044
-**Tarih:** 2025-12-22 00:26:33
+**Checkpoint ID:** CP-20251222-045
+**Tarih:** 2025-12-22 04:32:07
+**Durum:** ✅ DB EventQuery deadlock fix + test teyidi
+- Database (SQLite):
+  - Deadlock fix: `migrate_events_to_table()` → `create_event()` iç içe çağrısında `Lock` reentrant olmadığı için deadlock oluyordu; `RLock` ile düzeltildi (`api/database/core.py`).
+  - `event_row_to_dict()` içinde `sqlite3.Row.get()` hatası giderildi (safe access) (`api/database/models.py`).
+  - Yeni DB init sırasında `session_events` yokken gereksiz uyarı üretmemesi için `migrate_user_id_column()` table-exists check ile sessizce skip edecek şekilde güncellendi (`api/database/migrations.py`).
+- Test:
+  - `tests/test_database_optimization.py` içine EventQuery senaryoları eklendi.
+  - `./env/bin/pytest -q tests/test_database_optimization.py` → ✅ 9 passed
+
+### Önceki Checkpoint: CP-20251222-044 (2025-12-22 00:26:33)
 **Durum:** ✅ Backup automation + ngrok boot order + canonical test SSOT + meter unit tests
 - Backup (systemd):
   - `backup.service` / `backup.timer` cihazda kuruldu ve timer enable edildi (günlük 02:00, randomized delay + persistent).
