@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-22 04:22:08
+**Son Güncelleme:** 2025-12-22 05:48:01
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -623,13 +623,13 @@ CREATE TABLE sessions (
 ### Workspace Temizliği ve Optimizasyonu
 
 - [ ] **Görev:** Workspace temizliği
-  - Açıklama: Workspace boyutu (env/logs hariç) ~12.85 MB; env/ ~90 MB, logs/ ~0 MB. CI/repoda env genelde git dışı olsa da cihazda disk kullanımını izlemek için periyodik temizlik/optimizasyon planlanmalı.
+  - Açıklama: Workspace boyutu (env/logs hariç) ~33.37 MB; env/ ~98.55 MB, logs/ ~85 MB. Cihazda disk kullanımını izlemek için periyodik temizlik/optimizasyon planlanmalı (özellikle logs/ rotasyon/retention).
   - Öncelik: 8
   - Tahmini Süre: 30 dakika
   - Durum: 📋 Bekliyor
   - Detaylar: `scripts/workspace_auto_check.py` raporuna bakınız
   - Aksiyon (2025-12-12 21:05:00): `docs/acrel/` klasörü `.gitignore`'a eklenerek ağır görsel/doküman arşivi git geçmişinden hariç tutuldu. Durum: ✅ 2025-12-12 21:12:00 (Code Quality Expert)
-  - Aksiyon (2025-12-12 21:08:00): `git status` çıktısında kök dizinde `3}s` adlı beklenmedik bir dosya görüldü; kaynağı bilinmediği için temizlenmedi, manuel inceleme gerekiyor.
+  - Not (2025-12-22): Kök dizin kontrol edildi; `3}s` adlı beklenmedik dosya şu an görünmüyor (muhtemelen otomatik/manuel temizlendi).
 
 - [ ] **Görev:** Bazı session'larda enerji delta/başlangıç zamanı plausibility analizi (SKIP edilenler)
   - Açıklama: Retro metrik düzeltme sırasında bazı kayıtlar `energy_kwh` değeri, teorik maksimuma göre imkânsız çıktığı için otomatik düzeltilmedi (muhtemel sayaç reset/rollover, register semantiği veya timestamp (ms/s) hatası). Bu kayıtlar ayrıca start_time sıralamasını bozabilir.

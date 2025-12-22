@@ -1,7 +1,7 @@
 # Tamamlanan Görevler
 
 **Oluşturulma Tarihi:** 2025-12-08 18:20:00
-**Son Güncelleme:** 2025-12-22 04:22:08
+**Son Güncelleme:** 2025-12-22 05:43:53
 
 ---
 
@@ -59,6 +59,15 @@
 - **Test/Doğrulama:**
   - `python3 -m py_compile api/database/core.py api/database/models.py api/database/migrations.py` → ✅
   - `./env/bin/pytest -q tests/test_database_optimization.py` → ✅ (9 passed)
+
+#### ✅ OCPP daemon 3dk run (env/venv uyumu) + shutdown fix
+- **Görev:** OCPP daemon’u `.env` ile çalıştır + venv-in-repo dependency-check yanlış pozitifi ve shutdown cancel fallback bug’ını düzelt
+- **Açıklama:**
+  - `.env` içinden `OCPP_STATION_PASSWORD` ile daemon çalıştırma doğrulandı (secret loglanmadan).
+  - `ocpp/main.py` dependency-check yanlış pozitifi düzeltildi: venv `./env/` repo içinde olsa bile conflict sayılmıyor; sadece proje içi `./ocpp/` shadow ederse fail ediyor.
+  - SIGTERM/SIGINT shutdown sırasında cancel kaynaklı yanlış v16 fallback tetiklenmesi engellendi.
+- **Kanıt:**
+  - Log: `/tmp/ocpp_daemon_orge_ac_001.log` (BootNotification=Accepted, Status=Available, Heartbeat 60s, clean shutdown)
 
 ### 2025-12-21
 

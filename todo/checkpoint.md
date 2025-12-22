@@ -1,8 +1,8 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-22 04:32:07
-**Version:** 1.19.0
+**Son Güncelleme:** 2025-12-22 05:43:53
+**Version:** 1.20.0
 
 ---
 
@@ -14,8 +14,18 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251222-045
-**Tarih:** 2025-12-22 04:32:07
+**Checkpoint ID:** CP-20251222-046
+**Tarih:** 2025-12-22 05:43:53
+**Durum:** ✅ OCPP daemon 3dk run + env/venv uyumluluğu
+- OCPP (station client):
+  - `.env` içinden `OCPP_STATION_PASSWORD` ile daemon çalıştırma doğrulandı (secret loglanmadan).
+  - `ocpp/main.py` dependency-check yanlış pozitifi düzeltildi: venv `./env/` repo içinde olsa bile artık conflict sayılmıyor; sadece proje içi `./ocpp/` shadow ederse fail ediyor.
+  - SIGTERM/SIGINT shutdown sırasında cancel kaynaklı yanlış “fallback (v16) run” tetiklenmesi engellendi.
+- Kanıt (3dk):
+  - Log: `/tmp/ocpp_daemon_orge_ac_001.log`
+  - `BootNotification=Accepted`, `StatusNotification(Available)`, `Heartbeat (60s aralık)`, ardından `shutdown requested; stopping daemon`
+
+### Önceki Checkpoint: CP-20251222-045 (2025-12-22 04:32:07)
 **Durum:** ✅ DB EventQuery deadlock fix + test teyidi
 - Database (SQLite):
   - Deadlock fix: `migrate_events_to_table()` → `create_event()` iç içe çağrısında `Lock` reentrant olmadığı için deadlock oluyordu; `RLock` ile düzeltildi (`api/database/core.py`).
