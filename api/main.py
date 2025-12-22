@@ -75,6 +75,7 @@ app.include_router(meter.router)
 app.include_router(station.router)
 app.include_router(mobile.router)
 app.include_router(test.router)
+app.include_router(test.admin_router)
 app.include_router(sessions.router)
 
 

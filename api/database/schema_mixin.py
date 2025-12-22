@@ -1,9 +1,13 @@
 """
 Database Schema Mixin
 Created: 2025-12-13 02:20:00
-Last Modified: 2025-12-13 02:20:00
-Version: 1.0.0
+Last Modified: 2025-12-22 17:30:00
+Version: 1.1.0
 Description: Database şema oluşturma ve optimizasyon yardımcı mixin'i.
+
+Notes:
+  - Admin UI için OCPP station profile ve admin credential tabloları eklendi.
+  - Admin parolası DB'de hash+salt olarak tutulur (düz metin tutulmaz).
 """
 
 from __future__ import annotations
@@ -172,6 +176,48 @@ class DatabaseSchemaMixin:
                     """
                     CREATE INDEX IF NOT EXISTS idx_sessions_status_end_time
                     ON sessions(status, end_time DESC)
+                    """
+                )
+
+                # --- Admin / OCPP Profiles (for OCPP runner UI) ---
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS admin_users (
+                        username TEXT PRIMARY KEY,
+                        password_salt BLOB NOT NULL,
+                        password_hash BLOB NOT NULL,
+                        password_iterations INTEGER NOT NULL,
+                        created_at INTEGER NOT NULL,
+                        updated_at INTEGER NOT NULL
+                    )
+                    """
+                )
+
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS ocpp_station_profiles (
+                        profile_key TEXT PRIMARY KEY,
+                        station_name TEXT NOT NULL,
+                        ocpp_version TEXT NOT NULL CHECK(ocpp_version IN ('2.0.1', '1.6j')),
+                        ocpp201_url TEXT,
+                        ocpp16_url TEXT,
+                        vendor_name TEXT NOT NULL,
+                        model TEXT NOT NULL,
+                        serial_number TEXT,
+                        firmware_version TEXT,
+                        password_env_var TEXT NOT NULL,
+                        heartbeat_seconds INTEGER NOT NULL DEFAULT 60 CHECK(heartbeat_seconds > 0),
+                        enabled INTEGER NOT NULL DEFAULT 1 CHECK(enabled IN (0,1)),
+                        created_at INTEGER NOT NULL,
+                        updated_at INTEGER NOT NULL
+                    )
+                    """
+                )
+
+                cursor.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_ocpp_station_profiles_enabled
+                    ON ocpp_station_profiles(enabled)
                     """
                 )
 

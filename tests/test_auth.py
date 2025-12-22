@@ -1,13 +1,14 @@
 """
 API Authentication Tests
 Created: 2025-12-09 17:20:00
-Last Modified: 2025-12-11 20:00:00
-Version: 1.0.3
+Last Modified: 2025-12-22 17:55:00
+Version: 1.0.4
 Description: API authentication testleri
 """
 
 import os
 import sys
+import base64
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -175,3 +176,51 @@ class TestAPIAuthentication:
             response = client.get("/api/status")
             # Status endpoint authentication gerektirmiyor, 200 veya 503 olabilir
             assert response.status_code in [200, 503]
+
+
+class TestAdminUI:
+    """Admin UI (HTTP Basic) smoke tests."""
+
+    @pytest.fixture
+    def client(self, tmp_path):
+        """
+        Test client with isolated DB.
+
+        Not:
+          - Admin UI endpoint'leri DB kullanır (admin_users + ocpp_station_profiles).
+          - Production DB etkilenmesin diye singleton DB instance'ını tmp dosyaya yönlendiririz.
+        """
+        from api.database import core as db_core
+
+        # Reset singleton (defensive)
+        db_core.database_instance = None
+        db_core.database_instance = db_core.Database(str(tmp_path / "test_sessions.db"))
+
+        return TestClient(app, raise_server_exceptions=False)
+
+    def _basic(self, username: str, password: str) -> str:
+        token = base64.b64encode(f"{username}:{password}".encode("utf-8")).decode(
+            "ascii"
+        )
+        return f"Basic {token}"
+
+    def test_admin_requires_basic_auth(self, client):
+        resp = client.get("/admin")
+        assert resp.status_code == 401
+        assert resp.headers.get("www-authenticate") == "Basic"
+
+    def test_admin_accepts_default_credentials(self, client):
+        resp = client.get(
+            "/admin",
+            headers={"Authorization": self._basic("admin", "admin123")},
+        )
+        assert resp.status_code == 200
+        assert "Charger Admin" in resp.text
+
+    def test_admin_profiles_list_json(self, client):
+        resp = client.get(
+            "/admin/api/profiles",
+            headers={"Authorization": self._basic("admin", "admin123")},
+        )
+        assert resp.status_code == 200
+        assert isinstance(resp.json(), list)
