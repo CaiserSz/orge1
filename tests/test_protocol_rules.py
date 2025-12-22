@@ -1,7 +1,7 @@
 """
 Protocol Rule Tests
 Created: 2025-12-13 02:40:00
-Last Modified: 2025-12-16 09:57:00
+Last Modified: 2025-12-22 06:10:00
 Version: 1.1.0
 Description: ESP32 protokol kuralları ve edge case testleri.
 """
@@ -16,36 +16,35 @@ import sys
 import pytest
 
 
+def _load_protocol_json() -> dict:
+    protocol_path = Path(__file__).parent.parent / "esp32" / "protocol.json"
+    with open(protocol_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
 class TestProtocolRules:
     """Protocol rules validation tests"""
 
     @pytest.fixture
     def rules(self):
         """Load rules section"""
-        protocol_path = Path(__file__).parent.parent / "esp32" / "protocol.json"
-        with open(protocol_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        return data.get("rules", {})
+        return _load_protocol_json().get("rules", {})
 
     def test_rules_exist(self, rules):
-        """Test that rules section exists and has content"""
         assert len(rules) > 0, "rules bölümü boş"
 
-    def test_current_set_only_before_charging_rule(self, rules):
-        """Test current_set_only_before_charging rule"""
-        assert (
-            "current_set_only_before_charging" in rules
-        ), "current_set_only_before_charging kuralı bulunamadı"
+    @pytest.mark.parametrize(
+        "rule_key",
+        [
+            "current_set_only_before_charging",
+            "only_defined_commands",
+            "current_set_range",
+        ],
+    )
+    def test_rule_key_exists(self, rules, rule_key: str):
+        assert rule_key in rules, f"{rule_key} kuralı bulunamadı"
 
-    def test_only_defined_commands_rule(self, rules):
-        """Test only_defined_commands rule"""
-        assert (
-            "only_defined_commands" in rules
-        ), "only_defined_commands kuralı bulunamadı"
-
-    def test_current_set_range_rule(self, rules):
-        """Test current_set_range rule"""
-        assert "current_set_range" in rules, "current_set_range kuralı bulunamadı"
+    def test_current_set_range_mentions_6_32(self, rules):
         rule_text = rules["current_set_range"]
         assert (
             "6-32" in rule_text
@@ -58,9 +57,7 @@ class TestProtocolEdgeCases:
     @pytest.fixture
     def protocol_data(self):
         """Load protocol.json data"""
-        protocol_path = Path(__file__).parent.parent / "esp32" / "protocol.json"
-        with open(protocol_path, "r", encoding="utf-8") as f:
-            return json.load(f)
+        return _load_protocol_json()
 
     def test_no_duplicate_command_ids(self, protocol_data):
         """Test that no two commands have same ID and value combination"""
@@ -119,13 +116,7 @@ class TestProtocolEdgeCases:
 
 
 def _load_module_from_path(module_name: str, file_path: Path):
-    """
-    Load a module from a file path (to test standalone scripts/modules).
-
-    Not:
-      `ocpp/` klasörü bu projede package değildir (init yok); bu yüzden helper ile
-      dosya yolundan import edilir. Coverage, filename üzerinden doğru sayılır.
-    """
+    """Load module from file path (ocpp/ package değil; path-based import gerekir)."""
     spec = importlib.util.spec_from_file_location(module_name, str(file_path))
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -156,116 +147,64 @@ class TestOcppStateHelpers:
         ctx = ocpp_states.ssl_if_needed("wss://example.com")
         assert ctx is not None
 
-    def test_safe_float(self, ocpp_states):
-        assert ocpp_states.safe_float(None) is None
-        assert ocpp_states.safe_float("12.5") == 12.5
-        assert ocpp_states.safe_float(3) == 3.0
-        assert ocpp_states.safe_float("nope") is None
+    @pytest.mark.parametrize(
+        ("value", "expected"),
+        [(None, None), ("12.5", 12.5), (3, 3.0), ("nope", None)],
+    )
+    def test_safe_float(self, ocpp_states, value, expected):
+        assert ocpp_states.safe_float(value) == expected
 
-    def test_serial_number_for_station_name(self, ocpp_states):
-        assert ocpp_states.serial_number_for_station_name("") == "UNKNOWN"
-        assert ocpp_states.serial_number_for_station_name("   ") == "UNKNOWN"
-        assert (
-            ocpp_states.serial_number_for_station_name("ORGE_AC_001") == "ORGE_AC_001"
-        )
+    @pytest.mark.parametrize(
+        ("name", "expected"),
+        [("", "UNKNOWN"), ("   ", "UNKNOWN"), ("ORGE_AC_001", "ORGE_AC_001")],
+    )
+    def test_serial_number_for_station_name(self, ocpp_states, name: str, expected: str):
+        assert ocpp_states.serial_number_for_station_name(name) == expected
         long_name = "X" * 100
         assert len(ocpp_states.serial_number_for_station_name(long_name)) == 25
 
-    def test_derive_connector_status_label(self, ocpp_states):
-        def _payload(state_name=None, availability=None):
-            return {
-                "data": {
-                    "status": {
-                        "state_name": state_name,
-                        "availability": availability,
-                    }
-                }
-            }
+    @pytest.mark.parametrize(
+        ("state_name", "availability", "expected"),
+        [
+            ("IDLE", None, "available"),
+            ("CHARGING", None, "occupied"),
+            ("READY", None, "reserved"),
+            ("FAULT_HARD", None, "faulted"),
+            (None, "busy", "occupied"),
+            ("UNKNOWN", "available", "available"),
+            ("UNKNOWN", "something", "unavailable"),
+        ],
+    )
+    def test_derive_connector_status_label(self, ocpp_states, state_name, availability, expected):
+        def _payload():
+            return {"data": {"status": {"state_name": state_name, "availability": availability}}}
 
+        assert ocpp_states.derive_connector_status_label_from_station_payload(None) is None
         assert (
-            ocpp_states.derive_connector_status_label_from_station_payload(None) is None
-        )
-        assert (
-            ocpp_states.derive_connector_status_label_from_station_payload(
-                _payload("IDLE", None)
-            )
-            == "available"
-        )
-        assert (
-            ocpp_states.derive_connector_status_label_from_station_payload(
-                _payload("CHARGING", None)
-            )
-            == "occupied"
-        )
-        assert (
-            ocpp_states.derive_connector_status_label_from_station_payload(
-                _payload("READY", None)
-            )
-            == "reserved"
-        )
-        assert (
-            ocpp_states.derive_connector_status_label_from_station_payload(
-                _payload("FAULT_HARD", None)
-            )
-            == "faulted"
-        )
-        assert (
-            ocpp_states.derive_connector_status_label_from_station_payload(
-                _payload(None, "busy")
-            )
-            == "occupied"
-        )
-        assert (
-            ocpp_states.derive_connector_status_label_from_station_payload(
-                _payload("UNKNOWN", "available")
-            )
-            == "available"
-        )
-        assert (
-            ocpp_states.derive_connector_status_label_from_station_payload(
-                _payload("UNKNOWN", "something")
-            )
-            == "unavailable"
+            ocpp_states.derive_connector_status_label_from_station_payload(_payload())
+            == expected
         )
 
-    def test_extract_energy_import_kwh(self, ocpp_states):
-        assert ocpp_states.extract_energy_import_kwh_from_meter_payload(None) is None
-        assert (
-            ocpp_states.extract_energy_import_kwh_from_meter_payload(
-                {"data": {"totals": {"energy_import_kwh": 10.25}}}
-            )
-            == 10.25
-        )
-        assert (
-            ocpp_states.extract_energy_import_kwh_from_meter_payload(
-                {"data": {"totals": {"energy_kwh": "9.0"}}}
-            )
-            == 9.0
-        )
-        assert (
-            ocpp_states.extract_energy_import_kwh_from_meter_payload(
-                {"data": {"energy_kwh": 7}}
-            )
-            == 7.0
-        )
+    @pytest.mark.parametrize(
+        ("payload", "expected"),
+        [
+            (None, None),
+            ({"data": {"totals": {"energy_import_kwh": 10.25}}}, 10.25),
+            ({"data": {"totals": {"energy_kwh": "9.0"}}}, 9.0),
+            ({"data": {"energy_kwh": 7}}, 7.0),
+        ],
+    )
+    def test_extract_energy_import_kwh(self, ocpp_states, payload, expected):
+        assert ocpp_states.extract_energy_import_kwh_from_meter_payload(payload) == expected
 
-    def test_extract_current_session(self, ocpp_states):
+    @pytest.mark.parametrize(
+        ("payload", "expected"),
+        [(None, None), ({"session": None}, None), ({"session": {"session_id": "S1", "status": "ACTIVE"}}, {"session_id": "S1", "status": "ACTIVE"})],
+    )
+    def test_extract_current_session(self, ocpp_states, payload, expected):
         assert (
-            ocpp_states.extract_current_session_from_sessions_current_payload(None)
-            is None
-        )
-        assert (
-            ocpp_states.extract_current_session_from_sessions_current_payload(
-                {"session": None}
-            )
-            is None
-        )
-        sess = {"session_id": "S1", "status": "ACTIVE"}
-        assert (
-            ocpp_states.extract_current_session_from_sessions_current_payload(
-                {"session": sess}
-            )
-            == sess
+            ocpp_states.extract_current_session_from_sessions_current_payload(payload)
+            == expected
         )
 
     def test_http_get_json_sync_success_and_error(self, ocpp_states, monkeypatch):
@@ -286,9 +225,7 @@ class TestOcppStateHelpers:
         monkeypatch.setattr(
             ocpp_states.urllib.request, "urlopen", fake_urlopen, raising=True
         )
-        assert ocpp_states._http_get_json_sync("http://x", timeout_seconds=0.1) == {
-            "ok": True
-        }
+        assert ocpp_states._http_get_json_sync("http://x", timeout_seconds=0.1) == {"ok": True}
 
         def fake_urlopen_error(req, timeout):
             raise ocpp_states.urllib.error.URLError("boom")

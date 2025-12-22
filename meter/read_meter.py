@@ -1,7 +1,7 @@
 """
 ABB Meter RS485 Okuma Modülü
 Created: 2025-12-09 02:50:00
-Last Modified: 2025-12-12 08:00:00
+Last Modified: 2025-12-22 06:01:00
 Version: 1.1.0
 Description: ABB meter'dan RS485 üzerinden Modbus RTU protokolü ile veri okuma
 """
@@ -85,9 +85,7 @@ def _u64_from_4regs(regs: List[int]) -> int:
 
 
 class ABBMeterReader:
-    """
-    ABB Meter RS485 Modbus RTU okuyucu sınıfı
-    """
+    """ABB Meter RS485 (Modbus RTU) okuyucu."""
 
     def __init__(
         self,
@@ -96,15 +94,7 @@ class ABBMeterReader:
         slave_id: int = DEFAULT_SLAVE_ID,
         timeout: float = DEFAULT_TIMEOUT,
     ):
-        """
-        ABB Meter Reader başlatıcı
-
-        Args:
-            device: Serial port cihaz dosyası (örn: /dev/ttyAMA5)
-            baudrate: Baudrate (genellikle 9600 veya 19200)
-            slave_id: Modbus slave ID (meter adresi)
-            timeout: Timeout süresi (saniye)
-        """
+        """Reader başlatıcı (device/baudrate/slave_id/timeout)."""
         self.device = device
         self.baudrate = baudrate
         self.slave_id = slave_id
@@ -116,12 +106,7 @@ class ABBMeterReader:
         self.logger = logging.getLogger(__name__)
 
     def connect(self) -> bool:
-        """
-        RS485 seri port bağlantısını aç
-
-        Returns:
-            Başarı durumu
-        """
+        """RS485 seri port bağlantısını aç."""
         try:
             if self.serial_connection and self.serial_connection.is_open:
                 self.disconnect()
@@ -160,22 +145,14 @@ class ABBMeterReader:
             return False
 
     def disconnect(self):
-        """RS485 seri port bağlantısını kapat"""
+        """RS485 seri port bağlantısını kapat."""
         if self.serial_connection and self.serial_connection.is_open:
             self.serial_connection.close()
         self.is_connected = False
         self.logger.info("ABB Meter bağlantısı kapatıldı")
 
     def _calculate_crc16(self, data: bytes) -> int:
-        """
-        Modbus RTU CRC16 hesaplama
-
-        Args:
-            data: CRC hesaplanacak veri
-
-        Returns:
-            CRC16 değeri (2 byte)
-        """
+        """Modbus RTU CRC16 hesapla."""
         crc = 0xFFFF
         for byte in data:
             crc ^= byte
@@ -189,17 +166,7 @@ class ABBMeterReader:
     def _build_modbus_request(
         self, function_code: int, start_address: int, quantity: int
     ) -> bytes:
-        """
-        Modbus RTU request paketi oluştur
-
-        Args:
-            function_code: Modbus function code
-            start_address: Başlangıç register adresi
-            quantity: Okunacak register sayısı
-
-        Returns:
-            Modbus RTU request paketi (bytes)
-        """
+        """Modbus RTU request paketi oluştur."""
         # Paket: [Slave ID] [Function Code] [Start Address High] [Start Address Low]
         #        [Quantity High] [Quantity Low] [CRC Low] [CRC High]
         request = struct.pack(
@@ -213,15 +180,7 @@ class ABBMeterReader:
         return request
 
     def _parse_modbus_response(self, response: bytes) -> Optional[List[int]]:
-        """
-        Modbus RTU response paketini parse et
-
-        Args:
-            response: Modbus RTU response paketi
-
-        Returns:
-            Register değerleri listesi veya None (hata durumunda)
-        """
+        """Modbus RTU response parse et (register listesi veya None)."""
         if len(response) < 5:  # Minimum response uzunluğu
             return None
 
@@ -264,12 +223,7 @@ class ABBMeterReader:
         return registers
 
     def _send_modbus_request(self, request: bytes) -> Optional[bytes]:
-        """
-        Modbus RTU request gönder ve response oku.
-
-        Not: Exception response'larda (function_code | 0x80) byte_count alanı yoktur.
-        Bu nedenle response'u 3-byte header ile okuyup devamını dinamik tamamlarız.
-        """
+        """Modbus RTU request gönderip response oku (exception response destekli)."""
         if (
             not self.is_connected
             or not self.serial_connection
@@ -316,73 +270,39 @@ class ABBMeterReader:
             self.logger.error(f"Request/response hatası: {e}")
             return None
 
-    def read_holding_registers(
-        self, start_address: int, quantity: int
+    def _read_registers(
+        self, function_code: int, start_address: int, quantity: int
     ) -> Optional[List[int]]:
-        """
-        Holding register'ları oku (Function Code 0x03)
-
-        Args:
-            start_address: Başlangıç register adresi
-            quantity: Okunacak register sayısı
-
-        Returns:
-            Register değerleri listesi veya None (hata durumunda)
-        """
+        """Register oku (holding/input)."""
         try:
-            # Request paketi oluştur
-            request = self._build_modbus_request(
-                MODBUS_READ_HOLDING_REGISTERS, start_address, quantity
-            )
+            request = self._build_modbus_request(function_code, start_address, quantity)
             response = self._send_modbus_request(request)
             if not response or len(response) < 5:
                 return None
 
-            # Response parse et
-            registers = self._parse_modbus_response(response)
-            return registers
-
+            return self._parse_modbus_response(response)
         except Exception as e:
             self.logger.error(f"Register okuma hatası: {e}")
             return None
 
+    def read_holding_registers(
+        self, start_address: int, quantity: int
+    ) -> Optional[List[int]]:
+        """Holding register'ları oku (Function Code 0x03)."""
+        return self._read_registers(
+            MODBUS_READ_HOLDING_REGISTERS, start_address, quantity
+        )
+
     def read_input_registers(
         self, start_address: int, quantity: int
     ) -> Optional[List[int]]:
-        """
-        Input register'ları oku (Function Code 0x04)
-
-        Args:
-            start_address: Başlangıç register adresi
-            quantity: Okunacak register sayısı
-
-        Returns:
-            Register değerleri listesi veya None (hata durumunda)
-        """
-        try:
-            # Request paketi oluştur
-            request = self._build_modbus_request(
-                MODBUS_READ_INPUT_REGISTERS, start_address, quantity
-            )
-            response = self._send_modbus_request(request)
-            if not response or len(response) < 5:
-                return None
-
-            # Response parse et
-            registers = self._parse_modbus_response(response)
-            return registers
-
-        except Exception as e:
-            self.logger.error(f"Input register okuma hatası: {e}")
-            return None
+        """Input register'ları oku (Function Code 0x04)."""
+        return self._read_registers(
+            MODBUS_READ_INPUT_REGISTERS, start_address, quantity
+        )
 
     def read_meter_data(self) -> Optional[Dict[str, Any]]:
-        """
-        ABB meter'dan tüm önemli verileri oku
-
-        Returns:
-            Meter verileri dict'i veya None (hata durumunda)
-        """
+        """ABB meter'dan temel verileri oku (dict) veya None döndür."""
         if not self.is_connected:
             if not self.connect():
                 return None
@@ -440,12 +360,7 @@ class ABBMeterReader:
             return None
 
     def test_connection(self) -> bool:
-        """
-        Meter bağlantısını test et
-
-        Returns:
-            Başarı durumu
-        """
+        """Meter bağlantısını basit register okuması ile test et."""
         if not self.is_connected:
             if not self.connect():
                 return False

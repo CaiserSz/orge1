@@ -1,7 +1,7 @@
 # Tamamlanan Görevler
 
 **Oluşturulma Tarihi:** 2025-12-08 18:20:00
-**Son Güncelleme:** 2025-12-22 05:43:53
+**Son Güncelleme:** 2025-12-22 06:08:33
 
 ---
 
@@ -68,6 +68,18 @@
   - SIGTERM/SIGINT shutdown sırasında cancel kaynaklı yanlış v16 fallback tetiklenmesi engellendi.
 - **Kanıt:**
   - Log: `/tmp/ocpp_daemon_orge_ac_001.log` (BootNotification=Accepted, Status=Available, Heartbeat 60s, clean shutdown)
+
+#### ✅ Standart uyarı eşiği yakın dosyaları kompaktlaştırma (satır limiti payı)
+- **Görev:** Satır limiti 500’e yaklaşan dosyaları (yeni dosya oluşturmadan) güvenli aralığa çek
+- **Açıklama:**
+  - `meter/read_meter.py`: 497 → 410 (docstring kısaltma + ortak register okuma helper’ı)
+  - `api/event_detector.py`: 477 → 414 (docstring/tekrar sadeleştirme + state name map sabitleme)
+  - `tests/test_protocol_rules.py`: 473 → 410 (parametrize/helper ile tekrar azaltma)
+- **Test/Doğrulama:**
+  - `./env/bin/python -m py_compile meter/read_meter.py api/event_detector.py tests/test_protocol_rules.py` → ✅
+  - `./env/bin/pytest -q tests/test_api_endpoints.py` → ✅
+  - `./env/bin/pytest -q tests/test_event_detector.py` → ✅
+  - `./env/bin/pytest -q tests/test_protocol_rules.py` → ✅
 
 ### 2025-12-21
 

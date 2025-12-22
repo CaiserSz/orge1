@@ -1,7 +1,7 @@
 """
 Event Detection Module
 Created: 2025-12-09 22:50:00
-Last Modified: 2025-12-16 16:25:00
+Last Modified: 2025-12-22 06:05:00
 Version: 1.1.1
 Description: ESP32 state transition detection ve event classification modülü
 """
@@ -21,22 +21,24 @@ from api.logging_config import log_event, log_incident, system_logger
 
 __all__ = ["EventDetector", "ESP32State", "EventType", "get_event_detector"]
 
+_STATE_NAMES: dict[int, str] = {
+    0: "HARDFAULT_END",
+    1: "IDLE",
+    2: "CABLE_DETECT",
+    3: "EV_CONNECTED",
+    4: "READY",
+    5: "CHARGING",
+    6: "PAUSED",
+    7: "STOPPED",
+    8: "FAULT_HARD",
+}
+
 
 class EventDetector:
-    """
-    ESP32 state transition detection ve event classification modülü
-
-    State transition'ları izler ve event'leri oluşturur.
-    Event'ler structured logging ile loglanır.
-    """
+    """ESP32 state transition detection + event classification."""
 
     def __init__(self, bridge_getter: Callable):
-        """
-        Event Detector başlatıcı
-
-        Args:
-            bridge_getter: ESP32Bridge instance'ı döndüren callable
-        """
+        """EventDetector (bridge_getter: ESP32Bridge döndüren callable)."""
         self.bridge_getter = bridge_getter
         self.current_state: Optional[int] = None
         self.previous_state: Optional[int] = None
@@ -51,7 +53,7 @@ class EventDetector:
         self._resume_last_suppressed_monotonic: Optional[float] = None
 
     def start_monitoring(self):
-        """Event detection monitoring'i başlat"""
+        """Event detection monitoring'i başlat."""
         if self.is_monitoring:
             return
 
@@ -61,18 +63,14 @@ class EventDetector:
         system_logger.info("Event detection monitoring başlatıldı")
 
     def stop_monitoring(self):
-        """Event detection monitoring'i durdur"""
+        """Event detection monitoring'i durdur."""
         self.is_monitoring = False
         if self._monitor_thread:
             self._monitor_thread.join(timeout=2.0)
         system_logger.info("Event detection monitoring durduruldu")
 
     def _monitor_loop(self):
-        """
-        State monitoring döngüsü
-
-        ESP32 bridge'den state değerlerini alır ve transition'ları tespit eder.
-        """
+        """State monitoring döngüsü (bridge status poll)."""
         while self.is_monitoring:
             try:
                 bridge = self.bridge_getter()
@@ -89,13 +87,7 @@ class EventDetector:
                 time.sleep(1.0)  # Hata durumunda daha uzun bekle
 
     def _check_state_transition(self, new_state: int, status: Dict[str, Any]):
-        """
-        State transition kontrolü ve event oluşturma
-
-        Args:
-            new_state: Yeni state değeri
-            status: Tam status dict'i
-        """
+        """State transition kontrolü ve event üretimi."""
         # Not: PAUSED -> CHARGING transition bazı araçlarda UI paused iken kısa süreli "bounce" yapabilir.
         # Bu nedenle bu transition'ı "resume" olarak kabul etmeden önce meter power + debounce ile doğruluyoruz.
         with self.state_lock:
@@ -132,14 +124,7 @@ class EventDetector:
             self._create_event(event_type, prev_state, new_state, status)
 
     def _schedule_resume_validation(self, status: Dict[str, Any]) -> None:
-        """
-        PAUSED -> CHARGING transition için "resume" doğrulamasını başlat.
-
-        Doğrulama kriteri:
-        - Meter power_kw >= RESUME_MIN_POWER_KW
-        - RESUME_REQUIRED_CONSECUTIVE_SAMPLES kadar ardışık örnek
-        - Örnekler RESUME_DEBOUNCE_SECONDS süresi içinde alınır
-        """
+        """PAUSED -> CHARGING için power-threshold tabanlı resume doğrulamasını başlat."""
         now_mono = time.monotonic()
         cooldown = float(
             getattr(config, "RESUME_SUPPRESS_COOLDOWN_SECONDS", 30.0) or 0.0
@@ -160,9 +145,7 @@ class EventDetector:
         ).start()
 
     def _resume_validation_worker(self) -> None:
-        """
-        Resume doğrulama worker'ı.
-        """
+        """Resume doğrulama worker'ı."""
         min_power_kw = float(getattr(config, "RESUME_MIN_POWER_KW", 1.0) or 1.0)
         debounce_seconds = float(
             getattr(config, "RESUME_DEBOUNCE_SECONDS", 10.0) or 0.0
@@ -322,15 +305,7 @@ class EventDetector:
         to_state: int,
         status: Dict[str, Any],
     ):
-        """
-        Event oluşturma ve loglama
-
-        Args:
-            event_type: Event type
-            from_state: Önceki state
-            to_state: Yeni state
-            status: Tam status dict'i
-        """
+        """Event oluştur, logla ve callback'leri çağır."""
         event_data = {
             "event_type": event_type.value,
             "from_state": from_state,
@@ -341,7 +316,6 @@ class EventDetector:
             "status": status,
         }
 
-        # Event'i logla
         log_event(event_type=event_type.value, event_data=event_data)
 
         incident_payload = self._detect_power_supply_warning(status)
@@ -354,7 +328,6 @@ class EventDetector:
                 event_type=event_type.value,
             )
 
-        # Callback'leri çağır (hata toleranslı)
         failed_callbacks = []
         for i, callback in enumerate(self.event_callbacks):
             try:
@@ -363,10 +336,8 @@ class EventDetector:
                 system_logger.error(
                     f"Event callback error (callback {i}): {e}", exc_info=True
                 )
-                # Hatalı callback'i işaretle (sonra temizlenecek)
                 failed_callbacks.append(i)
 
-        # Hatalı callback'leri listeden çıkar (ters sırada, index kaymasını önlemek için)
         if failed_callbacks:
             for i in reversed(failed_callbacks):
                 try:
@@ -375,31 +346,11 @@ class EventDetector:
                         f"Hatalı callback listeden çıkarıldı (index {i})"
                     )
                 except IndexError:
-                    # Callback zaten çıkarılmış olabilir
                     pass
 
     def _get_state_name(self, state: int) -> str:
-        """
-        State değerinden state adını döndür
-
-        Args:
-            state: State değeri
-
-        Returns:
-            State adı
-        """
-        state_names = {
-            0: "HARDFAULT_END",
-            1: "IDLE",
-            2: "CABLE_DETECT",
-            3: "EV_CONNECTED",
-            4: "READY",
-            5: "CHARGING",
-            6: "PAUSED",
-            7: "STOPPED",
-            8: "FAULT_HARD",
-        }
-        return state_names.get(state, f"UNKNOWN_{state}")
+        """State değerinden state adını döndür."""
+        return _STATE_NAMES.get(state, f"UNKNOWN_{state}")
 
     def _detect_power_supply_warning(
         self, status: Optional[Dict[str, Any]]
@@ -427,27 +378,21 @@ class EventDetector:
         return None
 
     def register_callback(self, callback: Callable):
-        """
-        Event callback kaydetme
-
-        Args:
-            callback: Event oluştuğunda çağrılacak fonksiyon
-                     Signature: callback(event_type: EventType, event_data: Dict[str, Any])
-        """
+        """Event callback kaydet (signature: callback(event_type, event_data))."""
         self.event_callbacks.append(callback)
 
     def unregister_callback(self, callback: Callable):
-        """Event callback kaldırma"""
+        """Event callback kaldır."""
         if callback in self.event_callbacks:
             self.event_callbacks.remove(callback)
 
     def get_current_state(self) -> Optional[int]:
-        """Mevcut state değerini döndür"""
+        """Mevcut state değerini döndür."""
         with self.state_lock:
             return self.current_state
 
     def get_previous_state(self) -> Optional[int]:
-        """Önceki state değerini döndür"""
+        """Önceki state değerini döndür."""
         with self.state_lock:
             return self.previous_state
 
@@ -458,15 +403,7 @@ event_detector_lock = threading.Lock()
 
 
 def get_event_detector(bridge_getter: Callable) -> EventDetector:
-    """
-    Event Detector singleton instance'ı döndür
-
-    Args:
-        bridge_getter: ESP32Bridge instance'ı döndüren callable
-
-    Returns:
-        EventDetector instance
-    """
+    """EventDetector singleton instance'ı döndür."""
     global event_detector_instance
 
     if event_detector_instance is None:

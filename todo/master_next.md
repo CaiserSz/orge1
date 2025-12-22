@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-22 05:48:01
+**Son Güncelleme:** 2025-12-22 06:11:00
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -31,7 +31,7 @@
   - Notlar:
     - Öneri: resmi/kaliteli 5.1V/3A PSU + kısa/kalın USB‑C kablo; yüksek akım çeken USB cihazları için powered hub
 
-### Öncelik 0: Standart İhlali (2025-12-16) - `api/event_detector.py` Satır Limiti Aşıldı
+### Öncelik 3: Standart Uyarısı (2025-12-22) - `api/event_detector.py` satır limiti uyarısı
 
 ### Öncelik 3: Standart Uyarıları (2025-12-16) - Uyarı Eşiği Yakın Dosyalar
 
@@ -42,12 +42,12 @@
   - Durum: 🟡 Uyarı eşiği yakın
   - Detaylar: Rapor zamanı: 2025-12-16 04:40
 
-- [ ] **Görev:** `api/event_detector.py` modüllere bölme / kompaktlaştırma planı
-  - Açıklama: `standards_auto_check` raporu dosyayı 477 satır (Limit: 500) olarak raporluyor. Dosya limitin altında, ancak uyarı eşiğine yakın; yeni feature eklenirken satır limitini aşmamak için kompakt refactor stratejisi planlanmalı (repo “yeni dosya oluşturma” kuralı dikkate alınarak).
+- [ ] **Görev:** `api/event_detector.py` kompaktlaştırma (satır limiti payı)
+  - Açıklama: Dosya 477 satırdan 414 satıra indirildi; halen uyarı eşiğinde (Limit: 500). Yeni feature eklenirken 500’ü aşmamak için kompakt tut.
   - Öncelik: 3 (Orta/Düşük)
   - Tahmini Süre: 1-2 saat
-  - Durum: 🟡 Uyarı eşiği yakın
-  - Detaylar: Rapor zamanı: 2025-12-19 15:02
+  - Durum: 🟡 Uyarı eşiği yakın (414/500)
+  - Test/Doğrulama: `./env/bin/python -m py_compile api/event_detector.py` + `./env/bin/pytest -q tests/test_event_detector.py` ✅
 
 - [ ] **Görev:** `api/config.py` modüllere bölme planı
   - Açıklama: `standards_auto_check` raporu dosya 416 satır (Limit: 500). Uyarı eşiğine yakın; config alanları kategori bazlı ayrılabilir.
@@ -63,12 +63,12 @@
   - Durum: 🟡 Uyarı eşiği yakın
   - Detaylar: Rapor zamanı: 2025-12-16 04:40
 
-- [ ] **Görev:** `tests/test_protocol_rules.py` test suite’e bölme planı
-  - Açıklama: `standards_auto_check` raporu dosya 468 satır (Limit: 500). Uyarı eşiğine yakın; OCPP helper testleri ayrı test dosyasına taşınabilir (mevcut klasör yapısı içinde).
+- [ ] **Görev:** `tests/test_protocol_rules.py` kompaktlaştırma (satır limiti payı)
+  - Açıklama: Dosya 473 satırdan 410 satıra indirildi; halen uyarı eşiğinde (Limit: 500). Uygun zamanda daha da sadeleştirilebilir.
   - Öncelik: 3 (Orta/Düşük)
   - Tahmini Süre: 1-2 saat
-  - Durum: 🟡 Uyarı eşiği yakın
-  - Detaylar: Rapor zamanı: 2025-12-16 12:44
+  - Durum: 🟡 Uyarı eşiği yakın (410/500)
+  - Test/Doğrulama: `./env/bin/python -m py_compile tests/test_protocol_rules.py` + `./env/bin/pytest -q tests/test_protocol_rules.py` ✅
 
 - [ ] **Görev:** `tests/test_integration.py` büyüme kontrolü (satır sayısı uyarı eşiği yakın)
   - Açıklama: `standards_auto_check` raporu dosya 433 satır (Limit: 500). Uyarı eşiğine yakın; yeni test eklerken tekrarları azalt ve mümkünse mevcut helper/fixture’ları kullan (yeni test dosyası oluşturmadan).
@@ -409,13 +409,13 @@
   - Detaylar: `todo/REFACTORING_PLAN.md` dosyasına bakınız
   - Durum: 📋 Bekliyor
 
-- [ ] **Görev:** `meter/read_meter.py` modüllere bölme
-  - Açıklama: Uyarı eşiği (500 satır) yakın (496 satır). Modüllere bölünebilir
+- [x] **Görev:** `meter/read_meter.py` kompaktlaştırma (satır limiti payı)
+  - Açıklama: Dosya 497 satırdan 410 satıra indirildi; 500 limitine “yakın” riski kapatıldı (docstring kısaltma + ortak register okuma helper’ı).
   - Öncelik: 6 (Düşük)
   - Tahmini Süre: 2-3 saat
-  - Durum: 🟡 Uyarı eşiği yakın
+  - Durum: ✅ Kapatıldı (2025-12-22)
   - Detaylar: `todo/REFACTORING_PLAN.md` dosyasına bakınız
-  - Durum: 📋 Bekliyor
+  - Test/Doğrulama: `./env/bin/python -m py_compile meter/read_meter.py` + `./env/bin/pytest -q tests/test_api_endpoints.py` ✅
 
 
 ### Öncelik 6: Code Quality Tools Kurulumu

@@ -1,7 +1,7 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-22 05:43:53
+**Son Güncelleme:** 2025-12-22 06:08:33
 **Version:** 1.20.0
 
 ---
@@ -14,8 +14,20 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251222-046
-**Tarih:** 2025-12-22 05:43:53
+**Checkpoint ID:** CP-20251222-047
+**Tarih:** 2025-12-22 06:08:33
+**Durum:** ✅ Standart uyarı eşiği yakın dosyalar kompaktlaştırıldı (satır limiti payı)
+- Standart/Satır limiti:
+  - `meter/read_meter.py`: 497 → 410 (docstring kısaltma + ortak register okuma helper’ı)
+  - `api/event_detector.py`: 477 → 414 (docstring/tekrar sadeleştirme + state name map sabitleme)
+  - `tests/test_protocol_rules.py`: 473 → 410 (parametrize/helper ile tekrar azaltma)
+- Test/Doğrulama:
+  - `./env/bin/python -m py_compile meter/read_meter.py api/event_detector.py tests/test_protocol_rules.py` → ✅
+  - `./env/bin/pytest -q tests/test_api_endpoints.py` → ✅
+  - `./env/bin/pytest -q tests/test_event_detector.py` → ✅
+  - `./env/bin/pytest -q tests/test_protocol_rules.py` → ✅
+
+### Önceki Checkpoint: CP-20251222-046 (2025-12-22 05:43:53)
 **Durum:** ✅ OCPP daemon 3dk run + env/venv uyumluluğu
 - OCPP (station client):
   - `.env` içinden `OCPP_STATION_PASSWORD` ile daemon çalıştırma doğrulandı (secret loglanmadan).
