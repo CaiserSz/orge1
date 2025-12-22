@@ -1,7 +1,7 @@
 # Tamamlanan Görevler
 
 **Oluşturulma Tarihi:** 2025-12-08 18:20:00
-**Son Güncelleme:** 2025-12-22 01:21:30
+**Son Güncelleme:** 2025-12-22 04:22:08
 
 ---
 
@@ -48,6 +48,17 @@
 - **Test/Doğrulama:**
   - `python3 -m py_compile tests/test_integration.py` → ✅
   - `./env/bin/pytest -q tests/test_integration.py` → ✅
+
+#### ✅ DB EventQuery deadlock fix + test kapsamı
+- **Görev:** `api/database/event_queries.py` path’lerinde takılma (deadlock) ve event row parse hatasını düzelt + test ekle
+- **Açıklama:**
+  - `migrate_events_to_table()` → `create_event()` iç içe çağrısında `Lock` reentrant olmadığı için deadlock oluyordu; `RLock` ile düzeltildi.
+  - `event_row_to_dict()` içinde `sqlite3.Row.get()` hatası giderildi (safe access).
+  - `migrate_user_id_column()` yeni DB init sırasında `session_events` yokken gereksiz warning üretmesin diye table-exists check eklendi.
+  - `tests/test_database_optimization.py` içine EventQueryMixin senaryoları eklendi.
+- **Test/Doğrulama:**
+  - `python3 -m py_compile api/database/core.py api/database/models.py api/database/migrations.py` → ✅
+  - `./env/bin/pytest -q tests/test_database_optimization.py` → ✅ (9 passed)
 
 ### 2025-12-21
 

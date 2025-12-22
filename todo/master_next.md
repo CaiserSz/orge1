@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-22 01:21:30
+**Son Güncelleme:** 2025-12-22 04:22:08
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -9,13 +9,6 @@
 ## Öncelikli Görevler
 
 ### Öncelik 2: Test Coverage Boşlukları (2025-12-16) - Meter/OCPP/DB
-
-- [ ] **Görev:** `api/database/event_queries.py` coverage artır (DB query path’leri)
-  - Açıklama: Coverage %25. Mevcut test DB fixture’ları kullanılarak (in-memory / temp sqlite) query fonksiyonlarının success + empty + error path’leri kapsanmalı.
-  - Öncelik: 3 (Orta/Düşük)
-  - Tahmini Süre: 2-3 saat
-  - Durum: 📋 Bekliyor
-  - Detaylar: Coverage (2025-12-16): `api/database/event_queries.py` %25.
 
 ### Öncelik 0: Secret/Config Hijyeni (2025-12-19) - `.env` repo içinde track ediliyor
 
