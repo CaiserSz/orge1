@@ -1,8 +1,8 @@
 """
 API Endpoints Unit Tests
 Created: 2025-12-09 02:00:00
-Last Modified: 2025-12-24 21:45:57
-Version: 1.1.6
+Last Modified: 2025-12-24 21:53:19
+Version: 1.1.7
 Description: API endpoint'leri için unit testler - Mock ESP32 bridge ile
 """
 
@@ -403,8 +403,7 @@ class TestABBMeterReadMeterHelpers:
     """meter/read_meter.py içindeki saf helper + Modbus frame logic testleri (donanım yok)."""
 
     def test_register_helpers(self):
-        from meter.read_meter import (_s32_from_2regs, _u32_from_2regs,
-                                      _u64_from_4regs)
+        from meter.read_meter import _s32_from_2regs, _u32_from_2regs, _u64_from_4regs
 
         assert _u32_from_2regs(0x1234, 0x5678) == 0x12345678
         assert _s32_from_2regs(0xFFFF, 0xFFFF) == -1
