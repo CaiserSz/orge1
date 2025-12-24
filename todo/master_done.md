@@ -1,7 +1,7 @@
 # Tamamlanan Görevler
 
 **Oluşturulma Tarihi:** 2025-12-08 18:20:00
-**Son Güncelleme:** 2025-12-24 15:00:00
+**Son Güncelleme:** 2025-12-24 15:41:00
 
 ---
 
@@ -17,6 +17,15 @@
   - UI tarafında 500 gibi durumlarda da `message` alanı varsa gösterim iyileştirildi.
 - **Test/Doğrulama:** `./env/bin/pytest -q tests/test_auth.py` → ✅
 - **Commit:** `c946873`
+
+#### ✅ Tek protokol modu (fallback kapalı) + systemd env-driven runner
+- **Görev:** AC istasyon için tek protokol ile bağlanma (fallback yok) + systemd start döngüsü/boşluklu model sorunu çözümü
+- **Açıklama:**
+  - OCPP runner fallback opsiyonel hale getirildi (`OCPP_ALLOW_FALLBACK` / `--allow-fallback`), varsayılan kapalı.
+  - systemd runner template env-driven hale getirildi (CLI arg yok) → `model` gibi boşluklu değerler artık sorun çıkarmaz.
+  - Start/Restart endpoint’leri best-effort auto-sync yapar (Sync unutulsa bile).
+  - Profile validation tek protokole göre güncellendi: `2.0.1` → `ocpp201_url` zorunlu, `1.6j` → `ocpp16_url` zorunlu; URL `/{station_name}` ile bitmeli.
+- **Test/Doğrulama:** `./env/bin/pytest -q tests/test_auth.py` → ✅
 
 ### 2025-12-22
 

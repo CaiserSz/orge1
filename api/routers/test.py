@@ -217,7 +217,7 @@ async def admin_change_password(
 
 
 def _systemd_unit_content() -> str:
-    # Uses bash to resolve password from .env without writing secrets to drop-ins.
+    # Env-driven (single protocol): avoid CLI arg quoting pitfalls; do not embed secrets in drop-ins.
     return """[Unit]
 Description=OCPP Station Client (%i)
 After=network-online.target
@@ -227,7 +227,7 @@ Wants=network-online.target
 Type=simple
 WorkingDirectory=/home/basar/charger
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/bin/bash -lc 'cd /home/basar/charger; set -a; source .env; set +a; export OCPP_STATION_PASSWORD=\"$${!OCPP_PASSWORD_ENV_VAR}\"; exec ./env/bin/python -u ocpp/main.py --primary ${OCPP_PRIMARY} --heartbeat-seconds ${OCPP_HEARTBEAT_SECONDS} --station-name ${OCPP_STATION_NAME} --ocpp201-url ${OCPP201_URL} --ocpp16-url ${OCPP16_URL} --vendor-name ${OCPP_VENDOR_NAME} --model ${OCPP_MODEL}'
+ExecStart=/bin/bash -lc 'cd /home/basar/charger; set -a; source .env; set +a; if [ -z \"$${OCPP_PASSWORD_ENV_VAR:-}\" ]; then echo \"[OCPP] missing OCPP_PASSWORD_ENV_VAR (run Sync systemd)\" >&2; exit 2; fi; export OCPP_STATION_PASSWORD=\"$${!OCPP_PASSWORD_ENV_VAR}\"; exec ./env/bin/python -u ocpp/main.py'
 Restart=on-failure
 RestartSec=3
 NoNewPrivileges=true
@@ -264,20 +264,32 @@ def _profile_override_content(profile: Dict[str, Any]) -> str:
     primary = "201" if profile["ocpp_version"] == "2.0.1" else "16"
     heartbeat = int(profile.get("heartbeat_seconds") or 60)
 
+    def _env_line(key: str, value: Any) -> str:
+        raw = "" if value is None else str(value)
+        # systemd supports quoting the whole assignment: Environment="KEY=value with spaces"
+        raw = raw.replace("\\", "\\\\").replace('"', '\\"')
+        raw = raw.replace("\r", " ").replace("\n", " ")
+        return f'Environment="{key}={raw}"'
+
     # Keep drop-in secret-free (password stays in .env).
     lines = [
         "[Service]",
-        f"Environment=OCPP_PRIMARY={primary}",
-        f"Environment=OCPP_HEARTBEAT_SECONDS={heartbeat}",
-        f"Environment=OCPP_STATION_NAME={profile['station_name']}",
-        f"Environment=OCPP201_URL={profile.get('ocpp201_url') or ''}",
-        f"Environment=OCPP16_URL={profile.get('ocpp16_url') or ''}",
-        f"Environment=OCPP_VENDOR_NAME={profile['vendor_name']}",
-        f"Environment=OCPP_MODEL={profile['model']}",
-        f"Environment=OCPP_PASSWORD_ENV_VAR={profile['password_env_var']}",
+        _env_line("OCPP_PRIMARY", primary),
+        _env_line("OCPP_HEARTBEAT_SECONDS", heartbeat),
+        _env_line("OCPP_ALLOW_FALLBACK", "false"),
+        _env_line("OCPP_STATION_NAME", profile["station_name"]),
+        _env_line("OCPP_201_URL", profile.get("ocpp201_url") or ""),
+        _env_line("OCPP_16_URL", profile.get("ocpp16_url") or ""),
+        # Compat: keep old names too (safe, but not used by runtime_config).
+        _env_line("OCPP201_URL", profile.get("ocpp201_url") or ""),
+        _env_line("OCPP16_URL", profile.get("ocpp16_url") or ""),
+        _env_line("OCPP_VENDOR", profile["vendor_name"]),
+        _env_line("OCPP_VENDOR_NAME", profile["vendor_name"]),
+        _env_line("OCPP_MODEL", profile["model"]),
+        _env_line("OCPP_PASSWORD_ENV_VAR", profile["password_env_var"]),
         # v16 metadata is read from env in adapter; safe to set for both versions.
-        f"Environment=OCPP_V16_SERIAL_NUMBER={profile.get('serial_number') or ''}",
-        f"Environment=OCPP_V16_FIRMWARE_VERSION={profile.get('firmware_version') or ''}",
+        _env_line("OCPP_V16_SERIAL_NUMBER", profile.get("serial_number") or ""),
+        _env_line("OCPP_V16_FIRMWARE_VERSION", profile.get("firmware_version") or ""),
         "",
     ]
     return "\n".join(lines)
@@ -321,6 +333,12 @@ def _svc_name(profile_key: str) -> str:
 
 @admin_router.post("/admin/api/profiles/{profile_key}/start")
 async def admin_start_service(profile_key: str, _admin: str = Depends(_require_admin)):
+    # Ensure systemd files exist (common pitfall: user saves profile then hits Start without Sync).
+    try:
+        await admin_sync_systemd(profile_key, _admin=_admin)  # type: ignore[arg-type]
+    except Exception:
+        # Best-effort; still attempt start.
+        pass
     svc = _svc_name(profile_key)
     res = _sudo_cmd(["systemctl", "start", svc])
     return JSONResponse({"service": svc, "result": res})
@@ -337,6 +355,10 @@ async def admin_stop_service(profile_key: str, _admin: str = Depends(_require_ad
 async def admin_restart_service(
     profile_key: str, _admin: str = Depends(_require_admin)
 ):
+    try:
+        await admin_sync_systemd(profile_key, _admin=_admin)  # type: ignore[arg-type]
+    except Exception:
+        pass
     svc = _svc_name(profile_key)
     res = _sudo_cmd(["systemctl", "restart", svc])
     return JSONResponse({"service": svc, "result": res})

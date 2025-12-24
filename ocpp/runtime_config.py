@@ -2,8 +2,8 @@
 OCPP Station Runtime Configuration (Phase-1)
 
 Created: 2025-12-21 20:10
-Last Modified: 2025-12-21 20:10
-Version: 0.1.0
+Last Modified: 2025-12-24 15:30
+Version: 0.2.0
 Description:
   Secret-safe runtime configuration utilities for the OCPP station client.
   Values are sourced from CLI args first, then env vars, then defaults.
@@ -33,6 +33,7 @@ class OcppRuntimeConfig:
     ocpp16_url: str
 
     primary: str  # "201" or "16"
+    allow_fallback: bool
     poc_mode: bool
     once_mode: bool
 
@@ -187,12 +188,22 @@ def build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
     else:
         raise ValueError(f"Invalid primary OCPP version: {primary!r} (use 201 or 16)")
 
+    allow_fallback = _parse_bool(
+        getattr(args, "allow_fallback", None)
+        or _env(
+            "OCPP_ALLOW_FALLBACK",
+            _bool_default_str(defaults.get("allow_fallback"), fallback=False),
+        ),
+        default=False,
+    )
+
     return OcppRuntimeConfig(
         station_name=station_name,
         station_password=station_password,
         ocpp201_url=ocpp201_url,
         ocpp16_url=ocpp16_url,
         primary=primary,
+        allow_fallback=allow_fallback,
         poc_mode=bool(getattr(args, "poc", False)),
         once_mode=bool(getattr(args, "once", False)),
         vendor_name=getattr(args, "vendor_name", None)

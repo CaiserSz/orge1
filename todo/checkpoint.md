@@ -1,8 +1,8 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-24 14:59:00
-**Version:** 1.22.0
+**Son Güncelleme:** 2025-12-24 15:40:00
+**Version:** 1.23.0
 
 ---
 
@@ -14,16 +14,21 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251224-050
-**Tarih:** 2025-12-24 14:59:00
-**Durum:** ✅ Admin UI: eksik/yanlış alanlarda 500 yerine açıklayıcı 400 (UX iyileştirmesi)
-- Admin UI:
-  - Eksik/yanlış alanlar artık `HTTP 400` + `detail` ile döner (UI “Internal server error 500” yerine doğru mesaj gösterir).
-  - URL doğrulaması: `ocpp201_url` ve `ocpp16_url` değerleri `/{station_name}` ile bitmeli (yanlış station’a bağlanmayı engeller).
+**Checkpoint ID:** CP-20251224-051
+**Tarih:** 2025-12-24 15:40:00
+**Durum:** ✅ Tek protokol modu (fallback kapalı) + systemd env-driven runner (boşluk/eksik env sorunu yok)
+- OCPP (station client):
+  - Fallback artık opsiyonel: `OCPP_ALLOW_FALLBACK` / `--allow-fallback` ile açılabilir; varsayılan **kapalı** (tek protokol).
+  - Log: `allow_fallback=` alanı eklendi.
+- Admin UI / systemd:
+  - `ocpp-station@.service` template env-driven (CLI arg yok): model/vendor gibi boşluklu değerler sorun çıkarmaz.
+  - Start/Restart endpoint’leri Sync yapılmadan çalıştırılsa bile best-effort auto-sync yapar.
+- Profile validation:
+  - `ocpp_version=2.0.1` için sadece `ocpp201_url` zorunlu; `1.6j` için sadece `ocpp16_url` zorunlu.
+  - URL’ler `/{station_name}` ile bitmeli (yanlış station’a bağlanmayı engeller).
 - Test/teyit:
-  - `python3 -m py_compile api/routers/test.py api/database/maintenance_queries.py tests/test_auth.py` → ✅
-  - `./env/bin/pytest -q tests/test_auth.py` → ✅ (validation 400 testi eklendi)
-- Commit: `c946873`
+  - `python3 -m py_compile ocpp/main.py ocpp/runtime_config.py api/routers/test.py api/database/maintenance_queries.py` → ✅
+  - `./env/bin/pytest -q tests/test_auth.py` → ✅ (validation testleri güncellendi)
 
 ### Önceki Checkpoint: CP-20251222-049 (2025-12-22 18:26:00)
 **Durum:** ✅ Admin OCPP Profile UI + systemd OCPP runner template (Seçenek B)

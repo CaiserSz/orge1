@@ -214,6 +214,11 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         default=None,
         help="Override Heartbeat interval seconds (0=use CSMS BootNotification interval).",
     )
+    p.add_argument(
+        "--allow-fallback",
+        default=None,
+        help="Enable fallback to the other OCPP version on primary failure (true/false). Default false.",
+    )
 
     p.add_argument(
         "--local-api-base-url",
@@ -254,6 +259,9 @@ async def _run_primary_then_fallback(cfg: Any) -> None:
             sys.stderr.write(f"[OCPP] Primary (2.0.1) failed: {e}\n")
             sys.stderr.flush()
 
+        if not getattr(cfg, "allow_fallback", False):
+            raise
+
         adapter = Ocpp16Adapter(cfg)
         await adapter.run()
         return
@@ -266,6 +274,9 @@ async def _run_primary_then_fallback(cfg: Any) -> None:
     except Exception as e:
         sys.stderr.write(f"[OCPP] Primary (1.6J) failed: {e}\n")
         sys.stderr.flush()
+
+    if not getattr(cfg, "allow_fallback", False):
+        raise
 
     adapter = Ocpp201Adapter(cfg)
     await adapter.run()
@@ -326,7 +337,7 @@ def main(argv: list[str]) -> int:
 
     print("[OCPP] Station client starting (isolated process)")
     print(
-        f"[OCPP] station_name={cfg.station_name} primary={cfg.primary} poc={cfg.poc_mode} once={cfg.once_mode}"
+        f"[OCPP] station_name={cfg.station_name} primary={cfg.primary} allow_fallback={getattr(cfg, 'allow_fallback', False)} poc={cfg.poc_mode} once={cfg.once_mode}"
     )
     print(f"[OCPP] url_201={cfg.ocpp201_url}")
     print(f"[OCPP] url_16={cfg.ocpp16_url}")

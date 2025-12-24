@@ -289,19 +289,29 @@ class MaintenanceQueryMixin:
             raise ValueError("station_name is required")
         if ocpp_version not in ("2.0.1", "1.6j"):
             raise ValueError("ocpp_version must be '2.0.1' or '1.6j'")
-        if not ocpp201_url or not str(ocpp201_url).startswith(("ws://", "wss://")):
-            raise ValueError(
-                "ocpp201_url is required and must start with ws:// or wss://"
-            )
-        if not ocpp16_url or not str(ocpp16_url).startswith(("ws://", "wss://")):
-            raise ValueError(
-                "ocpp16_url is required and must start with ws:// or wss://"
-            )
         expected_suffix = f"/{station_name}"
-        if not str(ocpp201_url).rstrip("/").endswith(expected_suffix):
-            raise ValueError(f"ocpp201_url must end with '{expected_suffix}'")
-        if not str(ocpp16_url).rstrip("/").endswith(expected_suffix):
-            raise ValueError(f"ocpp16_url must end with '{expected_suffix}'")
+
+        def _validate_url_field(field: str, url: str) -> None:
+            if not str(url).startswith(("ws://", "wss://")):
+                raise ValueError(f"{field} must start with ws:// or wss://")
+            if not str(url).rstrip("/").endswith(expected_suffix):
+                raise ValueError(f"{field} must end with '{expected_suffix}'")
+
+        # NOTE: Single-protocol station behavior (fallback disabled by default).
+        # - For 2.0.1 profiles, only ocpp201_url is required.
+        # - For 1.6j profiles, only ocpp16_url is required.
+        if ocpp_version == "2.0.1":
+            if not ocpp201_url:
+                raise ValueError("ocpp201_url is required for ocpp_version=2.0.1")
+            _validate_url_field("ocpp201_url", ocpp201_url)
+            if ocpp16_url:
+                _validate_url_field("ocpp16_url", ocpp16_url)
+        else:  # 1.6j
+            if not ocpp16_url:
+                raise ValueError("ocpp16_url is required for ocpp_version=1.6j")
+            _validate_url_field("ocpp16_url", ocpp16_url)
+            if ocpp201_url:
+                _validate_url_field("ocpp201_url", ocpp201_url)
         if not vendor_name:
             raise ValueError("vendor_name is required")
         if not model:

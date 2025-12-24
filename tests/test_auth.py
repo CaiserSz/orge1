@@ -244,3 +244,23 @@ class TestAdminUI:
         )
         assert resp.status_code == 400
         assert "ocpp201_url" in resp.json().get("detail", "")
+
+    def test_admin_profile_url_mismatch_returns_400(self, client):
+        resp = client.post(
+            "/admin/api/profiles",
+            headers={"Authorization": self._basic("admin", "admin123")},
+            json={
+                "profile_key": "ORGE_AC_001_201_TEST",
+                "station_name": "ORGE_AC_001_201_TEST",
+                "ocpp_version": "2.0.1",
+                "ocpp201_url": "wss://lixhium.xyz/ocpp/ORGE_AC_001",
+                "ocpp16_url": "wss://lixhium.xyz/ocpp16/ORGE_AC_001_201_TEST",
+                "vendor_name": "ORGE",
+                "model": "ORGE Round C3",
+                "password_env_var": "OCPP_STATION_PASSWORD",
+                "heartbeat_seconds": 60,
+                "enabled": True,
+            },
+        )
+        assert resp.status_code == 400
+        assert "must end with" in resp.json().get("detail", "")
