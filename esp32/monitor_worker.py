@@ -1,8 +1,8 @@
 """
 ESP32 Monitor Worker Module
 Created: 2025-12-12 12:30:00
-Last Modified: 2025-12-12 12:55:00
-Version: 1.0.0
+Last Modified: 2025-12-24 23:34:17
+Version: 1.0.1
 Description: ESP32 bridge için monitor loop, seri okuma ve mesaj işleme
 """
 
@@ -181,6 +181,29 @@ class MonitorWorker:
 
             for line in read_lines:
                 self._message_processor.process_line(line)
+
+        except OSError as e:
+            # USB-Serial adaptörü disconnect olduğunda (örn. ttyUSB0 -> ttyUSB1) in_waiting ioctl'u
+            # OSError([Errno 5] Input/output error) ile patlayabilir. Bu durumda bağlantıyı düşürüp
+            # monitor loop'un yeniden bağlantı kurmasına izin veriyoruz.
+            esp32_logger.error(f"Serial port I/O hatası: {e}", exc_info=True)
+            self._set_connected_callback(False)
+            try:
+                with self._serial_lock:
+                    try:
+                        if serial_connection and getattr(serial_connection, "is_open", False):
+                            serial_connection.close()
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+            try:
+                self._connection_manager.serial_connection = None
+                # Port rename olabilir (ttyUSB0 -> ttyUSB1). Yeni portu yeniden keşfet.
+                self._connection_manager.port = None
+            except Exception:
+                pass
+            return
 
         except serial.SerialException as e:
             error_msg = str(e)
