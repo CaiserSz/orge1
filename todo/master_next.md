@@ -1,12 +1,38 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-24 21:51:41
+**Son Güncelleme:** 2025-12-24 22:56:10
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
 ---
 
 ## Öncelikli Görevler
+
+### Öncelik 1: ESP32 İletişim Dayanıklılığı — USB + GPIO UART Failover (2025-12-24)
+
+- [ ] **Görev:** ESP32 GPIO UART (RPi GPIO14/15 ↔ ESP32 GPIO34/21) linkini aktif et (firmware + RPi bridge)
+  - Açıklama: USB (`/dev/ttyUSB0`) yanında UART0 (`/dev/serial0` → şu sistemde `/dev/ttyS0`) fiziksel hat var; USB koparsa GPIO UART üzerinden devam etmek isteniyor.
+  - Öncelik: 1 (Yüksek)
+  - Tahmini Süre: 2-4 saat
+  - Durum: 🟡 İnceleme/Implementasyon bekliyor
+  - Bulgular:
+    - RPi tarafında `/dev/serial0 -> /dev/ttyS0` mevcut ve dialout erişimi var (boş görünüyor).
+    - Mevcut sahada `/dev/serial0` üzerinden 115200 ile okuma + `41 00 2C 00 10` status komutu denemesinde yanıt alınamadı (0 byte).
+    - Repo’daki `esp32/Commercial_08122025.ino` içinde `USE_DUAL_UART` açık olsa da GPIO UART command handler blokları yorum satırında; `sendStat()` sadece `SerialUSB`’a yazıyor. Bu nedenle GPIO UART’ın pratikte “aktif” olmaması beklenir.
+  - Aksiyon Planı:
+    - ESP32 firmware: SerialGPIO üzerinden komut okuma + ACK/STAT yanıtı gönderme (gerekirse status broadcast’ını iki arayüze de verme).
+    - RPi bridge: USB primary + `/dev/serial0` fallback port seçimi ve reconnect failover.
+
+### Öncelik 1: Arduino CLI / ESP32 Core için Disk Kapasitesi (2025-12-24)
+
+- [ ] **Görev:** RPi depolama kapasitesini artır (SSD/root partition) veya Arduino toolchain dizinini daha büyük diske taşı
+  - Açıklama: `arduino-cli core install esp32:esp32` toolchain çok büyük (tek başına `~/.arduino15` ~5-6GB). Kurulum sırasında “no space left on device” yaşandı ve root partition hızla doluyor.
+  - Öncelik: 1 (Yüksek)
+  - Tahmini Süre: 30-90 dk (disk büyütme/mount/taşıma yaklaşımına göre)
+  - Durum: 🟡 Plan/aksiyon bekliyor
+  - Öneri:
+    - SSD/root partition büyüt (en az birkaç GB boş pay hedefle) **veya**
+    - `~/.arduino15` dizinini harici diske taşı + symlink/mount ile aynı path’i koru (başka AI’lar “yok” sanıp tekrar kurmaya kalkmasın diye).
 
 ### Öncelik 2: Test Coverage Boşlukları (2025-12-16) - Meter/OCPP/DB
 
