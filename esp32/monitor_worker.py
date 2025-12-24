@@ -1,8 +1,8 @@
 """
 ESP32 Monitor Worker Module
 Created: 2025-12-12 12:30:00
-Last Modified: 2025-12-24 23:34:17
-Version: 1.0.1
+Last Modified: 2025-12-24 23:35:59
+Version: 1.0.2
 Description: ESP32 bridge için monitor loop, seri okuma ve mesaj işleme
 """
 
@@ -191,7 +191,9 @@ class MonitorWorker:
             try:
                 with self._serial_lock:
                     try:
-                        if serial_connection and getattr(serial_connection, "is_open", False):
+                        if serial_connection and getattr(
+                            serial_connection, "is_open", False
+                        ):
                             serial_connection.close()
                     except Exception:
                         pass
