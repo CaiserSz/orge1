@@ -297,6 +297,11 @@ class MaintenanceQueryMixin:
             raise ValueError(
                 "ocpp16_url is required and must start with ws:// or wss://"
             )
+        expected_suffix = f"/{station_name}"
+        if not str(ocpp201_url).rstrip("/").endswith(expected_suffix):
+            raise ValueError(f"ocpp201_url must end with '{expected_suffix}'")
+        if not str(ocpp16_url).rstrip("/").endswith(expected_suffix):
+            raise ValueError(f"ocpp16_url must end with '{expected_suffix}'")
         if not vendor_name:
             raise ValueError("vendor_name is required")
         if not model:

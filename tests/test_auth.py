@@ -6,9 +6,9 @@ Version: 1.0.4
 Description: API authentication testleri
 """
 
+import base64
 import os
 import sys
-import base64
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -224,3 +224,23 @@ class TestAdminUI:
         )
         assert resp.status_code == 200
         assert isinstance(resp.json(), list)
+
+    def test_admin_profile_validation_returns_400(self, client):
+        resp = client.post(
+            "/admin/api/profiles",
+            headers={"Authorization": self._basic("admin", "admin123")},
+            json={
+                "profile_key": "ORGE_AC_001_201_TEST",
+                "station_name": "ORGE_AC_001_201_TEST",
+                "ocpp_version": "2.0.1",
+                # ocpp201_url intentionally missing to trigger validation error
+                "ocpp16_url": "wss://lixhium.xyz/ocpp16/ORGE_AC_001_201_TEST",
+                "vendor_name": "ORGE",
+                "model": "ORGE",
+                "password_env_var": "OCPP_STATION_PASSWORD",
+                "heartbeat_seconds": 60,
+                "enabled": True,
+            },
+        )
+        assert resp.status_code == 400
+        assert "ocpp201_url" in resp.json().get("detail", "")
