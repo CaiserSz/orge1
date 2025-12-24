@@ -1,8 +1,8 @@
 """
 API Main Endpoints Comprehensive Tests
 Created: 2025-12-09 23:50:00
-Last Modified: 2025-12-25 09:55:00
-Version: 1.0.5
+Last Modified: 2025-12-25 02:28:00
+Version: 1.0.6
 Description: api/main.py için kapsamlı endpoint testleri
 """
 
@@ -141,7 +141,9 @@ class TestStationInfoEndpoints:
 class TestStationStatusEndpoints:
     """Station status endpoint testleri"""
 
-    def test_station_status_prefers_meter_power_when_charging(self, client, mock_esp32_bridge):
+    def test_station_status_prefers_meter_power_when_charging(
+        self, client, mock_esp32_bridge
+    ):
         """CHARGING state'inde realtime_power_kw meter ölçümünü tercih etmeli."""
         station_data = {
             "station_id": "TEST-001",
@@ -168,15 +170,16 @@ class TestStationStatusEndpoints:
         reading.power_kw = 10.321
         mock_meter.read_all.return_value = reading
 
-        with patch("api.routers.station.get_station_info", return_value=station_data), patch(
-            "api.meter.get_meter", return_value=mock_meter
-        ):
+        with patch(
+            "api.routers.station.get_station_info", return_value=station_data
+        ), patch("api.meter.get_meter", return_value=mock_meter):
             response = client.get("/api/station/status")
             assert response.status_code == 200
             payload = response.json()
             assert payload["success"] is True
             assert payload["data"]["status"]["availability"] == "busy"
             assert payload["data"]["realtime_power_kw"] == 10.321
+
 
 class TestTestEndpoints:
     """Test endpoint testleri"""

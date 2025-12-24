@@ -1,8 +1,8 @@
 """
 ESP32-RPi Bridge Module
 Created: 2025-12-08
-Last Modified: 2025-12-25 10:00:00
-Version: 2.0.2
+Last Modified: 2025-12-25 02:28:00
+Version: 2.0.3
 Description: ESP32 ile USB seri port üzerinden iletişim köprüsü (Backward-compatible facade)
 """
 
@@ -109,11 +109,9 @@ class ESP32Bridge:
             return {}
 
     def _start_monitoring(self) -> None:
-        """Monitor worker'ı başlat."""
         self._monitor_worker.start()
 
     def _stop_monitoring(self) -> None:
-        """Monitor worker'ı durdur."""
         self._monitor_worker.stop()
 
     # Backward-compatible parsers (testler bu method isimlerini çağırıyor)
@@ -121,7 +119,6 @@ class ESP32Bridge:
     _parse_ack_message = staticmethod(parse_ack_message)
 
     def _read_status_messages(self) -> None:
-        """Seri porttan status/ack mesajlarını oku (wrapper)."""
         self._monitor_worker._read_status_messages()
 
     def connect(self) -> bool:
@@ -183,7 +180,6 @@ class ESP32Bridge:
             return False
 
     def disconnect(self):
-        """ESP32 bağlantısını kapat"""
         self._reconnect_enabled = False
         self._connection_manager._reconnect_enabled = False
         self._stop_monitoring()
@@ -202,7 +198,6 @@ class ESP32Bridge:
         return self.connect()
 
     def find_esp32_port(self) -> Optional[str]:
-        """ESP32 seri portunu otomatik bul."""
         return self._connection_manager.find_esp32_port()
 
     def _get_compat_sender(self) -> CommandSender:
@@ -421,7 +416,6 @@ class ESP32Bridge:
             self._status_buffer.append(status)
 
     def _append_ack(self, ack: Dict[str, Any]) -> None:
-        """ACK buffer ve kuyruğunu güvenli şekilde güncelle."""
         with self._ack_lock:
             self._ack_buffer.append(ack)
         try:
@@ -435,7 +429,6 @@ class ESP32Bridge:
                 pass
 
     def _reset_buffers(self, clear_command_queue: bool = False) -> None:
-        """Status/ACK buffer'larını ve kuyruklarını temizle."""
         with self.status_lock:
             self.last_status = None
             self._status_buffer.clear()
@@ -459,8 +452,11 @@ class ESP32Bridge:
         """Serial connection setter"""
         self._connection_manager.serial_connection = value
 
+
 _esp32_bridge_instance: Optional[ESP32Bridge] = None
 _bridge_lock = threading.Lock()
+
+
 def get_esp32_bridge() -> ESP32Bridge:
     """ESP32 bridge singleton instance'ı al (thread-safe)."""
     global _esp32_bridge_instance
@@ -485,8 +481,12 @@ def get_esp32_bridge() -> ESP32Bridge:
         if _esp32_bridge_instance is None:
             # Not: ESP32 port/baudrate ayarları `api.config` üzerinden yönetilir (USB/GPIO UART).
             try:
-                from api.config import config  # Local import: olası import cycle riskini azaltır
-                port = getattr(config, "ESP32_PORT", None); baudrate = int(getattr(config, "ESP32_BAUDRATE", BAUDRATE))
+                from api.config import (
+                    config,
+                )  # Local import: olası import cycle riskini azaltır
+
+                port = getattr(config, "ESP32_PORT", None)
+                baudrate = int(getattr(config, "ESP32_BAUDRATE", BAUDRATE))
             except Exception:
                 port = None
                 baudrate = BAUDRATE
@@ -496,5 +496,4 @@ def get_esp32_bridge() -> ESP32Bridge:
                 raise RuntimeError("ESP32 bağlantısı kurulamadı")
             _esp32_bridge_instance = instance
             esp32_logger.info("ESP32 bridge singleton instance oluşturuldu")
-
     return _esp32_bridge_instance
