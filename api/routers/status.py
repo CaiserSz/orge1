@@ -1,8 +1,8 @@
 """
 Status Router
 Created: 2025-12-10
-Last Modified: 2025-12-24 21:27:43
-Version: 1.2.4
+Last Modified: 2025-12-24 21:45:16
+Version: 1.2.5
 Description: Status and health check endpoints
 """
 
@@ -35,6 +35,42 @@ def _tail_lines(path, max_lines: int) -> list[str]:
         for line in f:
             buf.append(line.rstrip("\n"))
     return list(buf)
+
+
+def _read_lines_from_cursor(
+    path, cursor: int, max_lines: int
+) -> tuple[list[str], int, bool]:
+    """
+    Verilen byte offset (cursor) sonrası satırları oku.
+
+    Returns:
+      - lines: okunan satırlar (max_lines ile sınırlı)
+      - next_cursor: okuma sonrası yeni byte offset (sonraki çağrıda kullanılabilir)
+      - has_more: dosyada okunmamış veri kaldı mı?
+    """
+    cursor = max(0, int(cursor))
+    lines: list[str] = []
+
+    with path.open("rb") as f:
+        try:
+            f.seek(cursor)
+        except Exception:
+            f.seek(0)
+            cursor = 0
+
+        while len(lines) < max_lines:
+            bline = f.readline()
+            if not bline:
+                break
+            line = bline.decode("utf-8", errors="replace").rstrip("\r\n")
+            if line:
+                lines.append(line)
+
+        next_cursor = f.tell()
+
+    size = int(path.stat().st_size)
+    has_more = next_cursor < size
+    return lines, next_cursor, has_more
 
 
 @router.get("/health")
@@ -164,7 +200,12 @@ async def metrics(bridge: ESP32Bridge = Depends(get_bridge)):
 @api_key_rate_limit()  # Log endpoint'i abuse edilmemeli; API key zorunlu + rate limit
 def get_esp32_logs(
     request: Request,
-    lines: int = Query(200, ge=10, le=2000),
+    cursor: Optional[int] = Query(
+        None,
+        ge=0,
+        description="Opsiyonel cursor (byte offset). Verilirse sadece bu offset sonrası eklenen satırlar döner.",
+    ),
+    lines: int = Query(200, ge=1, le=2000),
     direction: Optional[str] = Query(
         None,
         description="Opsiyonel filtre: rx veya tx",
@@ -186,6 +227,8 @@ def get_esp32_logs(
     - Serial portu kullanan servisi durdurmaya gerek yoktur; okuma file log üzerinden yapılır.
     - Varsayılan çıktı JSON satırlarının parse edilmiş halidir (fmt=json).
     - fmt=raw ile ham satırlar döndürülür.
+    - cursor verilirse: sadece cursor sonrası gelen yeni satırlar döner; response içindeki next_cursor
+      ile polling yaparak "son eklenenleri sırayla" izleyebilirsin.
     """
     _ = api_key  # API key doğrulaması için dependency (kullanılmıyor)
     _ = request  # Rate limiting decorator için request argümanı gerekli (kullanılmıyor)
@@ -218,7 +261,24 @@ def get_esp32_logs(
             detail="ESP32 log dosyası bulunamadı (logs/esp32.log)",
         )
 
-    raw_lines = _tail_lines(ESP32_LOG_FILE, max_lines=lines)
+    file_size = int(ESP32_LOG_FILE.stat().st_size)
+    cursor_reset = False
+    has_more = False
+    mode = "tail"
+
+    if cursor is not None and int(cursor) > file_size:
+        # Cursor artık geçerli değil (log rotate/truncate). Güvenli fallback: tail mode.
+        cursor_reset = True
+        cursor = None
+
+    if cursor is None:
+        raw_lines = _tail_lines(ESP32_LOG_FILE, max_lines=lines)
+        next_cursor = file_size
+    else:
+        raw_lines, next_cursor, has_more = _read_lines_from_cursor(
+            ESP32_LOG_FILE, cursor=int(cursor), max_lines=lines
+        )
+        mode = "cursor"
 
     # JSON line parse + opsiyonel filtreleme
     items: list[dict[str, Any]] = []
@@ -271,6 +331,12 @@ def get_esp32_logs(
         message="ESP32 logları başarıyla okundu",
         data={
             "file": "esp32.log",
+            "mode": mode,
+            "cursor": cursor,
+            "next_cursor": next_cursor,
+            "cursor_reset": cursor_reset,
+            "has_more": has_more,
+            "file_size_bytes": file_size,
             "lines_requested": lines,
             "count": len(entries),
             "format": fmt_norm,

@@ -1,8 +1,8 @@
 """
 API Endpoints Unit Tests
 Created: 2025-12-09 02:00:00
-Last Modified: 2025-12-24 21:21:42
-Version: 1.1.5
+Last Modified: 2025-12-24 21:45:57
+Version: 1.1.6
 Description: API endpoint'leri için unit testler - Mock ESP32 bridge ile
 """
 
@@ -143,6 +143,26 @@ class TestAPIEndpoints:
         assert body3["data"]["format"] == "raw"
         assert body3["data"]["count"] == 1
         assert "message_type" in body3["data"]["entries"][0]
+
+        # Cursor/polling: sadece yeni eklenen satırları sırayla alabilmeliyiz
+        res0 = client.get("/api/logs/esp32?lines=10&fmt=raw")
+        assert res0.status_code == 200
+        cursor = res0.json()["data"]["next_cursor"]
+
+        # Yeni satır ekle
+        new_line = (
+            '{"timestamp":"2025-12-24T21:00:03","level":"INFO","logger":"esp32",'
+            '"type":"esp32_message","message_type":"status","direction":"rx","data":{"STATE":2}}'
+        )
+        with fake_log.open("a", encoding="utf-8") as f:
+            f.write("\n" + new_line + "\n")
+
+        res1 = client.get(f"/api/logs/esp32?cursor={cursor}&lines=10&fmt=raw")
+        assert res1.status_code == 200
+        data1 = res1.json()["data"]
+        assert data1["mode"] == "cursor"
+        assert data1["count"] == 1
+        assert data1["entries"][0] == new_line
 
     def test_start_charge_endpoint(self, client, mock_esp32_bridge, test_headers):
         """Start charge endpoint çalışıyor mu?"""
@@ -383,7 +403,8 @@ class TestABBMeterReadMeterHelpers:
     """meter/read_meter.py içindeki saf helper + Modbus frame logic testleri (donanım yok)."""
 
     def test_register_helpers(self):
-        from meter.read_meter import _s32_from_2regs, _u32_from_2regs, _u64_from_4regs
+        from meter.read_meter import (_s32_from_2regs, _u32_from_2regs,
+                                      _u64_from_4regs)
 
         assert _u32_from_2regs(0x1234, 0x5678) == 0x12345678
         assert _s32_from_2regs(0xFFFF, 0xFFFF) == -1

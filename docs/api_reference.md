@@ -1,8 +1,8 @@
 # API Referansı - AC Charger
 
 **Oluşturulma Tarihi:** 2025-12-09 22:35:00
-**Son Güncelleme:** 2025-12-24 21:23:05
-**Version:** 1.0.2
+**Son Güncelleme:** 2025-12-24 21:46:40
+**Version:** 1.0.3
 
 ---
 
@@ -32,7 +32,8 @@
    - `logs/esp32.log` dosyasının son satırlarını döndürür (varsayılan: 200 satır)
    - API key zorunlu: `X-API-Key` header
    - Query parametreleri:
-     - `lines`: 10-2000 (varsayılan: 200)
+     - `cursor`: (opsiyonel) byte offset. Verilirse sadece cursor sonrası eklenen satırlar döner.
+     - `lines`: 1-2000 (varsayılan: 200)
      - `fmt`: `json` (varsayılan) veya `raw`
      - `direction`: `rx` veya `tx` (opsiyonel filtre)
      - `message_type`: `status`, `ack`, `authorization`, `current_set`, ... (opsiyonel filtre)
@@ -43,6 +44,12 @@
      - `curl -H "X-API-Key: <KEY>" "http://localhost:8000/api/logs/esp32?lines=200&fmt=json"`
    - Sadece RX status, ham satır:
      - `curl -H "X-API-Key: <KEY>" "http://localhost:8000/api/logs/esp32?lines=200&fmt=raw&direction=rx&message_type=status"`
+
+   Cursor/polling (son eklenenleri sırayla almak):
+   - 1) İlk çağrı: `next_cursor` al
+     - `curl -H "X-API-Key: <KEY>" "http://localhost:8000/api/logs/esp32?lines=50&fmt=raw" | jq -r '.data.next_cursor'`
+   - 2) Sonraki çağrılar: `cursor=<next_cursor>` ile sadece yeni satırlar gelir
+     - `curl -H "X-API-Key: <KEY>" "http://localhost:8000/api/logs/esp32?cursor=<CURSOR>&lines=200&fmt=raw&direction=rx&message_type=status" | jq -r '.data.entries[]'`
 
 5. **POST /api/charge/start** - Şarj başlatma
    - ESP32'ye authorization komutu gönderir
