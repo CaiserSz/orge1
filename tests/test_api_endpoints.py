@@ -1,8 +1,8 @@
 """
 API Endpoints Unit Tests
 Created: 2025-12-09 02:00:00
-Last Modified: 2025-12-22 06:35:31
-Version: 1.1.4
+Last Modified: 2025-12-24 21:21:42
+Version: 1.1.5
 Description: API endpoint'leri için unit testler - Mock ESP32 bridge ile
 """
 
@@ -87,6 +87,62 @@ class TestAPIEndpoints:
         # RL/LOCK gibi firmware/hardware'a bağlı telemetri alanları için açıklama bloğu
         assert "telemetry" in data["data"]
         mock_esp32_bridge.get_status.assert_called()
+
+    def test_esp32_logs_endpoint_reads_log_file(self, client, tmp_path, monkeypatch):
+        """
+        ESP32 log dosyasını API üzerinden okuyabiliyor muyuz?
+
+        Not: Bu test gerçek logs/esp32.log dosyasına bağımlı değildir;
+        tmp_path altında sahte bir log dosyası üretilip router içindeki
+        ESP32_LOG_FILE değişkeni monkeypatch edilir.
+        """
+        fake_log = tmp_path / "esp32.log"
+        fake_log.write_text(
+            "\n".join(
+                [
+                    '{"timestamp":"2025-12-24T21:00:00","level":"INFO","logger":"esp32","type":"esp32_message","message_type":"status","direction":"rx","data":{"STATE":1}}',
+                    '{"timestamp":"2025-12-24T21:00:01","level":"INFO","logger":"esp32","type":"esp32_message","message_type":"ack","direction":"rx","data":{"CMD":"AUTH","STATUS":"OK"}}',
+                    '{"timestamp":"2025-12-24T21:00:02","level":"INFO","logger":"esp32","type":"esp32_message","message_type":"current_set","direction":"tx","data":{"amperage":16}}',
+                ]
+            ),
+            encoding="utf-8",
+        )
+
+        from api.routers import status as status_router
+
+        monkeypatch.setattr(status_router, "ESP32_LOG_FILE", fake_log, raising=True)
+
+        res = client.get("/api/logs/esp32?lines=10&fmt=json")
+        assert res.status_code == 200
+        body = res.json()
+        assert body["success"] is True
+        assert body["data"]["file"] == "esp32.log"
+        assert body["data"]["lines_requested"] == 10
+        assert body["data"]["format"] == "json"
+        assert body["data"]["count"] == 3
+        assert body["data"]["entries"][0]["message_type"] == "status"
+
+        # Filtre: sadece TX current_set
+        res2 = client.get(
+            "/api/logs/esp32?lines=10&fmt=json&direction=tx&message_type=current_set"
+        )
+        assert res2.status_code == 200
+        body2 = res2.json()
+        assert body2["success"] is True
+        assert body2["data"]["count"] == 1
+        assert body2["data"]["entries"][0]["direction"] == "tx"
+        assert body2["data"]["entries"][0]["message_type"] == "current_set"
+
+        # Ham çıktı (raw)
+        res3 = client.get(
+            "/api/logs/esp32?lines=10&fmt=raw&direction=rx&message_type=status"
+        )
+        assert res3.status_code == 200
+        body3 = res3.json()
+        assert body3["success"] is True
+        assert body3["data"]["format"] == "raw"
+        assert body3["data"]["count"] == 1
+        assert "message_type" in body3["data"]["entries"][0]
 
     def test_start_charge_endpoint(self, client, mock_esp32_bridge, test_headers):
         """Start charge endpoint çalışıyor mu?"""

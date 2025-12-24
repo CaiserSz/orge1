@@ -1,18 +1,24 @@
 """
 Status Router
 Created: 2025-12-10
-Last Modified: 2025-12-14 03:50:00
-Version: 1.2.1
+Last Modified: 2025-12-24 21:27:43
+Version: 1.2.4
 Description: Status and health check endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+import json
+from collections import deque
+from typing import Any, Optional
 
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+
+from api.auth import verify_api_key
 from api.cache import CacheInvalidator, cache_response
 from api.event_detector import ESP32State, get_event_detector
+from api.logging_setup import ESP32_LOG_FILE
 from api.metrics import get_metrics_response, update_all_metrics
 from api.models import APIResponse
-from api.rate_limiting import status_rate_limit
+from api.rate_limiting import api_key_rate_limit, status_rate_limit
 from api.routers.dependencies import get_bridge
 from api.services.health_service import build_health_response
 from api.services.status_service import StatusService
@@ -20,6 +26,15 @@ from api.station_info import get_station_info
 from esp32.bridge import ESP32Bridge
 
 router = APIRouter(prefix="/api", tags=["Status"])
+
+
+def _tail_lines(path, max_lines: int) -> list[str]:
+    """Dosyanın son N satırını oku (en yeni satırlar)."""
+    buf: deque[str] = deque(maxlen=max_lines)
+    with path.open("r", encoding="utf-8", errors="replace") as f:
+        for line in f:
+            buf.append(line.rstrip("\n"))
+    return list(buf)
 
 
 @router.get("/health")
@@ -143,6 +158,127 @@ async def metrics(bridge: ESP32Bridge = Depends(get_bridge)):
     event_detector = get_event_detector(get_bridge)
     update_all_metrics(bridge=bridge, event_detector=event_detector)
     return get_metrics_response()
+
+
+@router.get("/logs/esp32")
+@api_key_rate_limit()  # Log endpoint'i abuse edilmemeli; API key zorunlu + rate limit
+def get_esp32_logs(
+    request: Request,
+    lines: int = Query(200, ge=10, le=2000),
+    direction: Optional[str] = Query(
+        None,
+        description="Opsiyonel filtre: rx veya tx",
+    ),
+    message_type: Optional[str] = Query(
+        None,
+        description="Opsiyonel filtre: status, ack, authorization, current_set, charge_stop, ...",
+    ),
+    fmt: str = Query(
+        "json",
+        description="Çıktı formatı: json veya raw",
+    ),
+    api_key: str = Depends(verify_api_key),
+) -> APIResponse:
+    """
+    ESP32 structured loglarını oku (logs/esp32.log).
+
+    Notlar:
+    - Serial portu kullanan servisi durdurmaya gerek yoktur; okuma file log üzerinden yapılır.
+    - Varsayılan çıktı JSON satırlarının parse edilmiş halidir (fmt=json).
+    - fmt=raw ile ham satırlar döndürülür.
+    """
+    _ = api_key  # API key doğrulaması için dependency (kullanılmıyor)
+    _ = request  # Rate limiting decorator için request argümanı gerekli (kullanılmıyor)
+
+    fmt_norm = (fmt or "").strip().lower()
+    if fmt_norm not in ("json", "raw"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="fmt parametresi 'json' veya 'raw' olmalıdır",
+        )
+
+    direction_norm = None
+    if direction is not None:
+        direction_norm = (direction or "").strip().lower()
+        if direction_norm not in ("rx", "tx"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="direction parametresi 'rx' veya 'tx' olmalıdır",
+            )
+
+    message_type_norm = None
+    if message_type is not None:
+        message_type_norm = (message_type or "").strip().lower()
+        if not message_type_norm:
+            message_type_norm = None
+
+    if not ESP32_LOG_FILE.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="ESP32 log dosyası bulunamadı (logs/esp32.log)",
+        )
+
+    raw_lines = _tail_lines(ESP32_LOG_FILE, max_lines=lines)
+
+    # JSON line parse + opsiyonel filtreleme
+    items: list[dict[str, Any]] = []
+    for raw in raw_lines:
+        parsed: Optional[dict[str, Any]] = None
+        parse_error: Optional[str] = None
+        try:
+            loaded = json.loads(raw)
+            if isinstance(loaded, dict):
+                parsed = loaded
+            else:
+                parse_error = "parsed_json_not_object"
+        except Exception as exc:
+            parse_error = f"{type(exc).__name__}: {exc}"
+
+        items.append({"raw": raw, "parsed": parsed, "parse_error": parse_error})
+
+    def _match(item: dict[str, Any]) -> bool:
+        if direction_norm is None and message_type_norm is None:
+            return True
+        parsed_item = item.get("parsed")
+        if not isinstance(parsed_item, dict):
+            return False
+        if direction_norm is not None:
+            if (str(parsed_item.get("direction") or "").lower()) != direction_norm:
+                return False
+        if message_type_norm is not None:
+            if (
+                str(parsed_item.get("message_type") or "").lower()
+            ) != message_type_norm:
+                return False
+        return True
+
+    filtered = [it for it in items if _match(it)]
+
+    if fmt_norm == "raw":
+        entries: list[Any] = [it["raw"] for it in filtered]
+    else:
+        entries = []
+        for it in filtered:
+            if isinstance(it.get("parsed"), dict):
+                entries.append(it["parsed"])
+            else:
+                entries.append(
+                    {"raw": it.get("raw", ""), "parse_error": it.get("parse_error")}
+                )
+
+    return APIResponse(
+        success=True,
+        message="ESP32 logları başarıyla okundu",
+        data={
+            "file": "esp32.log",
+            "lines_requested": lines,
+            "count": len(entries),
+            "format": fmt_norm,
+            "direction": direction_norm,
+            "message_type": message_type_norm,
+            "entries": entries,
+        },
+    )
 
 
 @router.get("/alerts")

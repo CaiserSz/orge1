@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-24 18:29:00
+**Son Güncelleme:** 2025-12-24 21:29:29
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -13,7 +13,7 @@
 ### Öncelik 2: Standart Uyarı Eşiği Yakın Dosyalar (2025-12-22) - Yeni Uyarılar
 
 - [ ] **Görev:** `api/database/maintenance_queries.py` dosyasını modüllere böl
-  - Açıklama: `standards_auto_check` uyarısı: 432 satır (limit 500). Admin/OCPP profile query’leri eklenince büyüdü; bakım riski artıyor.
+  - Açıklama: `standards_auto_check` uyarısı: 499 satır (limit 500). Admin/OCPP profile query’leri eklenince büyüdü; bakım riski artıyor.
   - Öncelik: 2 (Yüksek)
   - Tahmini Süre: 1-2 saat
   - Durum: 🟡 Uyarı eşiği yakın
@@ -31,6 +31,13 @@
   - Tahmini Süre: 1-2 saat
   - Durum: 🟡 Uyarı eşiği yakın
   - Not: Yeni dosya oluşturma kuralı/istisnası netleşince router/HTML ayrıştırma veya minify ile satır limiti payı açılmalı.
+
+- [ ] **Görev:** `tests/test_api_endpoints.py` dosyasını test suite’e böl (uyarı eşiği yeniden yakın)
+  - Açıklama: `standards_auto_check` uyarısı: 447 satır (limit 500). Yeni API testleri eklendikçe büyüyor; bakım riski artıyor.
+  - Öncelik: 2 (Orta)
+  - Tahmini Süre: 1-2 saat
+  - Durum: 🟡 Uyarı eşiği yakın
+  - Not: Yeni dosya oluşturma kuralı/istisnası netleşince testleri modüler dosyalara bölmek (örn. meter/api/status).
 
 ### Öncelik 0: Secret/Config Hijyeni (2025-12-19) - `.env` repo içinde track ediliyor
 

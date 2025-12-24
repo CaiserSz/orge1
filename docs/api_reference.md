@@ -1,8 +1,8 @@
 # API Referansı - AC Charger
 
 **Oluşturulma Tarihi:** 2025-12-09 22:35:00
-**Son Güncelleme:** 2025-12-13 13:15:00
-**Version:** 1.0.1
+**Son Güncelleme:** 2025-12-24 21:23:05
+**Version:** 1.0.2
 
 ---
 
@@ -28,7 +28,23 @@
    - ESP32 her 5 saniyede bir otomatik durum gönderir
    - Response: Status mesajı (CP, PP, Relay, Lock, Motor, PWM, Max Current, Cable Current, Auth, State, Power Board Status, Stop Requested)
 
-4. **POST /api/charge/start** - Şarj başlatma
+4. **GET /api/logs/esp32** - ESP32 loglarını oku (serial servisini durdurmadan)
+   - `logs/esp32.log` dosyasının son satırlarını döndürür (varsayılan: 200 satır)
+   - API key zorunlu: `X-API-Key` header
+   - Query parametreleri:
+     - `lines`: 10-2000 (varsayılan: 200)
+     - `fmt`: `json` (varsayılan) veya `raw`
+     - `direction`: `rx` veya `tx` (opsiyonel filtre)
+     - `message_type`: `status`, `ack`, `authorization`, `current_set`, ... (opsiyonel filtre)
+
+   Örnek curl:
+
+   - JSON (parse edilmiş):
+     - `curl -H "X-API-Key: <KEY>" "http://localhost:8000/api/logs/esp32?lines=200&fmt=json"`
+   - Sadece RX status, ham satır:
+     - `curl -H "X-API-Key: <KEY>" "http://localhost:8000/api/logs/esp32?lines=200&fmt=raw&direction=rx&message_type=status"`
+
+5. **POST /api/charge/start** - Şarj başlatma
    - ESP32'ye authorization komutu gönderir
    - **ÖNEMLİ:** Sadece EV_CONNECTED (State=3) durumunda çalışır
    - Şarj izni verir ve şarjı başlatır
@@ -40,23 +56,23 @@
      - ❌ State=4 (READY): Authorization zaten verilmiş, hata döndürülür
      - ❌ State>=5: Aktif şarj veya hata durumu, hata döndürülür
 
-5. **POST /api/charge/stop** - Şarj durdurma
+6. **POST /api/charge/stop** - Şarj durdurma
    - ESP32'ye charge stop komutu gönderir
    - Şarjı sonlandırır
    - Request Body: `{}` (boş)
 
-6. **POST /api/maxcurrent** - Maksimum akım ayarlama
+7. **POST /api/maxcurrent** - Maksimum akım ayarlama
    - ESP32'ye maksimum akım değerini ayarlar
    - **ÖNEMLİ:** Sadece aktif şarj başlamadan yapılabilir
    - Request Body: `{"amperage": 16}` (6-32 amper aralığında herhangi bir tam sayı)
    - Güvenlik: Şarj aktifken akım değiştirilemez
    - **Not:** 6-32 amper aralığında herhangi bir tam sayı değer kullanılabilir (örn: 12, 15, 18, 22, vb.)
 
-7. **GET /api/current/available** - Kullanılabilir akım aralığı
+8. **GET /api/current/available** - Kullanılabilir akım aralığı
    - ESP32'de ayarlanabilir akım aralığını döndürür
    - Response: `{"range": "6-32 amper", "min": 6, "max": 32, "note": "6-32 aralığında herhangi bir tam sayı değer kullanılabilir"}`
 
-8. **GET /api/station/info** - İstasyon bilgilerini al (1 saat cache)
+9. **GET /api/station/info** - İstasyon bilgilerini al (1 saat cache)
    - Form üzerinden girilen istasyon bilgilerini döndürür
    - Response `data` alanı örnek:
      - `station_id` (str, zorunlu)
@@ -73,7 +89,7 @@
      - `price_per_kwh` (float, opsiyonel) — 1 kWh fiyatı (₺)
      - `created_at` / `updated_at` (ISO string, sistem tarafından)
 
-9. **POST /api/station/info** - İstasyon bilgilerini kaydet
+10. **POST /api/station/info** - İstasyon bilgilerini kaydet
    - Request body: yukarıdaki alanlar (form ile uyumlu)
    - Not: `price_per_kwh` alanı string gelse bile float'a normalize edilir.
 
