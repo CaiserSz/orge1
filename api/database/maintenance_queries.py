@@ -1,14 +1,13 @@
 """
 Maintenance Queries Module
 Created: 2025-12-10 21:09:49
-Last Modified: 2025-12-22 17:33:00
-Version: 1.1.0
+Last Modified: 2025-12-24 18:29:00
+Version: 1.2.0
 Description: Database bakım ve temizlik operasyonları mixin'i.
-
 Notes:
-  - Admin UI (HTTP Basic) için admin kullanıcı doğrulama ve OCPP station profile
-    CRUD query'leri eklendi.
+  - Admin UI (HTTP Basic): admin kullanıcı doğrulama + OCPP station profile CRUD query'leri.
   - Admin parolası DB'de PBKDF2-SHA256 ile hash+salt olarak saklanır.
+  - Station profilleri: auth_type (basic/mtls/none) + mTLS cert/key/ca path alanları eklendi.
 """
 
 from __future__ import annotations
@@ -212,6 +211,7 @@ class MaintenanceQueryMixin:
                 profile_key TEXT PRIMARY KEY,
                 station_name TEXT NOT NULL,
                 ocpp_version TEXT NOT NULL CHECK(ocpp_version IN ('2.0.1', '1.6j')),
+                auth_type TEXT NOT NULL DEFAULT 'basic',
                 ocpp201_url TEXT,
                 ocpp16_url TEXT,
                 vendor_name TEXT NOT NULL,
@@ -219,6 +219,9 @@ class MaintenanceQueryMixin:
                 serial_number TEXT,
                 firmware_version TEXT,
                 password_env_var TEXT NOT NULL,
+                mtls_cert_path TEXT,
+                mtls_key_path TEXT,
+                mtls_ca_path TEXT,
                 heartbeat_seconds INTEGER NOT NULL DEFAULT 60 CHECK(heartbeat_seconds > 0),
                 enabled INTEGER NOT NULL DEFAULT 1 CHECK(enabled IN (0,1)),
                 created_at INTEGER NOT NULL,
@@ -226,6 +229,32 @@ class MaintenanceQueryMixin:
             )
             """
         )
+        # Backward compatible schema upgrades (existing DBs created before auth_type/mTLS fields).
+        upgraded = False
+        cursor.execute("PRAGMA table_info(ocpp_station_profiles)")
+        cols = {row[1] for row in cursor.fetchall()}
+        if "auth_type" not in cols:
+            cursor.execute(
+                "ALTER TABLE ocpp_station_profiles ADD COLUMN auth_type TEXT"
+            )
+            upgraded = True
+        if "mtls_cert_path" not in cols:
+            cursor.execute(
+                "ALTER TABLE ocpp_station_profiles ADD COLUMN mtls_cert_path TEXT"
+            )
+            upgraded = True
+        if "mtls_key_path" not in cols:
+            cursor.execute(
+                "ALTER TABLE ocpp_station_profiles ADD COLUMN mtls_key_path TEXT"
+            )
+            upgraded = True
+        if "mtls_ca_path" not in cols:
+            cursor.execute(
+                "ALTER TABLE ocpp_station_profiles ADD COLUMN mtls_ca_path TEXT"
+            )
+            upgraded = True
+        if upgraded:
+            cursor.connection.commit()
         cursor.execute(
             """
             CREATE INDEX IF NOT EXISTS idx_ocpp_station_profiles_enabled
@@ -241,8 +270,9 @@ class MaintenanceQueryMixin:
             cursor.execute(
                 """
                 SELECT
-                  profile_key, station_name, ocpp_version, ocpp201_url, ocpp16_url,
+                  profile_key, station_name, ocpp_version, auth_type, ocpp201_url, ocpp16_url,
                   vendor_name, model, serial_number, firmware_version, password_env_var,
+                  mtls_cert_path, mtls_key_path, mtls_ca_path,
                   heartbeat_seconds, enabled, created_at, updated_at
                 FROM ocpp_station_profiles
                 ORDER BY updated_at DESC
@@ -258,8 +288,9 @@ class MaintenanceQueryMixin:
             cursor.execute(
                 """
                 SELECT
-                  profile_key, station_name, ocpp_version, ocpp201_url, ocpp16_url,
+                  profile_key, station_name, ocpp_version, auth_type, ocpp201_url, ocpp16_url,
                   vendor_name, model, serial_number, firmware_version, password_env_var,
+                  mtls_cert_path, mtls_key_path, mtls_ca_path,
                   heartbeat_seconds, enabled, created_at, updated_at
                 FROM ocpp_station_profiles
                 WHERE profile_key=?
@@ -273,6 +304,7 @@ class MaintenanceQueryMixin:
         profile_key = self.validate_profile_key(profile.get("profile_key", ""))
         station_name = (profile.get("station_name") or "").strip()
         ocpp_version = (profile.get("ocpp_version") or "").strip()
+        auth_type = (profile.get("auth_type") or "basic").strip().lower()
         ocpp201_url = (profile.get("ocpp201_url") or "").strip() or None
         ocpp16_url = (profile.get("ocpp16_url") or "").strip() or None
         vendor_name = (profile.get("vendor_name") or "").strip()
@@ -280,6 +312,9 @@ class MaintenanceQueryMixin:
         serial_number = (profile.get("serial_number") or "").strip() or None
         firmware_version = (profile.get("firmware_version") or "").strip() or None
         password_env_var = (profile.get("password_env_var") or "").strip()
+        mtls_cert_path = (profile.get("mtls_cert_path") or "").strip() or None
+        mtls_key_path = (profile.get("mtls_key_path") or "").strip() or None
+        mtls_ca_path = (profile.get("mtls_ca_path") or "").strip() or None
 
         heartbeat_seconds_raw = profile.get("heartbeat_seconds")
         heartbeat_seconds = int(heartbeat_seconds_raw or 60)
@@ -289,6 +324,8 @@ class MaintenanceQueryMixin:
             raise ValueError("station_name is required")
         if ocpp_version not in ("2.0.1", "1.6j"):
             raise ValueError("ocpp_version must be '2.0.1' or '1.6j'")
+        if auth_type not in ("basic", "mtls", "none"):
+            raise ValueError("auth_type must be 'basic', 'mtls', or 'none'")
         expected_suffix = f"/{station_name}"
 
         def _validate_url_field(field: str, url: str) -> None:
@@ -316,8 +353,13 @@ class MaintenanceQueryMixin:
             raise ValueError("vendor_name is required")
         if not model:
             raise ValueError("model is required")
-        if not password_env_var:
-            raise ValueError("password_env_var is required (must exist in .env)")
+        if auth_type == "basic" and not password_env_var:
+            raise ValueError("password_env_var is required for auth_type=basic")
+        if auth_type == "mtls":
+            if not mtls_cert_path:
+                raise ValueError("mtls_cert_path is required for auth_type=mtls")
+            if not mtls_key_path:
+                raise ValueError("mtls_key_path is required for auth_type=mtls")
         if heartbeat_seconds <= 0 or heartbeat_seconds > 3600:
             raise ValueError("heartbeat_seconds must be between 1 and 3600")
 
@@ -332,14 +374,16 @@ class MaintenanceQueryMixin:
                     cursor.execute(
                         """
                         UPDATE ocpp_station_profiles
-                        SET station_name=?, ocpp_version=?, ocpp201_url=?, ocpp16_url=?,
+                        SET station_name=?, ocpp_version=?, auth_type=?, ocpp201_url=?, ocpp16_url=?,
                             vendor_name=?, model=?, serial_number=?, firmware_version=?,
-                            password_env_var=?, heartbeat_seconds=?, enabled=?, updated_at=?
+                            password_env_var=?, mtls_cert_path=?, mtls_key_path=?, mtls_ca_path=?,
+                            heartbeat_seconds=?, enabled=?, updated_at=?
                         WHERE profile_key=?
                         """,
                         (
                             station_name,
                             ocpp_version,
+                            auth_type,
                             ocpp201_url,
                             ocpp16_url,
                             vendor_name,
@@ -347,6 +391,9 @@ class MaintenanceQueryMixin:
                             serial_number,
                             firmware_version,
                             password_env_var,
+                            mtls_cert_path,
+                            mtls_key_path,
+                            mtls_ca_path,
                             heartbeat_seconds,
                             enabled,
                             now,
@@ -357,15 +404,17 @@ class MaintenanceQueryMixin:
                     cursor.execute(
                         """
                         INSERT INTO ocpp_station_profiles
-                        (profile_key, station_name, ocpp_version, ocpp201_url, ocpp16_url,
+                        (profile_key, station_name, ocpp_version, auth_type, ocpp201_url, ocpp16_url,
                          vendor_name, model, serial_number, firmware_version,
-                         password_env_var, heartbeat_seconds, enabled, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                         password_env_var, mtls_cert_path, mtls_key_path, mtls_ca_path,
+                         heartbeat_seconds, enabled, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             profile_key,
                             station_name,
                             ocpp_version,
+                            auth_type,
                             ocpp201_url,
                             ocpp16_url,
                             vendor_name,
@@ -373,6 +422,9 @@ class MaintenanceQueryMixin:
                             serial_number,
                             firmware_version,
                             password_env_var,
+                            mtls_cert_path,
+                            mtls_key_path,
+                            mtls_ca_path,
                             heartbeat_seconds,
                             enabled,
                             now,

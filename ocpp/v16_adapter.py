@@ -2,8 +2,8 @@
 OCPP 1.6J Adapter (Phase-1)
 
 Created: 2025-12-21 20:12
-Last Modified: 2025-12-22 14:05
-Version: 0.3.0
+Last Modified: 2025-12-24 18:29
+Version: 0.4.0
 Description:
   OCPP 1.6J (v16) station adapter used as a fallback transport for Phase-1.
   This module is intentionally importable from `ocpp/main.py` without relying on
@@ -20,7 +20,12 @@ import uuid
 from typing import Any
 
 import websockets
-from states import StationIdentity, basic_auth_header, ssl_if_needed, utc_now_iso
+from states import (
+    StationIdentity,
+    basic_auth_header,
+    ssl_if_needed_with_cfg,
+    utc_now_iso,
+)
 
 
 class Ocpp16Adapter:
@@ -46,11 +51,14 @@ class Ocpp16Adapter:
         from ocpp.v16 import ChargePoint, call, call_result, enums
 
         url = self.cfg.ocpp16_url
-        headers = {
-            "Authorization": basic_auth_header(
-                self.cfg.station_name, self.cfg.station_password
-            )
-        }
+        auth_type = (getattr(self.cfg, "auth_type", None) or "basic").strip().lower()
+        headers = {}
+        if auth_type == "basic":
+            headers = {
+                "Authorization": basic_auth_header(
+                    self.cfg.station_name, self.cfg.station_password
+                )
+            }
 
         class _LoggingChargePoint(ChargePoint):
             def __init__(self, *args: Any, **kwargs: Any):
@@ -218,7 +226,7 @@ class Ocpp16Adapter:
                     url,
                     subprotocols=["ocpp1.6"],
                     additional_headers=headers,
-                    ssl=ssl_if_needed(url),
+                    ssl=ssl_if_needed_with_cfg(url, self.cfg),
                     open_timeout=10,
                     # Keepalive:
                     # - We already send OCPP Heartbeat at a short interval (CSMS provides 10s).

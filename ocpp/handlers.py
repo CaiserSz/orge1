@@ -2,8 +2,8 @@
 OCPP Station Adapters (Phase-1)
 
 Created: 2025-12-16 01:20
-Last Modified: 2025-12-21 15:55
-Version: 0.4.4
+Last Modified: 2025-12-24 18:29
+Version: 0.5.0
 Description:
   Implements the Phase-1 approach:
   - Single transport behavior per adapter (websocket connect/reconnect, auth header, subprotocol)
@@ -24,7 +24,7 @@ from states import (
     StationIdentity,
     basic_auth_header,
     run_poc_v201,
-    ssl_if_needed,
+    ssl_if_needed_with_cfg,
     utc_now_iso,
 )
 
@@ -39,9 +39,8 @@ def _basic_auth_header(station_name: str, password: str) -> str:
     return basic_auth_header(station_name, password)
 
 
-def _ssl_if_needed(url: str):
-    # Backward compatible alias
-    return ssl_if_needed(url)
+def _ssl_if_needed(url: str, cfg: Any):
+    return ssl_if_needed_with_cfg(url, cfg)
 
 
 def _is_retryable_ws_error(exc: BaseException) -> bool:
@@ -96,11 +95,14 @@ class Ocpp201Adapter:
         )
 
         url = self.cfg.ocpp201_url
-        headers = {
-            "Authorization": _basic_auth_header(
-                self.cfg.station_name, self.cfg.station_password
-            )
-        }
+        auth_type = (getattr(cfg, "auth_type", None) or "basic").strip().lower()
+        headers = {}
+        if auth_type == "basic":
+            headers = {
+                "Authorization": _basic_auth_header(
+                    self.cfg.station_name, self.cfg.station_password
+                )
+            }
 
         attempt = 0
         while True:
@@ -109,7 +111,7 @@ class Ocpp201Adapter:
                     url,
                     subprotocols=["ocpp2.0.1"],
                     additional_headers=headers,
-                    ssl=_ssl_if_needed(url),
+                    ssl=_ssl_if_needed(url, cfg),
                     open_timeout=10,
                     # Keepalive: helps prevent idle disconnects and improves "connected_ids" stability.
                     ping_interval=20,

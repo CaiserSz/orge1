@@ -1,7 +1,7 @@
 # Tamamlanan Görevler
 
 **Oluşturulma Tarihi:** 2025-12-08 18:20:00
-**Son Güncelleme:** 2025-12-24 15:41:00
+**Son Güncelleme:** 2025-12-24 18:29:00
 
 ---
 
@@ -26,6 +26,14 @@
   - Start/Restart endpoint’leri best-effort auto-sync yapar (Sync unutulsa bile).
   - Profile validation tek protokole göre güncellendi: `2.0.1` → `ocpp201_url` zorunlu, `1.6j` → `ocpp16_url` zorunlu; URL `/{station_name}` ile bitmeli.
 - **Test/Doğrulama:** `./env/bin/pytest -q tests/test_auth.py` → ✅
+
+#### ✅ Station → CSMS auth: BasicAuth + mTLS (profile bazlı)
+- **Görev:** Aynı station yazılımının farklı CSMS’lere bağlanabilmesi için BasicAuth ve mTLS’yi birlikte destekle
+- **Açıklama:**
+  - Profile alanları: `auth_type` (basic/mtls/none) + `mtls_cert_path` / `mtls_key_path` / `mtls_ca_path`.
+  - systemd template `OCPP_AUTH_TYPE`’a göre BasicAuth şifresini resolve eder; mtls/none’de password zorunlu değildir.
+  - OCPP client `auth_type`’a göre Authorization header ve SSLContext (client cert) davranışını seçer.
+- **Test/Doğrulama:** `./env/bin/pytest -q tests/test_auth.py` → ✅ (auth_type + mtls validation testleri)
 
 ### 2025-12-22
 

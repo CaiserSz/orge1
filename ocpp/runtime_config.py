@@ -2,8 +2,8 @@
 OCPP Station Runtime Configuration (Phase-1)
 
 Created: 2025-12-21 20:10
-Last Modified: 2025-12-24 15:30
-Version: 0.2.0
+Last Modified: 2025-12-24 18:29
+Version: 0.3.1
 Description:
   Secret-safe runtime configuration utilities for the OCPP station client.
   Values are sourced from CLI args first, then env vars, then defaults.
@@ -34,6 +34,10 @@ class OcppRuntimeConfig:
 
     primary: str  # "201" or "16"
     allow_fallback: bool
+    auth_type: str  # "basic" | "mtls" | "none"
+    mtls_ca_path: str
+    mtls_cert_path: str
+    mtls_key_path: str
     poc_mode: bool
     once_mode: bool
 
@@ -150,6 +154,17 @@ def _bool_default_str(value: Any, *, fallback: bool) -> str:
 def build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
     defaults = _load_config_defaults(args)
 
+    auth_type = (
+        (
+            getattr(args, "auth_type", None)
+            or _env("OCPP_AUTH_TYPE", str(defaults.get("auth_type") or "basic"))
+        )
+        .strip()
+        .lower()
+    )
+    if auth_type not in ("basic", "mtls", "none"):
+        raise ValueError(f"Invalid auth_type: {auth_type!r} (use basic, mtls, or none)")
+
     station_name = getattr(args, "station_name", None) or _env(
         "OCPP_STATION_NAME", str(defaults.get("station_name") or "ORGE_AC_001")
     )
@@ -158,9 +173,23 @@ def build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
         or os.getenv("OCPP_STATION_PASSWORD")
         or ""
     ).strip()
-    if not station_password:
+    if auth_type == "basic" and not station_password:
         raise ValueError(
             "Missing station password: provide --station-password or set OCPP_STATION_PASSWORD"
+        )
+
+    mtls_ca_path = (
+        getattr(args, "mtls_ca_path", None) or os.getenv("OCPP_MTLS_CA_PATH") or ""
+    ).strip()
+    mtls_cert_path = (
+        getattr(args, "mtls_cert_path", None) or os.getenv("OCPP_MTLS_CERT_PATH") or ""
+    ).strip()
+    mtls_key_path = (
+        getattr(args, "mtls_key_path", None) or os.getenv("OCPP_MTLS_KEY_PATH") or ""
+    ).strip()
+    if auth_type == "mtls" and (not mtls_cert_path or not mtls_key_path):
+        raise ValueError(
+            "Missing mTLS credentials: set OCPP_MTLS_CERT_PATH and OCPP_MTLS_KEY_PATH"
         )
 
     # URLs can be ws:// or wss://
@@ -204,6 +233,10 @@ def build_config(args: argparse.Namespace) -> OcppRuntimeConfig:
         ocpp16_url=ocpp16_url,
         primary=primary,
         allow_fallback=allow_fallback,
+        auth_type=auth_type,
+        mtls_ca_path=mtls_ca_path,
+        mtls_cert_path=mtls_cert_path,
+        mtls_key_path=mtls_key_path,
         poc_mode=bool(getattr(args, "poc", False)),
         once_mode=bool(getattr(args, "once", False)),
         vendor_name=getattr(args, "vendor_name", None)

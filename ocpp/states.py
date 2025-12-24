@@ -2,8 +2,8 @@
 OCPP Station State Helpers (Phase-1)
 
 Created: 2025-12-16 01:20
-Last Modified: 2025-12-16 07:22
-Version: 0.2.1
+Last Modified: 2025-12-24 18:29
+Version: 0.3.1
 Description:
   Shared datatypes and helper utilities for the station OCPP client.
   This module intentionally contains shared helpers (auth, time, local API polling)
@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+import os
 import ssl
 import urllib.error
 import urllib.request
@@ -55,7 +56,61 @@ def basic_auth_header(station_name: str, password: str) -> str:
 
 
 def ssl_if_needed(url: str) -> Optional[ssl.SSLContext]:
-    return ssl.create_default_context() if url.lower().startswith("wss://") else None
+    return ssl_if_needed_with_cfg(url)
+
+
+def ssl_if_needed_with_cfg(
+    url: str, cfg: Any | None = None
+) -> Optional[ssl.SSLContext]:
+    """
+    Build SSL context for websockets when using wss://.
+
+    Supports:
+      - default TLS verify (system CAs)
+      - optional mTLS client certificate if cfg.auth_type == "mtls"
+      - optional custom CA bundle via cfg.mtls_ca_path
+    """
+    is_wss = url.lower().startswith("wss://")
+    auth_type = (getattr(cfg, "auth_type", None) or "").strip().lower() if cfg else ""
+
+    if not is_wss:
+        if auth_type == "mtls":
+            raise ValueError("mTLS requires wss:// (TLS) URL")
+        return None
+
+    ca_path = (getattr(cfg, "mtls_ca_path", "") or "").strip() if cfg else ""
+    ca_path = ca_path or os.getenv("OCPP_MTLS_CA_PATH", "").strip()
+    cafile = ca_path or None
+
+    try:
+        ctx = ssl.create_default_context(cafile=cafile)
+    except Exception as exc:
+        raise ValueError(
+            f"Failed to create SSL context (cafile={cafile!r}): {exc}"
+        ) from exc
+
+    if auth_type == "mtls":
+        cert_path = (getattr(cfg, "mtls_cert_path", "") or "").strip()
+        key_path = (getattr(cfg, "mtls_key_path", "") or "").strip()
+        if not cert_path:
+            cert_path = os.getenv("OCPP_MTLS_CERT_PATH", "").strip()
+        if not key_path:
+            key_path = os.getenv("OCPP_MTLS_KEY_PATH", "").strip()
+        if not cert_path or not key_path:
+            raise ValueError(
+                "mTLS enabled but missing cert/key path "
+                "(set OCPP_MTLS_CERT_PATH and OCPP_MTLS_KEY_PATH)"
+            )
+        if not os.path.exists(cert_path):
+            raise ValueError(f"mTLS cert file not found: {cert_path}")
+        if not os.path.exists(key_path):
+            raise ValueError(f"mTLS key file not found: {key_path}")
+        try:
+            ctx.load_cert_chain(certfile=cert_path, keyfile=key_path)
+        except Exception as exc:
+            raise ValueError(f"Failed to load mTLS cert/key: {exc}") from exc
+
+    return ctx
 
 
 def safe_float(value: Any) -> Optional[float]:

@@ -2,8 +2,8 @@
 OCPP --once JSON Evidence (Phase-1)
 
 Created: 2025-12-21 20:25
-Last Modified: 2025-12-21 20:25
-Version: 0.1.0
+Last Modified: 2025-12-24 18:29
+Version: 0.2.0
 Description:
   Implements `ocpp/main.py --once` as a single JSON output (secret-free).
   The report is designed for ops/CSMS correlation and must not print any secrets.
@@ -19,7 +19,7 @@ from dataclasses import fields, is_dataclass
 from typing import Any
 
 import websockets
-from states import basic_auth_header, ssl_if_needed, utc_now_iso
+from states import basic_auth_header, ssl_if_needed_with_cfg, utc_now_iso
 
 
 def _dataclass_field_names(obj: Any) -> list[str]:
@@ -176,9 +176,12 @@ class OnceContext:
 async def run_once_json(cfg: Any) -> dict[str, Any]:
     subprotocol = "ocpp2.0.1" if cfg.primary == "201" else "ocpp1.6"
     url = cfg.ocpp201_url if cfg.primary == "201" else cfg.ocpp16_url
-    headers = {
-        "Authorization": basic_auth_header(cfg.station_name, cfg.station_password)
-    }
+    auth_type = (getattr(cfg, "auth_type", None) or "basic").strip().lower()
+    headers = {}
+    if auth_type == "basic":
+        headers = {
+            "Authorization": basic_auth_header(cfg.station_name, cfg.station_password)
+        }
 
     ctx = OnceContext(cfg=cfg, url=url, subprotocol=subprotocol)
 
@@ -187,7 +190,7 @@ async def run_once_json(cfg: Any) -> dict[str, Any]:
             url,
             subprotocols=[subprotocol],
             additional_headers=headers,
-            ssl=ssl_if_needed(url),
+            ssl=ssl_if_needed_with_cfg(url, cfg),
             open_timeout=10,
         ) as ws:
             if cfg.primary == "201":

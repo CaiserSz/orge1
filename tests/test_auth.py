@@ -1,8 +1,8 @@
 """
 API Authentication Tests
 Created: 2025-12-09 17:20:00
-Last Modified: 2025-12-22 17:55:00
-Version: 1.0.4
+Last Modified: 2025-12-24 18:29:00
+Version: 1.0.5
 Description: API authentication testleri
 """
 
@@ -244,6 +244,68 @@ class TestAdminUI:
         )
         assert resp.status_code == 400
         assert "ocpp201_url" in resp.json().get("detail", "")
+
+    def test_admin_profile_auth_type_invalid_returns_400(self, client):
+        resp = client.post(
+            "/admin/api/profiles",
+            headers={"Authorization": self._basic("admin", "admin123")},
+            json={
+                "profile_key": "ORGE_AC_001_201_TEST",
+                "station_name": "ORGE_AC_001_201_TEST",
+                "ocpp_version": "2.0.1",
+                "auth_type": "something-else",
+                "ocpp201_url": "wss://lixhium.xyz/ocpp/ORGE_AC_001_201_TEST",
+                "ocpp16_url": "wss://lixhium.xyz/ocpp16/ORGE_AC_001_201_TEST",
+                "vendor_name": "ORGE",
+                "model": "ORGE",
+                "password_env_var": "OCPP_STATION_PASSWORD",
+                "heartbeat_seconds": 60,
+                "enabled": True,
+            },
+        )
+        assert resp.status_code == 400
+        assert "auth_type" in resp.json().get("detail", "")
+
+    def test_admin_profile_mtls_requires_cert_key_returns_400(self, client):
+        resp = client.post(
+            "/admin/api/profiles",
+            headers={"Authorization": self._basic("admin", "admin123")},
+            json={
+                "profile_key": "ORGE_AC_001_201_TEST",
+                "station_name": "ORGE_AC_001_201_TEST",
+                "ocpp_version": "2.0.1",
+                "auth_type": "mtls",
+                "ocpp201_url": "wss://lixhium.xyz/ocpp/ORGE_AC_001_201_TEST",
+                "vendor_name": "ORGE",
+                "model": "ORGE",
+                # mtls_cert_path / mtls_key_path intentionally missing
+                "password_env_var": "",
+                "heartbeat_seconds": 60,
+                "enabled": True,
+            },
+        )
+        assert resp.status_code == 400
+        assert "mtls_" in resp.json().get("detail", "")
+
+    def test_admin_profile_basic_requires_password_env_var_returns_400(self, client):
+        resp = client.post(
+            "/admin/api/profiles",
+            headers={"Authorization": self._basic("admin", "admin123")},
+            json={
+                "profile_key": "ORGE_AC_001_201_TEST",
+                "station_name": "ORGE_AC_001_201_TEST",
+                "ocpp_version": "2.0.1",
+                "auth_type": "basic",
+                "ocpp201_url": "wss://lixhium.xyz/ocpp/ORGE_AC_001_201_TEST",
+                "vendor_name": "ORGE",
+                "model": "ORGE",
+                "password_env_var": "",
+                "heartbeat_seconds": 60,
+                "enabled": True,
+            },
+        )
+        assert resp.status_code == 400
+        assert "password_env_var" in resp.json().get("detail", "")
 
     def test_admin_profile_url_mismatch_returns_400(self, client):
         resp = client.post(

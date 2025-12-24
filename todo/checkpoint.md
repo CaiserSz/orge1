@@ -1,8 +1,8 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-24 15:40:00
-**Version:** 1.23.0
+**Son Güncelleme:** 2025-12-24 18:29:00
+**Version:** 1.24.0
 
 ---
 
@@ -14,8 +14,28 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251224-051
-**Tarih:** 2025-12-24 15:40:00
+**Checkpoint ID:** CP-20251224-052
+**Tarih:** 2025-12-24 18:29:00
+**Durum:** ✅ Station → CSMS auth: BasicAuth + mTLS (profile bazlı) + UI/DB/systemd entegrasyonu
+- Admin UI / Profiles:
+  - `auth_type`: `basic` | `mtls` | `none`
+  - mTLS alanları: `mtls_cert_path`, `mtls_key_path`, `mtls_ca_path (optional)`
+  - Validation:
+    - `auth_type=basic` → `password_env_var` zorunlu
+    - `auth_type=mtls` → `mtls_cert_path` + `mtls_key_path` zorunlu
+- systemd:
+  - Template, `OCPP_AUTH_TYPE` değerine göre BasicAuth şifresi resolve eder (mtls/none’de password zorunlu değil).
+  - Drop-in’e `OCPP_MTLS_CERT_PATH / OCPP_MTLS_KEY_PATH / OCPP_MTLS_CA_PATH` env’leri yazılır.
+- OCPP station client:
+  - WebSocket connect’te:
+    - `basic` → `Authorization: Basic ...` header gönderilir
+    - `mtls` → client cert/key ile SSLContext yüklenir (wss://)
+    - `none` → header yok
+- Test/teyit:
+  - `python3 -m py_compile` (ilgili dosyalar) → ✅
+  - `./env/bin/pytest -q tests/test_auth.py` → ✅ (auth_type + mtls validation testleri)
+
+### Önceki Checkpoint: CP-20251224-051 (2025-12-24 15:40:00)
 **Durum:** ✅ Tek protokol modu (fallback kapalı) + systemd env-driven runner (boşluk/eksik env sorunu yok)
 - OCPP (station client):
   - Fallback artık opsiyonel: `OCPP_ALLOW_FALLBACK` / `--allow-fallback` ile açılabilir; varsayılan **kapalı** (tek protokol).

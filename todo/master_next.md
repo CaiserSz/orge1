@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-22 18:23:00
+**Son Güncelleme:** 2025-12-24 18:29:00
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -24,6 +24,13 @@
   - Öncelik: 2 (Orta)
   - Tahmini Süre: 1-2 saat
   - Durum: 🟡 Uyarı eşiği yakın
+
+- [ ] **Görev:** `api/routers/test.py` (Admin UI) dosyasını sadeleştir / böl
+  - Açıklama: `standards_auto_check` uyarısı: 496 satır (limit 500). Inline Admin UI (HTML/JS) + systemd entegrasyonu büyüdü; bakım riski artıyor.
+  - Öncelik: 2 (Orta)
+  - Tahmini Süre: 1-2 saat
+  - Durum: 🟡 Uyarı eşiği yakın
+  - Not: Yeni dosya oluşturma kuralı/istisnası netleşince router/HTML ayrıştırma veya minify ile satır limiti payı açılmalı.
 
 ### Öncelik 0: Secret/Config Hijyeni (2025-12-19) - `.env` repo içinde track ediliyor
 

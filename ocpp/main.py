@@ -2,12 +2,13 @@
 OCPP Station Client Runner (Phase-1)
 
 Created: 2025-12-16 01:20
-Last Modified: 2025-12-22 05:03
-Version: 0.6.2
+Last Modified: 2025-12-24 18:29
+Version: 0.7.0
 Description:
   OCPP station client entrypoint for Raspberry Pi (Python runtime).
-  - Primary: OCPP 2.0.1 (v201)
-  - Fallback: OCPP 1.6J (v16)
+  - Primary: selected by cfg.primary (201 or 16)
+  - Fallback: optional via OCPP_ALLOW_FALLBACK / --allow-fallback (default false)
+  - Auth: basic | mtls | none
 
 IMPORTANT:
   - This process is intentionally isolated from the existing FastAPI/ESP32 runtime.
@@ -219,6 +220,26 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         default=None,
         help="Enable fallback to the other OCPP version on primary failure (true/false). Default false.",
     )
+    p.add_argument(
+        "--auth-type",
+        default=None,
+        help="Authentication type: basic | mtls | none. Default basic.",
+    )
+    p.add_argument(
+        "--mtls-cert-path",
+        default=None,
+        help="mTLS client certificate file path (PEM). Also via env OCPP_MTLS_CERT_PATH.",
+    )
+    p.add_argument(
+        "--mtls-key-path",
+        default=None,
+        help="mTLS client private key file path (PEM). Also via env OCPP_MTLS_KEY_PATH.",
+    )
+    p.add_argument(
+        "--mtls-ca-path",
+        default=None,
+        help="Optional custom CA bundle file path (PEM). Also via env OCPP_MTLS_CA_PATH.",
+    )
 
     p.add_argument(
         "--local-api-base-url",
@@ -337,7 +358,7 @@ def main(argv: list[str]) -> int:
 
     print("[OCPP] Station client starting (isolated process)")
     print(
-        f"[OCPP] station_name={cfg.station_name} primary={cfg.primary} allow_fallback={getattr(cfg, 'allow_fallback', False)} poc={cfg.poc_mode} once={cfg.once_mode}"
+        f"[OCPP] station_name={cfg.station_name} primary={cfg.primary} allow_fallback={getattr(cfg, 'allow_fallback', False)} auth_type={getattr(cfg, 'auth_type', 'basic')} poc={cfg.poc_mode} once={cfg.once_mode}"
     )
     print(f"[OCPP] url_201={cfg.ocpp201_url}")
     print(f"[OCPP] url_16={cfg.ocpp16_url}")
