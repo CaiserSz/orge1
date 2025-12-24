@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-24 23:52:24
+**Son Güncelleme:** 2025-12-25 02:39:00
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -61,11 +61,11 @@
   - Durum: 🟡 Uyarı eşiği yakın
 
 - [ ] **Görev:** `api/routers/test.py` (Admin UI) dosyasını sadeleştir / böl
-  - Açıklama: `standards_auto_check` uyarısı: 496 satır (limit 500). Inline Admin UI (HTML/JS) + systemd entegrasyonu büyüdü; bakım riski artıyor.
+  - Açıklama: `standards_auto_check` uyarısı: 464 satır (limit 500). Inline Admin UI (HTML/JS) + systemd entegrasyonu büyüyor; bakım riski artıyor.
   - Öncelik: 2 (Orta)
   - Tahmini Süre: 1-2 saat
   - Durum: 🟡 Uyarı eşiği yakın
-  - Not: Yeni dosya oluşturma kuralı/istisnası netleşince router/HTML ayrıştırma veya minify ile satır limiti payı açılmalı.
+  - Not: Kritik limit aşımı (564) minify ile kapatıldı; hala uyarı eşiği yakın olduğu için ileride router/HTML ayrıştırma düşünülebilir.
 
 - [ ] **Görev:** `tests/test_api_endpoints.py` dosyasını test suite’e böl (uyarı eşiği yeniden yakın)
   - Açıklama: `standards_auto_check` uyarısı: 467 satır (limit 500). Yeni API testleri eklendikçe büyüyor; bakım riski artıyor.
@@ -73,6 +73,12 @@
   - Tahmini Süre: 1-2 saat
   - Durum: 🟡 Uyarı eşiği yakın
   - Not: Yeni dosya oluşturma kuralı/istisnası netleşince testleri modüler dosyalara bölmek (örn. meter/api/status).
+
+- [ ] **Görev:** `tests/test_api_main_endpoints.py` dosyasını test suite’e böl
+  - Açıklama: `standards_auto_check` uyarısı: 410 satır (limit 500). Endpoint testleri büyüyor; parçalanmalı.
+  - Öncelik: 2 (Orta)
+  - Tahmini Süre: 1-2 saat
+  - Durum: 🟡 Uyarı eşiği yakın
 
 ### Öncelik 0: Secret/Config Hijyeni (2025-12-19) - `.env` repo içinde track ediliyor
 
@@ -680,7 +686,7 @@ CREATE TABLE sessions (
 ### Workspace Temizliği ve Optimizasyonu
 
 - [ ] **Görev:** Workspace temizliği
-  - Açıklama: Workspace boyutu (env/logs hariç) ~33.37 MB; env/ ~98.55 MB, logs/ ~85 MB. Cihazda disk kullanımını izlemek için periyodik temizlik/optimizasyon planlanmalı (özellikle logs/ rotasyon/retention).
+  - Açıklama: Workspace boyutu (env/logs hariç) ~30 MB; env/ ~98.55 MB, logs/ ~95 MB. Cihazda disk kullanımını izlemek için periyodik temizlik/optimizasyon planlanmalı (özellikle logs/ rotasyon/retention).
   - Öncelik: 8
   - Tahmini Süre: 30 dakika
   - Durum: 📋 Bekliyor

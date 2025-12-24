@@ -1,8 +1,8 @@
 # Proje Durumu ve İlerleme Takibi
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-21 19:55:00
-**Version:** 1.9.0
+**Son Güncelleme:** 2025-12-25 02:41:00
+**Version:** 1.10.0
 
 ---
 
@@ -11,10 +11,10 @@
 **Mevcut Faz:** Faz 7 - Production Deployment (Pilot rollout hazırlığı, security hariç)
 **Sonraki Faz:** Faz 8 - Security hardening + Monitoring/Update (CSMS Master AI ile)
 **Proje Sağlığı:** ✅ Mükemmel (Skor: 9.6/10)
-**Son Aktif Çalışma:** OCPP prod-hardening (security hariç) + rollout runbook + v16 fallback smoke test (2025-12-21)
+**Son Aktif Çalışma:** USB/GPIO Serial Test UI (raw in/out) + ESP32 UART teşhis hazırlığı (2025-12-25)
 **CSMS/OCPP Durumu:** ✅ OCPP 2.0.1 primary + OCPP 1.6J fallback + UI Remote Ops (Start/Stop) kanıtlı + `--once` JSON raporu ops formatında
 **İstasyon Durumu:** ✅ Pilot-ready (security hariç) — 5-6 istasyon rollout hedefi; orta vadede 150
-**Checkpoint:** SSOT: `todo/checkpoint.md` (CP-20251221-041)
+**Checkpoint:** SSOT: `todo/checkpoint.md` (CP-20251225-053)
 
 **Not:** Bu dosyadaki tarihli detaylar “genel arşiv” niteliğindedir; güncel görev/öncelik SSOT: `todo/master_next.md` ve `todo/checkpoint.md`.
 

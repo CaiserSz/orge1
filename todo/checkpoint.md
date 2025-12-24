@@ -1,8 +1,8 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-24 18:29:00
-**Version:** 1.24.0
+**Son Güncelleme:** 2025-12-25 02:40:00
+**Version:** 1.25.0
 
 ---
 
@@ -14,8 +14,27 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251224-052
-**Tarih:** 2025-12-24 18:29:00
+**Checkpoint ID:** CP-20251225-053
+**Tarih:** 2025-12-25 02:40:00
+**Durum:** ✅ USB/GPIO Serial Test UI + Admin API (raw in/out) + standart uyumu (satır limiti kritik kapatıldı)
+- Serial Test UI:
+  - `/USB` (115200, `/dev/ttyUSB*|/dev/ttyACM*`) + `/GPIO` (9600, `/dev/ttyS0`) sayfaları eklendi (HTTP Basic).
+  - Admin API: `/admin/api/serial_test/status|start|stop|send_hex` (start body: `{"mode":"usb"|"gpio"}`).
+  - `SerialTestManager` (`api/services/status_service.py`) ile **tek kanal aktif** (start → mevcut worker stop).
+  - Test başlatılırken mevcut `ESP32Bridge` instance’ı best-effort `disconnect()` edilir (port çakışmasını azaltmak için). `charger-api` systemd servisi otomatik durdurulmaz.
+- Bridge config uyumu:
+  - `esp32/bridge.py`: `ESP32_PORT` / `ESP32_BAUDRATE` config değerleriyle instance oluşturur.
+- Standart:
+  - `api/routers/test.py` Admin UI HTML minify ile satır limiti kritik aşımdan geri çekildi (464 satır).
+- Dokümantasyon:
+  - `docs/api_reference.md` içine Serial Test UI + API ekleri yazıldı.
+- Test/teyit:
+  - `py_compile` (ilgili dosyalar) → ✅
+  - `./env/bin/pytest -q tests/test_auth.py tests/test_api_main_endpoints.py` → ✅
+  - Full suite: `./env/bin/python -m pytest` → ✅
+  - `./env/bin/python scripts/standards_auto_check.py` → ✅ (kritik yok; uyarılar `master_next.md` içinde takip)
+
+### Önceki Checkpoint: CP-20251224-052 (2025-12-24 18:29:00)
 **Durum:** ✅ Station → CSMS auth: BasicAuth + mTLS (profile bazlı) + UI/DB/systemd entegrasyonu
 - Admin UI / Profiles:
   - `auth_type`: `basic` | `mtls` | `none`

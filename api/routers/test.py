@@ -1,8 +1,8 @@
 """
 Test Router
 Created: 2025-12-10
-Last Modified: 2025-12-25 10:01:00
-Version: 1.3.1
+Last Modified: 2025-12-25 02:38:00
+Version: 1.3.2
 Description: Test endpoints + minimal Admin UI (OCPP runner profiles, BasicAuth + mTLS)
 """
 
@@ -150,107 +150,7 @@ def _require_admin(credentials: HTTPBasicCredentials = Depends(_basic)) -> str:
 
 def _admin_page_html() -> str:
     # Single-file HTML (no new files in workspace): fetches /admin/api/* endpoints.
-    return """<!doctype html>
-<html lang="tr">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Charger Admin - OCPP Profiles</title>
-  <style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:24px;color:#111}h1{margin:0 0 8px}.muted{color:#666;font-size:13px}.row{display:flex;gap:16px;flex-wrap:wrap}.card{border:1px solid #ddd;border-radius:10px;padding:16px;margin-top:16px;max-width:1100px}label{display:block;font-size:12px;color:#444;margin-top:10px}input,select,textarea{width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:8px;font-size:14px}textarea{min-height:140px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border-bottom:1px solid #eee;padding:8px;text-align:left;font-size:13px}th{font-size:12px;color:#555}.btn{display:inline-block;padding:8px 12px;border:1px solid #999;border-radius:8px;background:#fafafa;cursor:pointer;font-size:13px}.btn.primary{background:#1f6feb;border-color:#1f6feb;color:#fff}.btn.danger{background:#b42318;border-color:#b42318;color:#fff}.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid #ddd}.pill.ok{border-color:#2e7d32;color:#2e7d32}.pill.bad{border-color:#b42318;color:#b42318}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media (max-width:900px){.grid2{grid-template-columns:1fr}}code{background:#f6f8fa;padding:2px 6px;border-radius:6px}</style>
-</head>
-<body>
-  <h1>Charger Admin</h1>
-  <div class="muted">OCPP 2.0.1 / 1.6j profil yönetimi + systemd servis kontrolü. Auth: HTTP Basic.</div>
-  <div class="card">
-    <h2 style="margin:0 0 8px 0;">Admin Password</h2>
-    <div class="muted">Parola DB'de hash'li tutulur. Yeni parolayı kaydettikten sonra browser yeniden Basic Auth isteyebilir.</div>
-    <div class="row">
-      <div style="flex:1;min-width:260px;">
-        <label>New password (min 8 chars)</label>
-        <input id="new_admin_pw" type="password" placeholder="Yeni admin parolası"/>
-      </div>
-      <div style="display:flex;align-items:flex-end;">
-        <button class="btn primary" onclick="changeAdminPassword()">Change password</button>
-      </div>
-    </div>
-    <div id="admin_pw_msg" class="muted" style="margin-top:8px;"></div>
-  </div>
-  <div class="card">
-    <h2 style="margin:0 0 8px 0;">OCPP Station Profiles</h2>
-    <div class="muted">Station → CSMS auth: <code>basic</code> | <code>mtls</code> | <code>none</code>. basic için <code>password_env_var</code> (örn: <code>OCPP16_STATION_PASSWORD</code>). mtls için cert/key path girilir (secret içermez).</div>
-    <div class="grid2">
-      <div>
-        <label>profile_key (systemd instance name)</label><input id="profile_key" placeholder="ORGE_AC_001_V16_TEST"/>
-        <label>station_name</label><input id="station_name" placeholder="ORGE_AC_001_V16_TEST"/>
-        <label>ocpp_version</label>
-        <select id="ocpp_version"><option value="2.0.1">2.0.1</option><option value="1.6j">1.6j</option></select>
-        <label>auth_type</label>
-        <select id="auth_type"><option value="basic" selected>basic</option><option value="mtls">mtls</option><option value="none">none</option></select>
-        <label>password_env_var (from .env) — basic only</label><input id="password_env_var" placeholder="OCPP16_STATION_PASSWORD"/>
-        <label>heartbeat_seconds</label><input id="heartbeat_seconds" type="number" min="1" max="3600" value="60"/>
-        <label>enabled</label><select id="enabled"><option value="true" selected>true</option><option value="false">false</option></select>
-      </div>
-      <div>
-        <label>ocpp201_url</label><input id="ocpp201_url" placeholder="wss://lixhium.xyz/ocpp/ORGE_AC_001"/>
-        <label>ocpp16_url</label><input id="ocpp16_url" placeholder="wss://lixhium.xyz/ocpp16/ORGE_AC_001"/>
-        <label>vendor_name</label><input id="vendor_name" placeholder="ORGE"/>
-        <label>model</label><input id="model" placeholder="ORGE"/>
-        <label>serial_number</label><input id="serial_number" placeholder="ORG-20251222-16"/>
-        <label>firmware_version</label><input id="firmware_version" placeholder="Comm_v2_13112025"/>
-        <label>mtls_cert_path — mtls only</label><input id="mtls_cert_path" placeholder="/etc/ssl/certs/station.crt"/>
-        <label>mtls_key_path — mtls only</label><input id="mtls_key_path" placeholder="/etc/ssl/private/station.key"/>
-        <label>mtls_ca_path (optional)</label><input id="mtls_ca_path" placeholder="/etc/ssl/certs/ca.crt"/>
-        <div class="row" style="margin-top:12px;">
-          <button class="btn primary" onclick="saveProfile()">Save/Update</button>
-          <button class="btn" onclick="refreshProfiles()">Refresh</button>
-          <button class="btn" onclick="clearForm()">Clear</button>
-        </div>
-        <div id="profile_msg" class="muted" style="margin-top:8px;"></div>
-      </div>
-    </div>
-    <table id="profiles_table"></table>
-  </div>
-  <div class="card">
-    <h2 style="margin:0 0 8px 0;">Service Output</h2>
-    <div class="muted">Seçili profile için status/log.</div>
-    <div class="row">
-      <div style="flex:1;min-width:260px;">
-        <label>Selected profile_key</label><input id="selected_profile" placeholder="(tablodan seç)"/>
-      </div>
-      <div style="display:flex;gap:10px;align-items:flex-end;">
-        <button class="btn" onclick="syncService()">Sync systemd</button>
-        <button class="btn primary" onclick="startService()">Start</button>
-        <button class="btn" onclick="restartService()">Restart</button>
-        <button class="btn danger" onclick="stopService()">Stop</button>
-        <button class="btn" onclick="getStatus()">Status</button>
-        <button class="btn" onclick="getLogs()">Logs</button>
-      </div>
-    </div>
-    <label>Output</label>
-    <textarea id="output" readonly></textarea>
-  </div>
-<script>
-const $=id=>document.getElementById(id);
-const api=async(p,o)=>{const u=location.origin+p;const r=await fetch(u,Object.assign({headers:{"Content-Type":"application/json"}},o||{}));const t=await r.text();let d=null;try{d=t?JSON.parse(t):null}catch(e){d={raw:t}}if(!r.ok){const m=d&&(d.detail||d.message||d.error||d.raw)?(d.detail||d.message||d.error||d.raw):t;throw new Error(r.status+" "+m)}return d};
-const setMsg=(id,m)=>{$(id).textContent=m};
-function clearForm(){["profile_key","station_name","ocpp201_url","ocpp16_url","vendor_name","model","serial_number","firmware_version","password_env_var","mtls_cert_path","mtls_key_path","mtls_ca_path"].forEach(id=>$(id).value="");$("ocpp_version").value="2.0.1";$("auth_type").value="basic";$("heartbeat_seconds").value="60";$("enabled").value="true";setMsg("profile_msg","")}
-function fillForm(p){$("profile_key").value=p.profile_key||"";$("station_name").value=p.station_name||"";$("ocpp_version").value=p.ocpp_version||"2.0.1";$("auth_type").value=p.auth_type||"basic";$("ocpp201_url").value=p.ocpp201_url||"";$("ocpp16_url").value=p.ocpp16_url||"";$("vendor_name").value=p.vendor_name||"";$("model").value=p.model||"";$("serial_number").value=p.serial_number||"";$("firmware_version").value=p.firmware_version||"";$("password_env_var").value=p.password_env_var||"";$("mtls_cert_path").value=p.mtls_cert_path||"";$("mtls_key_path").value=p.mtls_key_path||"";$("mtls_ca_path").value=p.mtls_ca_path||"";$("heartbeat_seconds").value=String(p.heartbeat_seconds||60);$("enabled").value=p.enabled?"true":"false";$("selected_profile").value=p.profile_key||""}
-async function refreshProfiles(){try{const rows=await api("/admin/api/profiles");let html="<tr><th>profile_key</th><th>station_name</th><th>ocpp</th><th>auth</th><th>enabled</th><th>updated</th><th>actions</th></tr>";for(const p of rows){const ok=p.enabled?"ok":"bad";html+=`<tr><td><code>${p.profile_key}</code></td><td>${p.station_name}</td><td>${p.ocpp_version}</td><td>${p.auth_type||"basic"}</td><td><span class="pill ${ok}">${p.enabled?"enabled":"disabled"}</span></td><td>${p.updated_at?new Date(p.updated_at*1000).toISOString():""}</td><td><button class="btn" onclick='fillForm(${JSON.stringify(p)})'>Edit</button> <button class="btn danger" onclick='deleteProfile("${p.profile_key}")'>Delete</button></td></tr>`}$("profiles_table").innerHTML=html}catch(e){setMsg("profile_msg","Refresh failed: "+e.message)}}
-async function saveProfile(){const payload={profile_key:$("profile_key").value,station_name:$("station_name").value,ocpp_version:$("ocpp_version").value,auth_type:$("auth_type").value,ocpp201_url:$("ocpp201_url").value,ocpp16_url:$("ocpp16_url").value,vendor_name:$("vendor_name").value,model:$("model").value,serial_number:$("serial_number").value,firmware_version:$("firmware_version").value,password_env_var:$("password_env_var").value,mtls_cert_path:$("mtls_cert_path").value,mtls_key_path:$("mtls_key_path").value,mtls_ca_path:$("mtls_ca_path").value,heartbeat_seconds:parseInt($("heartbeat_seconds").value||"60",10),enabled:$("enabled").value==="true"};try{const saved=await api("/admin/api/profiles",{method:"POST",body:JSON.stringify(payload)});setMsg("profile_msg","Saved: "+saved.profile_key);await refreshProfiles()}catch(e){setMsg("profile_msg","Save failed: "+e.message)}}
-async function deleteProfile(k){if(!confirm("Delete profile "+k+"?"))return;try{await api("/admin/api/profiles/"+encodeURIComponent(k),{method:"DELETE"});setMsg("profile_msg","Deleted: "+k);await refreshProfiles()}catch(e){setMsg("profile_msg","Delete failed: "+e.message)}}
-async function changeAdminPassword(){const n=$("new_admin_pw").value;try{await api("/admin/api/admin/password",{method:"POST",body:JSON.stringify({new_password:n})});setMsg("admin_pw_msg","Password updated. Browser may re-prompt Basic Auth.");$("new_admin_pw").value=""}catch(e){setMsg("admin_pw_msg","Password change failed: "+e.message)}}
-const out=m=>{$("output").value=m};const selected=()=>$("selected_profile").value;
-async function syncService(){try{out(JSON.stringify(await api(`/admin/api/profiles/${encodeURIComponent(selected())}/sync_systemd`,{method:"POST"}),null,2))}catch(e){out("sync failed: "+e.message)}}
-async function startService(){try{out(JSON.stringify(await api(`/admin/api/profiles/${encodeURIComponent(selected())}/start`,{method:"POST"}),null,2))}catch(e){out("start failed: "+e.message)}}
-async function stopService(){try{out(JSON.stringify(await api(`/admin/api/profiles/${encodeURIComponent(selected())}/stop`,{method:"POST"}),null,2))}catch(e){out("stop failed: "+e.message)}}
-async function restartService(){try{out(JSON.stringify(await api(`/admin/api/profiles/${encodeURIComponent(selected())}/restart`,{method:"POST"}),null,2))}catch(e){out("restart failed: "+e.message)}}
-async function getStatus(){try{out(JSON.stringify(await api(`/admin/api/profiles/${encodeURIComponent(selected())}/status`),null,2))}catch(e){out("status failed: "+e.message)}}
-async function getLogs(){try{out((await api(`/admin/api/profiles/${encodeURIComponent(selected())}/logs?lines=200`)).logs||"")}catch(e){out("logs failed: "+e.message)}}
-refreshProfiles();
-</script>
-</body>
-</html>
-"""
+    return """<!doctype html><html lang="tr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Charger Admin - OCPP Profiles</title><style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:24px;color:#111}h1{margin:0 0 8px}.muted{color:#666;font-size:13px}.row{display:flex;gap:16px;flex-wrap:wrap}.card{border:1px solid #ddd;border-radius:10px;padding:16px;margin-top:16px;max-width:1100px}label{display:block;font-size:12px;color:#444;margin-top:10px}input,select,textarea{width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:8px;font-size:14px}textarea{min-height:140px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border-bottom:1px solid #eee;padding:8px;text-align:left;font-size:13px}th{font-size:12px;color:#555}.btn{display:inline-block;padding:8px 12px;border:1px solid #999;border-radius:8px;background:#fafafa;cursor:pointer;font-size:13px}.btn.primary{background:#1f6feb;border-color:#1f6feb;color:#fff}.btn.danger{background:#b42318;border-color:#b42318;color:#fff}.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid #ddd}.pill.ok{border-color:#2e7d32;color:#2e7d32}.pill.bad{border-color:#b42318;color:#b42318}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media (max-width:900px){.grid2{grid-template-columns:1fr}}code{background:#f6f8fa;padding:2px 6px;border-radius:6px}</style></head><body><h1>Charger Admin</h1><div class="muted">OCPP 2.0.1 / 1.6j profil yönetimi + systemd servis kontrolü. Auth: HTTP Basic.</div><div class="card"><h2 style="margin:0 0 8px 0;">Admin Password</h2><div class="muted">Parola DB'de hash'li tutulur. Yeni parolayı kaydettikten sonra browser yeniden Basic Auth isteyebilir.</div><div class="row"><div style="flex:1;min-width:260px;"><label>New password (min 8 chars)</label><input id="new_admin_pw" type="password" placeholder="Yeni admin parolası"/></div><div style="display:flex;align-items:flex-end;"><button class="btn primary" onclick="changeAdminPassword()">Change password</button></div></div><div id="admin_pw_msg" class="muted" style="margin-top:8px;"></div></div><div class="card"><h2 style="margin:0 0 8px 0;">OCPP Station Profiles</h2><div class="muted">Station → CSMS auth: <code>basic</code> | <code>mtls</code> | <code>none</code>. basic için <code>password_env_var</code> (örn: <code>OCPP16_STATION_PASSWORD</code>). mtls için cert/key path girilir (secret içermez).</div><div class="grid2"><div><label>profile_key (systemd instance name)</label><input id="profile_key" placeholder="ORGE_AC_001_V16_TEST"/><label>station_name</label><input id="station_name" placeholder="ORGE_AC_001_V16_TEST"/><label>ocpp_version</label><select id="ocpp_version"><option value="2.0.1">2.0.1</option><option value="1.6j">1.6j</option></select><label>auth_type</label><select id="auth_type"><option value="basic" selected>basic</option><option value="mtls">mtls</option><option value="none">none</option></select><label>password_env_var (from .env) — basic only</label><input id="password_env_var" placeholder="OCPP16_STATION_PASSWORD"/><label>heartbeat_seconds</label><input id="heartbeat_seconds" type="number" min="1" max="3600" value="60"/><label>enabled</label><select id="enabled"><option value="true" selected>true</option><option value="false">false</option></select></div><div><label>ocpp201_url</label><input id="ocpp201_url" placeholder="wss://lixhium.xyz/ocpp/ORGE_AC_001"/><label>ocpp16_url</label><input id="ocpp16_url" placeholder="wss://lixhium.xyz/ocpp16/ORGE_AC_001"/><label>vendor_name</label><input id="vendor_name" placeholder="ORGE"/><label>model</label><input id="model" placeholder="ORGE"/><label>serial_number</label><input id="serial_number" placeholder="ORG-20251222-16"/><label>firmware_version</label><input id="firmware_version" placeholder="Comm_v2_13112025"/><label>mtls_cert_path — mtls only</label><input id="mtls_cert_path" placeholder="/etc/ssl/certs/station.crt"/><label>mtls_key_path — mtls only</label><input id="mtls_key_path" placeholder="/etc/ssl/private/station.key"/><label>mtls_ca_path (optional)</label><input id="mtls_ca_path" placeholder="/etc/ssl/certs/ca.crt"/><div class="row" style="margin-top:12px;"><button class="btn primary" onclick="saveProfile()">Save/Update</button><button class="btn" onclick="refreshProfiles()">Refresh</button><button class="btn" onclick="clearForm()">Clear</button></div><div id="profile_msg" class="muted" style="margin-top:8px;"></div></div></div><table id="profiles_table"></table></div><div class="card"><h2 style="margin:0 0 8px 0;">Service Output</h2><div class="muted">Seçili profile için status/log.</div><div class="row"><div style="flex:1;min-width:260px;"><label>Selected profile_key</label><input id="selected_profile" placeholder="(tablodan seç)"/></div><div style="display:flex;gap:10px;align-items:flex-end;"><button class="btn" onclick="syncService()">Sync systemd</button><button class="btn primary" onclick="startService()">Start</button><button class="btn" onclick="restartService()">Restart</button><button class="btn danger" onclick="stopService()">Stop</button><button class="btn" onclick="getStatus()">Status</button><button class="btn" onclick="getLogs()">Logs</button></div></div><label>Output</label><textarea id="output" readonly></textarea></div><script>const $=id=>document.getElementById(id);const api=async(p,o)=>{const u=location.origin+p;const r=await fetch(u,Object.assign({headers:{"Content-Type":"application/json"}},o||{}));const t=await r.text();let d=null;try{d=t?JSON.parse(t):null}catch(e){d={raw:t}}if(!r.ok){const m=d&&(d.detail||d.message||d.error||d.raw)?(d.detail||d.message||d.error||d.raw):t;throw new Error(r.status+" "+m)}return d};const setMsg=(id,m)=>{$(id).textContent=m};function clearForm(){[\"profile_key\",\"station_name\",\"ocpp201_url\",\"ocpp16_url\",\"vendor_name\",\"model\",\"serial_number\",\"firmware_version\",\"password_env_var\",\"mtls_cert_path\",\"mtls_key_path\",\"mtls_ca_path\"].forEach(id=>$(id).value=\"\");$(\"ocpp_version\").value=\"2.0.1\";$(\"auth_type\").value=\"basic\";$(\"heartbeat_seconds\").value=\"60\";$(\"enabled\").value=\"true\";setMsg(\"profile_msg\",\"\")}function fillForm(p){$(\"profile_key\").value=p.profile_key||\"\";$(\"station_name\").value=p.station_name||\"\";$(\"ocpp_version\").value=p.ocpp_version||\"2.0.1\";$(\"auth_type\").value=p.auth_type||\"basic\";$(\"ocpp201_url\").value=p.ocpp201_url||\"\";$(\"ocpp16_url\").value=p.ocpp16_url||\"\";$(\"vendor_name\").value=p.vendor_name||\"\";$(\"model\").value=p.model||\"\";$(\"serial_number\").value=p.serial_number||\"\";$(\"firmware_version\").value=p.firmware_version||\"\";$(\"password_env_var\").value=p.password_env_var||\"\";$(\"mtls_cert_path\").value=p.mtls_cert_path||\"\";$(\"mtls_key_path\").value=p.mtls_key_path||\"\";$(\"mtls_ca_path\").value=p.mtls_ca_path||\"\";$(\"heartbeat_seconds\").value=String(p.heartbeat_seconds||60);$(\"enabled\").value=p.enabled?\"true\":\"false\";$(\"selected_profile\").value=p.profile_key||\"\"}async function refreshProfiles(){try{const rows=await api(\"/admin/api/profiles\");let html=\"<tr><th>profile_key</th><th>station_name</th><th>ocpp</th><th>auth</th><th>enabled</th><th>updated</th><th>actions</th></tr>\";for(const p of rows){const ok=p.enabled?\"ok\":\"bad\";html+=`<tr><td><code>${p.profile_key}</code></td><td>${p.station_name}</td><td>${p.ocpp_version}</td><td>${p.auth_type||\"basic\"}</td><td><span class=\"pill ${ok}\">${p.enabled?\"enabled\":\"disabled\"}</span></td><td>${p.updated_at?new Date(p.updated_at*1000).toISOString():\"\"}</td><td><button class=\"btn\" onclick='fillForm(${JSON.stringify(p)})'>Edit</button> <button class=\"btn danger\" onclick='deleteProfile(\"${p.profile_key}\")'>Delete</button></td></tr>`}$(\"profiles_table\").innerHTML=html}catch(e){setMsg(\"profile_msg\",\"Refresh failed: \"+e.message)}}async function saveProfile(){const payload={profile_key:$(\"profile_key\").value,station_name:$(\"station_name\").value,ocpp_version:$(\"ocpp_version\").value,auth_type:$(\"auth_type\").value,ocpp201_url:$(\"ocpp201_url\").value,ocpp16_url:$(\"ocpp16_url\").value,vendor_name:$(\"vendor_name\").value,model:$(\"model\").value,serial_number:$(\"serial_number\").value,firmware_version:$(\"firmware_version\").value,password_env_var:$(\"password_env_var\").value,mtls_cert_path:$(\"mtls_cert_path\").value,mtls_key_path:$(\"mtls_key_path\").value,mtls_ca_path:$(\"mtls_ca_path\").value,heartbeat_seconds:parseInt($(\"heartbeat_seconds\").value||\"60\",10),enabled:$(\"enabled\").value===\"true\"};try{const saved=await api(\"/admin/api/profiles\",{method:\"POST\",body:JSON.stringify(payload)});setMsg(\"profile_msg\",\"Saved: \"+saved.profile_key);await refreshProfiles()}catch(e){setMsg(\"profile_msg\",\"Save failed: \"+e.message)}}async function deleteProfile(k){if(!confirm(\"Delete profile \"+k+\"?\"))return;try{await api(\"/admin/api/profiles/\"+encodeURIComponent(k),{method:\"DELETE\"});setMsg(\"profile_msg\",\"Deleted: \"+k);await refreshProfiles()}catch(e){setMsg(\"profile_msg\",\"Delete failed: \"+e.message)}}async function changeAdminPassword(){const n=$(\"new_admin_pw\").value;try{await api(\"/admin/api/admin/password\",{method:\"POST\",body:JSON.stringify({new_password:n})});setMsg(\"admin_pw_msg\",\"Password updated. Browser may re-prompt Basic Auth.\");$(\"new_admin_pw\").value=\"\"}catch(e){setMsg(\"admin_pw_msg\",\"Password change failed: \"+e.message)}}const out=m=>{$(\"output\").value=m};const selected=()=>$(\"selected_profile\").value;async function syncService(){try{out(JSON.stringify(await api(`/admin/api/profiles/${encodeURIComponent(selected())}/sync_systemd`,{method:\"POST\"}),null,2))}catch(e){out(\"sync failed: \"+e.message)}}async function startService(){try{out(JSON.stringify(await api(`/admin/api/profiles/${encodeURIComponent(selected())}/start`,{method:\"POST\"}),null,2))}catch(e){out(\"start failed: \"+e.message)}}async function stopService(){try{out(JSON.stringify(await api(`/admin/api/profiles/${encodeURIComponent(selected())}/stop`,{method:\"POST\"}),null,2))}catch(e){out(\"stop failed: \"+e.message)}}async function restartService(){try{out(JSON.stringify(await api(`/admin/api/profiles/${encodeURIComponent(selected())}/restart`,{method:\"POST\"}),null,2))}catch(e){out(\"restart failed: \"+e.message)}}async function getStatus(){try{out(JSON.stringify(await api(`/admin/api/profiles/${encodeURIComponent(selected())}/status`),null,2))}catch(e){out(\"status failed: \"+e.message)}}async function getLogs(){try{out((await api(`/admin/api/profiles/${encodeURIComponent(selected())}/logs?lines=200`)).logs||\"\")}catch(e){out(\"logs failed: \"+e.message)}}refreshProfiles();</script></body></html>"""
 
 
 @admin_router.get("/admin", response_class=HTMLResponse)
