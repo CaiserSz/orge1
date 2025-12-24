@@ -1,11 +1,22 @@
 # Tamamlanan Görevler
 
 **Oluşturulma Tarihi:** 2025-12-08 18:20:00
-**Son Güncelleme:** 2025-12-22 18:25:00
+**Son Güncelleme:** 2025-12-24 15:00:00
 
 ---
 
 ## Tamamlanan Görevler Listesi
+
+### 2025-12-24
+
+#### ✅ Admin UI validation UX fix (400 + açıklayıcı mesaj)
+- **Görev:** Eksik/yanlış profil alanlarında “Internal server error (500)” yerine kullanıcıyı doğru bilgilendir
+- **Açıklama:**
+  - Admin profil kaydında eksik/yanlış alanlar artık `HTTP 400` + `detail` ile dönüyor.
+  - URL doğrulaması eklendi: `ocpp201_url` ve `ocpp16_url` → `/{station_name}` ile bitmeli.
+  - UI tarafında 500 gibi durumlarda da `message` alanı varsa gösterim iyileştirildi.
+- **Test/Doğrulama:** `./env/bin/pytest -q tests/test_auth.py` → ✅
+- **Commit:** `c946873`
 
 ### 2025-12-22
 

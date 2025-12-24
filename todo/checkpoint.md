@@ -1,8 +1,8 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-22 18:26:00
-**Version:** 1.21.0
+**Son Güncelleme:** 2025-12-24 14:59:00
+**Version:** 1.22.0
 
 ---
 
@@ -14,8 +14,18 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251222-049
-**Tarih:** 2025-12-22 18:26:00
+**Checkpoint ID:** CP-20251224-050
+**Tarih:** 2025-12-24 14:59:00
+**Durum:** ✅ Admin UI: eksik/yanlış alanlarda 500 yerine açıklayıcı 400 (UX iyileştirmesi)
+- Admin UI:
+  - Eksik/yanlış alanlar artık `HTTP 400` + `detail` ile döner (UI “Internal server error 500” yerine doğru mesaj gösterir).
+  - URL doğrulaması: `ocpp201_url` ve `ocpp16_url` değerleri `/{station_name}` ile bitmeli (yanlış station’a bağlanmayı engeller).
+- Test/teyit:
+  - `python3 -m py_compile api/routers/test.py api/database/maintenance_queries.py tests/test_auth.py` → ✅
+  - `./env/bin/pytest -q tests/test_auth.py` → ✅ (validation 400 testi eklendi)
+- Commit: `c946873`
+
+### Önceki Checkpoint: CP-20251222-049 (2025-12-22 18:26:00)
 **Durum:** ✅ Admin OCPP Profile UI + systemd OCPP runner template (Seçenek B)
 - Admin UI:
   - `/admin` (HTTP Basic): default `admin/admin123`, UI’dan parola değişimi (DB hash+salt).
