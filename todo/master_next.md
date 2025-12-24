@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-24 22:58:41
+**Son Güncelleme:** 2025-12-24 23:52:24
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -68,7 +68,7 @@
   - Not: Yeni dosya oluşturma kuralı/istisnası netleşince router/HTML ayrıştırma veya minify ile satır limiti payı açılmalı.
 
 - [ ] **Görev:** `tests/test_api_endpoints.py` dosyasını test suite’e böl (uyarı eşiği yeniden yakın)
-  - Açıklama: `standards_auto_check` uyarısı: 468 satır (limit 500). Yeni API testleri eklendikçe büyüyor; bakım riski artıyor.
+  - Açıklama: `standards_auto_check` uyarısı: 467 satır (limit 500). Yeni API testleri eklendikçe büyüyor; bakım riski artıyor.
   - Öncelik: 2 (Orta)
   - Tahmini Süre: 1-2 saat
   - Durum: 🟡 Uyarı eşiği yakın
