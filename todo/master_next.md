@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-24 22:56:10
+**Son Güncelleme:** 2025-12-24 22:58:41
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -33,6 +33,15 @@
   - Öneri:
     - SSD/root partition büyüt (en az birkaç GB boş pay hedefle) **veya**
     - `~/.arduino15` dizinini harici diske taşı + symlink/mount ile aynı path’i koru (başka AI’lar “yok” sanıp tekrar kurmaya kalkmasın diye).
+
+### Öncelik 3: Firmware SSOT / Workspace Hijyeni (2025-12-24)
+
+- [ ] **Görev:** ESP32 firmware için tek SSOT belirle ve kopya `.ino` dosyalarını temizle/isim standardına uydur
+  - Açıklama: Workspace’te birden fazla “Commercial” `.ino` kopyası var; bazıları git’te untracked ve dosya adı standardına uymuyor (örn. boşluk/paren içeriyor). Bu durum yanlış dosyanın flash edilmesi riskini artırıyor.
+  - Öncelik: 3 (Orta/Düşük)
+  - Tahmini Süre: 30-60 dk
+  - Durum: 📋 Bekliyor
+  - Aksiyon: Hangi `.ino` dosyasının prod SSOT olduğu netleştirilecek; diğerleri ya silinecek ya da doğru isimle archive/track edilecek (repo kurallarıyla uyumlu şekilde).
 
 ### Öncelik 2: Test Coverage Boşlukları (2025-12-16) - Meter/OCPP/DB
 
