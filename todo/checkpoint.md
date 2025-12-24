@@ -1,8 +1,8 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-22 06:39:12
-**Version:** 1.20.0
+**Son Güncelleme:** 2025-12-22 18:26:00
+**Version:** 1.21.0
 
 ---
 
@@ -14,8 +14,24 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251222-048
-**Tarih:** 2025-12-22 06:39:12
+**Checkpoint ID:** CP-20251222-049
+**Tarih:** 2025-12-22 18:26:00
+**Durum:** ✅ Admin OCPP Profile UI + systemd OCPP runner template (Seçenek B)
+- Admin UI:
+  - `/admin` (HTTP Basic): default `admin/admin123`, UI’dan parola değişimi (DB hash+salt).
+  - OCPP profilleri (DB): protokol (`2.0.1` / `1.6j`), station_name, CSMS URL’leri, vendor/model/serial/firmware, `password_env_var` (password `.env`’de kalır).
+- systemd:
+  - Template: `/etc/systemd/system/ocpp-station@.service`
+  - Instance override: `/etc/systemd/system/ocpp-station@<profile>.service.d/override.conf`
+  - `/admin` üzerinden sync/start/stop/restart/status/logs akışı eklendi.
+- Test/teyit:
+  - `curl` smoke: `/admin` 401/200 + profile CRUD → ✅
+  - Browser (manuel): `/admin` sayfası açıldı, profil listesi ve “Status” aksiyonu doğrulandı → ✅
+  - `./env/bin/pytest -q tests/test_auth.py` → ✅
+  - `systemctl start/stop ocpp-station@ORGE_AC_001_V16_TEST` → ✅ (parola `.env` üzerinden resolve)
+- Commit: `d9a44ab`
+
+### Önceki Checkpoint: CP-20251222-048 (2025-12-22 06:39:12)
 **Durum:** ✅ Standart uyarıları (satır limiti “uyarı eşiği yakın”) temizlendi
 - Satır limiti payı açma:
   - `api/logging_config.py`: 407 → 358

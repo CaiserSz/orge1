@@ -1,7 +1,7 @@
 # Tamamlanan Görevler
 
 **Oluşturulma Tarihi:** 2025-12-08 18:20:00
-**Son Güncelleme:** 2025-12-22 06:39:12
+**Son Güncelleme:** 2025-12-22 18:25:00
 
 ---
 
@@ -97,6 +97,21 @@
   - `./env/bin/pytest -q tests/test_api_endpoints.py` → ✅
   - `./env/bin/pytest -q tests/test_event_detector.py` → ✅
   - `./env/bin/pytest -q tests/test_protocol_rules.py` → ✅
+
+#### ✅ Admin OCPP Profile UI + systemd OCPP runner template
+- **Görev:** OCPP 2.0.1 / 1.6j için “tek ekran” profil yönetimi + systemd üzerinden start/stop/log
+- **Açıklama:**
+  - `/admin` altında HTTP Basic ile korunan ayrı admin sayfası eklendi (default: `admin/admin123`, UI’dan değiştirilebilir).
+  - DB tabloları: `admin_users` (hash+salt), `ocpp_station_profiles` (secret-free profil; password `.env`’de).
+  - systemd template: `ocpp-station@.service` + instance drop-in (`ocpp-station@<profile>.service.d/override.conf`) üretimi.
+  - Servis yönetimi: sync/start/stop/restart/status/logs endpoint’leri (admin UI butonları).
+- **Dosyalar:** `api/routers/test.py`, `api/main.py`, `api/database/schema_mixin.py`, `api/database/maintenance_queries.py`, `tests/test_auth.py`
+- **Test/Doğrulama:**
+  - `curl` ile `/admin` 401/200 doğrulandı (BasicAuth).
+  - Browser (manuel): `/admin` sayfası açıldı, profile listesi ve “Status” aksiyonu doğrulandı.
+  - `./env/bin/pytest -q tests/test_auth.py` → ✅
+  - systemd smoke: `ocpp-station@ORGE_AC_001_V16_TEST` sync + start + stop → ✅ (parola `.env` üzerinden resolve edildi)
+- **Commit:** `d9a44ab`
 
 ### 2025-12-21
 

@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-22 06:39:12
+**Son Güncelleme:** 2025-12-22 18:23:00
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -9,6 +9,21 @@
 ## Öncelikli Görevler
 
 ### Öncelik 2: Test Coverage Boşlukları (2025-12-16) - Meter/OCPP/DB
+
+### Öncelik 2: Standart Uyarı Eşiği Yakın Dosyalar (2025-12-22) - Yeni Uyarılar
+
+- [ ] **Görev:** `api/database/maintenance_queries.py` dosyasını modüllere böl
+  - Açıklama: `standards_auto_check` uyarısı: 432 satır (limit 500). Admin/OCPP profile query’leri eklenince büyüdü; bakım riski artıyor.
+  - Öncelik: 2 (Yüksek)
+  - Tahmini Süre: 1-2 saat
+  - Durum: 🟡 Uyarı eşiği yakın
+  - Not: Yeni dosya oluşturma kuralı/istisnası netleşince (veya uygun refactor penceresinde) bölünmeli.
+
+- [ ] **Görev:** `tests/test_integration.py` dosyasını test suite’e böl
+  - Açıklama: `standards_auto_check` uyarısı: 416 satır (limit 500). Entegrasyon testleri büyüyor; parçalanmalı.
+  - Öncelik: 2 (Orta)
+  - Tahmini Süre: 1-2 saat
+  - Durum: 🟡 Uyarı eşiği yakın
 
 ### Öncelik 0: Secret/Config Hijyeni (2025-12-19) - `.env` repo içinde track ediliyor
 
