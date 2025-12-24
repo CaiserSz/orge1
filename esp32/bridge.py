@@ -1,8 +1,8 @@
 """
 ESP32-RPi Bridge Module
 Created: 2025-12-08
-Last Modified: 2025-12-12 21:05:44
-Version: 2.0.1
+Last Modified: 2025-12-25 10:00:00
+Version: 2.0.2
 Description: ESP32 ile USB seri port üzerinden iletişim köprüsü (Backward-compatible facade)
 """
 
@@ -459,11 +459,8 @@ class ESP32Bridge:
         """Serial connection setter"""
         self._connection_manager.serial_connection = value
 
-
 _esp32_bridge_instance: Optional[ESP32Bridge] = None
 _bridge_lock = threading.Lock()
-
-
 def get_esp32_bridge() -> ESP32Bridge:
     """ESP32 bridge singleton instance'ı al (thread-safe)."""
     global _esp32_bridge_instance
@@ -486,7 +483,14 @@ def get_esp32_bridge() -> ESP32Bridge:
     # İkinci kontrol (lock ile - thread-safety için)
     with _bridge_lock:
         if _esp32_bridge_instance is None:
-            instance = ESP32Bridge()
+            # Not: ESP32 port/baudrate ayarları `api.config` üzerinden yönetilir (USB/GPIO UART).
+            try:
+                from api.config import config  # Local import: olası import cycle riskini azaltır
+                port = getattr(config, "ESP32_PORT", None); baudrate = int(getattr(config, "ESP32_BAUDRATE", BAUDRATE))
+            except Exception:
+                port = None
+                baudrate = BAUDRATE
+            instance = ESP32Bridge(port=port, baudrate=baudrate)
             if not instance.connect():
                 esp32_logger.error("ESP32 bağlantısı kurulamadı")
                 raise RuntimeError("ESP32 bağlantısı kurulamadı")

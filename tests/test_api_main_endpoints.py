@@ -1,17 +1,19 @@
 """
 API Main Endpoints Comprehensive Tests
 Created: 2025-12-09 23:50:00
-Last Modified: 2025-12-14 03:28:00
-Version: 1.0.4
+Last Modified: 2025-12-25 09:55:00
+Version: 1.0.5
 Description: api/main.py için kapsamlı endpoint testleri
 """
 
+import base64
 import os
 import sys
 from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
+from fastapi.testclient import TestClient
 
 # Proje root'unu path'e ekle
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -227,6 +229,63 @@ class TestTestEndpoints:
         else:
             # Dosya varsa test geçer
             pytest.skip("Test page file exists, cannot test not found scenario")
+
+    def _basic(self, username: str, password: str) -> str:
+        token = base64.b64encode(f"{username}:{password}".encode("utf-8")).decode(
+            "ascii"
+        )
+        return f"Basic {token}"
+
+    def _admin_client(self, tmp_path):
+        """
+        Admin endpoint'leri DB'ye yazar (admin_users). Production DB etkilenmesin diye
+        isolated tmp sqlite kullanıyoruz.
+        """
+        from api.database import core as db_core
+
+        db_core.database_instance = None
+        db_core.database_instance = db_core.Database(str(tmp_path / "test_sessions.db"))
+        return TestClient(app, raise_server_exceptions=False)
+
+    def test_usb_gpio_pages_require_basic_auth(self, tmp_path):
+        """Serial test sayfaları BasicAuth istemeli."""
+        c = self._admin_client(tmp_path)
+        assert c.get("/USB").status_code == 401
+        assert c.get("/GPIO").status_code == 401
+
+    def test_usb_gpio_pages_with_basic_auth_ok(self, tmp_path):
+        """Serial test sayfaları (BasicAuth ile) HTML döndürmeli."""
+        c = self._admin_client(tmp_path)
+        headers = {"Authorization": self._basic("admin", "admin123")}
+        r1 = c.get("/USB", headers=headers)
+        assert r1.status_code == 200
+        assert "text/html" in r1.headers.get("content-type", "")
+
+        r2 = c.get("/GPIO", headers=headers)
+        assert r2.status_code == 200
+        assert "text/html" in r2.headers.get("content-type", "")
+
+    def test_serial_test_start_stop_in_pytest(self, tmp_path):
+        """
+        Pytest modunda donanıma dokunmadan start/stop akışı çalışmalı.
+        """
+        c = self._admin_client(tmp_path)
+        headers = {"Authorization": self._basic("admin", "admin123")}
+        r = c.post(
+            "/admin/api/serial_test/start", json={"mode": "gpio"}, headers=headers
+        )
+        assert r.status_code == 200
+        data = r.json()
+        assert data.get("ok") is True
+
+        s = c.get("/admin/api/serial_test/status", headers=headers)
+        assert s.status_code == 200
+        st = s.json()
+        assert "running" in st
+
+        stop = c.post("/admin/api/serial_test/stop", headers=headers)
+        assert stop.status_code == 200
+        assert stop.json().get("ok") is True
 
 
 class TestMiddleware:

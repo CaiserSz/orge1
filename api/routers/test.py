@@ -1,8 +1,8 @@
 """
 Test Router
 Created: 2025-12-10
-Last Modified: 2025-12-24 18:29:00
-Version: 1.3.0
+Last Modified: 2025-12-25 10:01:00
+Version: 1.3.1
 Description: Test endpoints + minimal Admin UI (OCPP runner profiles, BasicAuth + mTLS)
 """
 
@@ -18,6 +18,7 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from api.config import config
 from api.database import get_database
+from api.services.status_service import serial_test_manager
 
 router = APIRouter(tags=["Test"])
 admin_router = APIRouter(tags=["Admin"])
@@ -494,3 +495,70 @@ async def admin_service_logs(
     svc = _svc_name(profile_key)
     res = _sudo_cmd(["journalctl", "-u", svc, "--no-pager", "-n", str(lines)])
     return JSONResponse({"service": svc, "lines": lines, "logs": res.get("stdout", "")})
+
+
+@admin_router.get("/USB", response_class=HTMLResponse)
+async def serial_usb_page(_admin: str = Depends(_require_admin)):
+    return HTMLResponse(
+        serial_test_manager.page_html("usb"),
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
+
+
+@admin_router.get("/GPIO", response_class=HTMLResponse)
+async def serial_gpio_page(_admin: str = Depends(_require_admin)):
+    return HTMLResponse(
+        serial_test_manager.page_html("gpio"),
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
+
+
+@admin_router.get("/admin/api/serial_test/status")
+async def serial_test_status(_admin: str = Depends(_require_admin)):
+    return JSONResponse(serial_test_manager.status())
+
+
+@admin_router.post("/admin/api/serial_test/start")
+async def serial_test_start(request: Request, _admin: str = Depends(_require_admin)):
+    try:
+        payload = await request.json()
+    except Exception:
+        raise _http_400(_ADMIN_VALIDATION_ERROR_MSG)
+
+    mode = (payload.get("mode") or "").strip()
+    try:
+        return JSONResponse(serial_test_manager.start(mode))
+    except ValueError as exc:
+        raise _http_400(str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+
+@admin_router.post("/admin/api/serial_test/stop")
+async def serial_test_stop(_admin: str = Depends(_require_admin)):
+    return JSONResponse(serial_test_manager.stop())
+
+
+@admin_router.post("/admin/api/serial_test/send_hex")
+async def serial_test_send_hex(request: Request, _admin: str = Depends(_require_admin)):
+    try:
+        payload = await request.json()
+    except Exception:
+        raise _http_400(_ADMIN_VALIDATION_ERROR_MSG)
+    hex_payload = (payload.get("hex") or "").strip()
+    if not hex_payload:
+        raise _http_400("hex is required")
+    try:
+        return JSONResponse(serial_test_manager.send_hex(hex_payload))
+    except ValueError as exc:
+        raise _http_400(str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))

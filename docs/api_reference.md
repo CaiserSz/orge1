@@ -424,6 +424,18 @@ Dışarıdan API'leri test etmek için modern, responsive web arayüzü oluştur
 - `GET /test` - API test sayfası
 - `GET /api/test/key` - API key ve User ID (sadece development)
 
+**Serial Test UI (USB / GPIO):**
+- `GET /USB` - **USB in/out** ham seri test sayfası (115200 baud, port: `/dev/ttyUSB*|/dev/ttyACM*`)
+- `GET /GPIO` - **GPIO in/out** ham seri test sayfası (9600 baud, port: `/dev/ttyS0`)
+- Auth: **HTTP Basic** (Admin UI ile aynı, varsayılan `admin/admin123`)
+- Not: Test başlatıldığında mevcut `ESP32Bridge` instance'ı **best-effort disconnect** edilir (port çakışmasını önlemek için). `charger-api` servisi kapatılmaz.
+
+**Serial Test API (Admin):**
+- `GET /admin/api/serial_test/status`
+- `POST /admin/api/serial_test/start` body: `{"mode": "usb" | "gpio"}`
+- `POST /admin/api/serial_test/stop`
+- `POST /admin/api/serial_test/send_hex` body: `{"hex": "41 01 2C 00 10"}`
+
 **Commit:** a52aaf3, 6c79869, 8a5a965, f6c9a8c, e1c23f1
 
 **Detaylı Bilgi:** `AUDIT_REPORT_20251209.md`
