@@ -1,8 +1,8 @@
 # Checkpoint Sistemi - Nerede Kaldık?
 
 **Oluşturulma Tarihi:** 2025-12-08 18:35:00
-**Son Güncelleme:** 2025-12-25 02:40:00
-**Version:** 1.25.0
+**Son Güncelleme:** 2025-12-25 04:25:00
+**Version:** 1.26.0
 
 ---
 
@@ -14,8 +14,28 @@ Bu dosya, projeye devam edildiğinde "nerede kaldık?" sorusunu hızlıca cevapl
 
 ## 📍 Mevcut Checkpoint
 
-**Checkpoint ID:** CP-20251225-053
-**Tarih:** 2025-12-25 02:40:00
+**Checkpoint ID:** CP-20251225-054
+**Tarih:** 2025-12-25 04:25:00
+**Durum:** ⏸️ ESP32 firmware geri dönüş bekleniyor — GPIO “ham veri” kanıtlandı, UI stabil, sıradaki test planı hazır
+- Ngrok erişim:
+  - `ngrok.service` aktif.
+  - `charger-api.service` 8000 upstream’i kapalı olunca `ERR_NGROK_8012` oluşuyordu; erişim testi için `charger-api` başlatıldı.
+- Serial Test UI stabilizasyonu:
+  - `/USB` ve `/GPIO` sayfalarında **OFF/ON/OTHER/ERR** rozet + aktif kanal uyarısı eklendi.
+  - `/USB` sayfasında USB cihaz yoksa ON disable + mevcut USB port listesi gösterilir (`usb_ports=[]` ise USB fiziksel yok demektir).
+  - Start idempotent: aynı mod zaten aktifse tekrar ON restart etmez (`note: already running`).
+- GPIO kanıt / mevcut durum:
+  - Aktif kanal: `gpio` (`/dev/ttyS0`, 9600). RX tarafında ham byte’lar görülüyor (ör. `"TEST"` benzeri).
+  - Not: “USB sayfasında veri göründü” tek başına USB’den veri geliyor anlamına gelmez; sayfalar **aktif kanalın** durumunu gösterir.
+- Admin erişimi:
+  - Erişim testleri için admin BasicAuth parolası production DB’de **`admin/admin123`** olacak şekilde resetlendi.
+  - Not: Test sonrası `/admin` üzerinden güçlü parola ile değiştirilmelidir (security).
+- ESP32 uzmanı geri dönüş sonrası yapılacaklar (plan):
+  - ESP32 firmware, USB’deki standart komut/yanıt formatını GPIO UART (9600) için de sağlayacak.
+  - RPi tarafında `/GPIO` → **Send HEX** ile standart komutlar gönderilip `<ACK;...>` / `<STAT;...>` doğrulanacak.
+  - Doğrulama sonrası hedef: `ESP32Bridge` için USB primary + GPIO fallback (failover) tasarımı.
+
+### Önceki Checkpoint: CP-20251225-053 (2025-12-25 02:40:00)
 **Durum:** ✅ USB/GPIO Serial Test UI + Admin API (raw in/out) + standart uyumu (satır limiti kritik kapatıldı)
 - Serial Test UI:
   - `/USB` (115200, `/dev/ttyUSB*|/dev/ttyACM*`) + `/GPIO` (9600, `/dev/ttyS0`) sayfaları eklendi (HTTP Basic).
