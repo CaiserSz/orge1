@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-25 05:24:00
+**Son Güncelleme:** 2025-12-25 05:30:00
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -29,7 +29,7 @@
   - Açıklama: `arduino-cli core install esp32:esp32` toolchain çok büyük (tek başına `~/.arduino15` ~5-6GB). Kurulum sırasında “no space left on device” yaşandı ve root partition hızla doluyor.
   - Öncelik: 1 (Yüksek)
   - Tahmini Süre: 30-90 dk (disk büyütme/mount/taşıma yaklaşımına göre)
-  - Durum: 🟡 Plan/aksiyon bekliyor
+  - Durum: ⏸️ Ertelendi (kullanıcı tetiklediğinde devam)
   - Öneri:
     - SSD/root partition büyüt (en az birkaç GB boş pay hedefle) **veya**
     - `~/.arduino15` dizinini harici diske taşı + symlink/mount ile aynı path’i koru (başka AI’lar “yok” sanıp tekrar kurmaya kalkmasın diye).
