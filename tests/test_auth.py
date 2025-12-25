@@ -1,8 +1,8 @@
 """
 API Authentication Tests
 Created: 2025-12-09 17:20:00
-Last Modified: 2025-12-24 18:29:00
-Version: 1.0.5
+Last Modified: 2025-12-25 05:35:00
+Version: 1.0.6
 Description: API authentication testleri
 """
 
@@ -326,3 +326,24 @@ class TestAdminUI:
         )
         assert resp.status_code == 400
         assert "must end with" in resp.json().get("detail", "")
+
+    def test_admin_profile_create_success_returns_200(self, client):
+        resp = client.post(
+            "/admin/api/profiles",
+            headers={"Authorization": self._basic("admin", "admin123")},
+            json={
+                "profile_key": "ORGE_AC_001_201_OK",
+                "station_name": "ORGE_AC_001_201_OK",
+                "ocpp_version": "2.0.1",
+                "ocpp201_url": "wss://lixhium.xyz/ocpp/ORGE_AC_001_201_OK",
+                "vendor_name": "ORGE",
+                "model": "ORGE",
+                "password_env_var": "OCPP_STATION_PASSWORD",
+                "heartbeat_seconds": 60,
+                "enabled": True,
+            },
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body.get("profile_key") == "ORGE_AC_001_201_OK"
+        assert body.get("station_name") == "ORGE_AC_001_201_OK"

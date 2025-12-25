@@ -1,8 +1,8 @@
 """
 Maintenance Queries Module
 Created: 2025-12-10 21:09:49
-Last Modified: 2025-12-24 18:29:00
-Version: 1.2.0
+Last Modified: 2025-12-25 06:02:00
+Version: 1.2.2
 Description: Database bakım ve temizlik operasyonları mixin'i.
 Notes:
   - Admin UI (HTTP Basic): admin kullanıcı doğrulama + OCPP station profile CRUD query'leri.
@@ -43,13 +43,7 @@ class MaintenanceQueryMixin:
         )
 
     def ensure_default_admin_user(self) -> None:
-        """
-        Varsayılan admin kullanıcıyı (admin/admin123) bir kereye mahsus oluştur.
-
-        Not:
-          - Bu fonksiyon secret üretmez; sadece ilk kurulumda default credential yazar.
-          - UI üzerinden şifre değiştirilebilir.
-        """
+        """Varsayılan admin kullanıcıyı (admin/admin123) bir kereye mahsus oluştur (ilk kurulum)."""
         with self.lock:
             conn = self._get_connection()
             try:
@@ -69,11 +63,7 @@ class MaintenanceQueryMixin:
                     self._ADMIN_DEFAULT_PASSWORD, salt, iterations
                 )
                 cursor.execute(
-                    """
-                    INSERT INTO admin_users
-                    (username, password_salt, password_hash, password_iterations, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                    """,
+                    "INSERT INTO admin_users (username, password_salt, password_hash, password_iterations, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
                     (
                         self._ADMIN_DEFAULT_USERNAME,
                         salt,
@@ -122,11 +112,7 @@ class MaintenanceQueryMixin:
                 cursor = conn.cursor()
                 self._ensure_admin_tables(cursor)
                 cursor.execute(
-                    """
-                    SELECT password_salt, password_hash, password_iterations
-                    FROM admin_users
-                    WHERE username=?
-                    """,
+                    "SELECT password_salt, password_hash, password_iterations FROM admin_users WHERE username=?",
                     (username,),
                 )
                 row = cursor.fetchone()
@@ -159,21 +145,13 @@ class MaintenanceQueryMixin:
                 iterations = int(self._ADMIN_PBKDF2_ITERATIONS)
                 pw_hash = self._pbkdf2_sha256(new_password, salt, iterations)
                 cursor.execute(
-                    """
-                    UPDATE admin_users
-                    SET password_salt=?, password_hash=?, password_iterations=?, updated_at=?
-                    WHERE username=?
-                    """,
+                    "UPDATE admin_users SET password_salt=?, password_hash=?, password_iterations=?, updated_at=? WHERE username=?",
                     (salt, pw_hash, iterations, now, username),
                 )
                 if cursor.rowcount == 0:
                     # Create if missing (defensive)
                     cursor.execute(
-                        """
-                        INSERT INTO admin_users
-                        (username, password_salt, password_hash, password_iterations, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                        """,
+                        "INSERT INTO admin_users (username, password_salt, password_hash, password_iterations, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
                         (username, salt, pw_hash, iterations, now, now),
                     )
                 conn.commit()
@@ -194,72 +172,34 @@ class MaintenanceQueryMixin:
     @staticmethod
     def _ensure_admin_tables(cursor: sqlite3.Cursor) -> None:
         cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS admin_users (
-                username TEXT PRIMARY KEY,
-                password_salt BLOB NOT NULL,
-                password_hash BLOB NOT NULL,
-                password_iterations INTEGER NOT NULL,
-                created_at INTEGER NOT NULL,
-                updated_at INTEGER NOT NULL
-            )
-            """
+            "CREATE TABLE IF NOT EXISTS admin_users (username TEXT PRIMARY KEY, password_salt BLOB NOT NULL, password_hash BLOB NOT NULL, password_iterations INTEGER NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)"
         )
         cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS ocpp_station_profiles (
-                profile_key TEXT PRIMARY KEY,
-                station_name TEXT NOT NULL,
-                ocpp_version TEXT NOT NULL CHECK(ocpp_version IN ('2.0.1', '1.6j')),
-                auth_type TEXT NOT NULL DEFAULT 'basic',
-                ocpp201_url TEXT,
-                ocpp16_url TEXT,
-                vendor_name TEXT NOT NULL,
-                model TEXT NOT NULL,
-                serial_number TEXT,
-                firmware_version TEXT,
-                password_env_var TEXT NOT NULL,
-                mtls_cert_path TEXT,
-                mtls_key_path TEXT,
-                mtls_ca_path TEXT,
-                heartbeat_seconds INTEGER NOT NULL DEFAULT 60 CHECK(heartbeat_seconds > 0),
-                enabled INTEGER NOT NULL DEFAULT 1 CHECK(enabled IN (0,1)),
-                created_at INTEGER NOT NULL,
-                updated_at INTEGER NOT NULL
-            )
-            """
+            "CREATE TABLE IF NOT EXISTS ocpp_station_profiles (profile_key TEXT PRIMARY KEY, station_name TEXT NOT NULL, ocpp_version TEXT NOT NULL CHECK(ocpp_version IN ('2.0.1', '1.6j')), auth_type TEXT NOT NULL DEFAULT 'basic', ocpp201_url TEXT, ocpp16_url TEXT, vendor_name TEXT NOT NULL, model TEXT NOT NULL, serial_number TEXT, firmware_version TEXT, password_env_var TEXT NOT NULL, mtls_cert_path TEXT, mtls_key_path TEXT, mtls_ca_path TEXT, heartbeat_seconds INTEGER NOT NULL DEFAULT 60 CHECK(heartbeat_seconds > 0), enabled INTEGER NOT NULL DEFAULT 1 CHECK(enabled IN (0,1)), created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)"
         )
         # Backward compatible schema upgrades (existing DBs created before auth_type/mTLS fields).
         upgraded = False
         cursor.execute("PRAGMA table_info(ocpp_station_profiles)")
         cols = {row[1] for row in cursor.fetchall()}
-        if "auth_type" not in cols:
-            cursor.execute(
-                "ALTER TABLE ocpp_station_profiles ADD COLUMN auth_type TEXT"
-            )
-            upgraded = True
-        if "mtls_cert_path" not in cols:
-            cursor.execute(
-                "ALTER TABLE ocpp_station_profiles ADD COLUMN mtls_cert_path TEXT"
-            )
-            upgraded = True
-        if "mtls_key_path" not in cols:
-            cursor.execute(
-                "ALTER TABLE ocpp_station_profiles ADD COLUMN mtls_key_path TEXT"
-            )
-            upgraded = True
-        if "mtls_ca_path" not in cols:
-            cursor.execute(
-                "ALTER TABLE ocpp_station_profiles ADD COLUMN mtls_ca_path TEXT"
-            )
-            upgraded = True
+        for col, sql in (
+            ("auth_type", "ALTER TABLE ocpp_station_profiles ADD COLUMN auth_type TEXT"),
+            (
+                "mtls_cert_path",
+                "ALTER TABLE ocpp_station_profiles ADD COLUMN mtls_cert_path TEXT",
+            ),
+            (
+                "mtls_key_path",
+                "ALTER TABLE ocpp_station_profiles ADD COLUMN mtls_key_path TEXT",
+            ),
+            ("mtls_ca_path", "ALTER TABLE ocpp_station_profiles ADD COLUMN mtls_ca_path TEXT"),
+        ):
+            if col not in cols:
+                cursor.execute(sql)
+                upgraded = True
         if upgraded:
             cursor.connection.commit()
         cursor.execute(
-            """
-            CREATE INDEX IF NOT EXISTS idx_ocpp_station_profiles_enabled
-            ON ocpp_station_profiles(enabled)
-            """
+            "CREATE INDEX IF NOT EXISTS idx_ocpp_station_profiles_enabled ON ocpp_station_profiles(enabled)"
         )
 
     def list_ocpp_profiles(self) -> List[Dict[str, Any]]:
@@ -268,15 +208,7 @@ class MaintenanceQueryMixin:
             cursor = conn.cursor()
             self._ensure_admin_tables(cursor)
             cursor.execute(
-                """
-                SELECT
-                  profile_key, station_name, ocpp_version, auth_type, ocpp201_url, ocpp16_url,
-                  vendor_name, model, serial_number, firmware_version, password_env_var,
-                  mtls_cert_path, mtls_key_path, mtls_ca_path,
-                  heartbeat_seconds, enabled, created_at, updated_at
-                FROM ocpp_station_profiles
-                ORDER BY updated_at DESC
-                """
+                "SELECT profile_key, station_name, ocpp_version, auth_type, ocpp201_url, ocpp16_url, vendor_name, model, serial_number, firmware_version, password_env_var, mtls_cert_path, mtls_key_path, mtls_ca_path, heartbeat_seconds, enabled, created_at, updated_at FROM ocpp_station_profiles ORDER BY updated_at DESC"
             )
             return [dict(row) for row in cursor.fetchall()]
 
@@ -286,15 +218,7 @@ class MaintenanceQueryMixin:
             cursor = conn.cursor()
             self._ensure_admin_tables(cursor)
             cursor.execute(
-                """
-                SELECT
-                  profile_key, station_name, ocpp_version, auth_type, ocpp201_url, ocpp16_url,
-                  vendor_name, model, serial_number, firmware_version, password_env_var,
-                  mtls_cert_path, mtls_key_path, mtls_ca_path,
-                  heartbeat_seconds, enabled, created_at, updated_at
-                FROM ocpp_station_profiles
-                WHERE profile_key=?
-                """,
+                "SELECT profile_key, station_name, ocpp_version, auth_type, ocpp201_url, ocpp16_url, vendor_name, model, serial_number, firmware_version, password_env_var, mtls_cert_path, mtls_key_path, mtls_ca_path, heartbeat_seconds, enabled, created_at, updated_at FROM ocpp_station_profiles WHERE profile_key=?",
                 (profile_key,),
             )
             row = cursor.fetchone()
@@ -372,14 +296,7 @@ class MaintenanceQueryMixin:
                 existing = self.get_ocpp_profile(profile_key)
                 if existing:
                     cursor.execute(
-                        """
-                        UPDATE ocpp_station_profiles
-                        SET station_name=?, ocpp_version=?, auth_type=?, ocpp201_url=?, ocpp16_url=?,
-                            vendor_name=?, model=?, serial_number=?, firmware_version=?,
-                            password_env_var=?, mtls_cert_path=?, mtls_key_path=?, mtls_ca_path=?,
-                            heartbeat_seconds=?, enabled=?, updated_at=?
-                        WHERE profile_key=?
-                        """,
+                        "UPDATE ocpp_station_profiles SET station_name=?, ocpp_version=?, auth_type=?, ocpp201_url=?, ocpp16_url=?, vendor_name=?, model=?, serial_number=?, firmware_version=?, password_env_var=?, mtls_cert_path=?, mtls_key_path=?, mtls_ca_path=?, heartbeat_seconds=?, enabled=?, updated_at=? WHERE profile_key=?",
                         (
                             station_name,
                             ocpp_version,
@@ -402,14 +319,7 @@ class MaintenanceQueryMixin:
                     )
                 else:
                     cursor.execute(
-                        """
-                        INSERT INTO ocpp_station_profiles
-                        (profile_key, station_name, ocpp_version, auth_type, ocpp201_url, ocpp16_url,
-                         vendor_name, model, serial_number, firmware_version,
-                         password_env_var, mtls_cert_path, mtls_key_path, mtls_ca_path,
-                         heartbeat_seconds, enabled, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """,
+                        "INSERT INTO ocpp_station_profiles (profile_key, station_name, ocpp_version, auth_type, ocpp201_url, ocpp16_url, vendor_name, model, serial_number, firmware_version, password_env_var, mtls_cert_path, mtls_key_path, mtls_ca_path, heartbeat_seconds, enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         (
                             profile_key,
                             station_name,
@@ -456,12 +366,7 @@ class MaintenanceQueryMixin:
                 raise
 
     def cleanup_old_sessions(self, max_sessions: int = 1000) -> int:
-        """
-        Eski session kayıtlarını temizler.
-
-        Returns:
-            Silinen session sayısı.
-        """
+        """Eski session kayıtlarını temizler. Returns: silinen session sayısı."""
         with self.lock:
             conn = self._get_connection()
             try:
@@ -476,14 +381,7 @@ class MaintenanceQueryMixin:
                 to_remove = int(total_count * 0.1)
 
                 cursor.execute(
-                    """
-                    DELETE FROM sessions
-                    WHERE session_id IN (
-                        SELECT session_id FROM sessions
-                        ORDER BY start_time ASC
-                        LIMIT ?
-                    )
-                    """,
+                    "DELETE FROM sessions WHERE session_id IN (SELECT session_id FROM sessions ORDER BY start_time ASC LIMIT ?)",
                     (to_remove,),
                 )
 
