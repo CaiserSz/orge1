@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-25 06:09:00
+**Son Güncelleme:** 2025-12-25 06:23:00
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -66,11 +66,11 @@
   - Durum: 🟡 Uyarı eşiği yakın
 
 - [ ] **Görev:** `api/routers/test.py` (Admin UI) dosyasını sadeleştir / böl
-  - Açıklama: `standards_auto_check` uyarısı: 464 satır (limit 500). Inline Admin UI (HTML/JS) + systemd entegrasyonu büyüyor; bakım riski artıyor.
+  - Açıklama: `standards_auto_check` uyarısı kapatıldı: 464 → 399 satır. Tek dosya kuralına uyarak (yeni dosya oluşturmadan) kod sıkılaştırıldı.
   - Öncelik: 2 (Orta)
   - Tahmini Süre: 1-2 saat
-  - Durum: 🟡 Uyarı eşiği yakın
-  - Not: Kritik limit aşımı (564) minify ile kapatıldı; hala uyarı eşiği yakın olduğu için ileride router/HTML ayrıştırma düşünülebilir.
+  - Durum: ✅ Tamamlandı (2025-12-25)
+  - Not: İleride gerekirse router/HTML ayrıştırma (kural/istisna açılırsa) değerlendirilebilir.
 
 - [ ] **Görev:** `tests/test_api_endpoints.py` dosyasını test suite’e böl (uyarı eşiği yeniden yakın)
   - Açıklama: `standards_auto_check` uyarısı: 467 satır (limit 500). Yeni API testleri eklendikçe büyüyor; bakım riski artıyor.

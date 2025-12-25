@@ -1,8 +1,8 @@
 """
 Test Router
 Created: 2025-12-10
-Last Modified: 2025-12-25 02:38:00
-Version: 1.3.2
+Last Modified: 2025-12-25 06:15:00
+Version: 1.3.3
 Description: Test endpoints + minimal Admin UI (OCPP runner profiles, BasicAuth + mTLS)
 """
 
@@ -27,6 +27,11 @@ _basic = HTTPBasic()
 _ADMIN_VALIDATION_ERROR_MSG = (
     "Invalid request. Please check required fields and formats."
 )
+_NO_CACHE_HEADERS = {
+    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+    "Pragma": "no-cache",
+    "Expires": "0",
+}
 
 
 def _http_400(detail: str) -> HTTPException:
@@ -35,13 +40,7 @@ def _http_400(detail: str) -> HTTPException:
 
 @router.get("/api/test/key")
 async def get_test_api_key():
-    """
-    Test sayfası için API key'i döndürür
-
-    NOT:
-    - Bu endpoint test sayfası için gereklidir.
-    - Production ortamında güvenlik nedeniyle kapalıdır (404 döndürür).
-    """
+    """Test sayfası için API key'i döndürür (prod ortamında 404)."""
     # Production ortamında test endpoint'ini kapat
     if os.getenv("ENVIRONMENT", "").lower() == "production":
         raise HTTPException(
@@ -67,20 +66,11 @@ async def get_test_api_key():
 
 @router.get("/test", response_class=HTMLResponse)
 async def api_test_page():
-    """
-    API test sayfası
-
-    Dışarıdan API'leri test etmek için web arayüzü
-    """
+    """Dışarıdan API'leri test etmek için web arayüzü."""
     test_page_path = Path(__file__).parent.parent.parent / "api_test.html"
     if test_page_path.exists():
         # Tarayıcı/Ngrok cache kaynaklı "eski JS" problemlerini engelle
-        headers = {
-            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-            "Pragma": "no-cache",
-            "Expires": "0",
-        }
-        return FileResponse(test_page_path, headers=headers)
+        return FileResponse(test_page_path, headers=_NO_CACHE_HEADERS)
     else:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Test page not found"
@@ -96,11 +86,7 @@ async def favicon():
 def _run_cmd(cmd: list[str], *, timeout: float = 10.0) -> Dict[str, Any]:
     try:
         p = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            check=False,
+            cmd, capture_output=True, text=True, timeout=timeout, check=False
         )
         return {
             "ok": p.returncode == 0,
@@ -120,19 +106,11 @@ def _run_cmd(cmd: list[str], *, timeout: float = 10.0) -> Dict[str, Any]:
 
 
 def _sudo_cmd(cmd: list[str], *, timeout: float = 10.0) -> Dict[str, Any]:
-    if os.geteuid() == 0:
-        return _run_cmd(cmd, timeout=timeout)
-    return _run_cmd(["sudo", "-n", *cmd], timeout=timeout)
+    return _run_cmd(cmd if os.geteuid() == 0 else ["sudo", "-n", *cmd], timeout=timeout)
 
 
 def _require_admin(credentials: HTTPBasicCredentials = Depends(_basic)) -> str:
-    """
-    Admin HTTP Basic auth.
-
-    Default credentials (first run):
-      - username: admin
-      - password: admin123
-    """
+    """Admin HTTP Basic auth (default first-run: admin/admin123)."""
     db = get_database()
     db.ensure_default_admin_user()
 
@@ -155,14 +133,7 @@ def _admin_page_html() -> str:
 
 @admin_router.get("/admin", response_class=HTMLResponse)
 async def admin_page(_admin: str = Depends(_require_admin)):
-    return HTMLResponse(
-        _admin_page_html(),
-        headers={
-            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-            "Pragma": "no-cache",
-            "Expires": "0",
-        },
-    )
+    return HTMLResponse(_admin_page_html(), headers=_NO_CACHE_HEADERS)
 
 
 @admin_router.get("/admin/api/profiles")
@@ -218,25 +189,7 @@ async def admin_change_password(
 
 
 def _systemd_unit_content() -> str:
-    # Env-driven (single protocol): avoid CLI arg quoting pitfalls; do not embed secrets in drop-ins.
-    return """[Unit]
-Description=OCPP Station Client (%i)
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=simple
-WorkingDirectory=/home/basar/charger
-Environment=PYTHONUNBUFFERED=1
-ExecStart=/bin/bash -lc 'cd /home/basar/charger; set -a; source .env; set +a; auth=\"$${OCPP_AUTH_TYPE:-basic}\"; if [ \"$${auth}\" = \"basic\" ]; then if [ -z \"$${OCPP_PASSWORD_ENV_VAR:-}\" ]; then echo \"[OCPP] missing OCPP_PASSWORD_ENV_VAR (run Sync systemd)\" >&2; exit 2; fi; export OCPP_STATION_PASSWORD=\"$${!OCPP_PASSWORD_ENV_VAR}\"; fi; exec ./env/bin/python -u ocpp/main.py'
-Restart=on-failure
-RestartSec=3
-NoNewPrivileges=true
-PrivateTmp=true
-
-[Install]
-WantedBy=multi-user.target
-"""
+    return '[Unit]\nDescription=OCPP Station Client (%i)\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nWorkingDirectory=/home/basar/charger\nEnvironment=PYTHONUNBUFFERED=1\nExecStart=/bin/bash -lc \'cd /home/basar/charger; set -a; source .env; set +a; auth="$${OCPP_AUTH_TYPE:-basic}"; if [ "$${auth}" = "basic" ]; then if [ -z "$${OCPP_PASSWORD_ENV_VAR:-}" ]; then echo "[OCPP] missing OCPP_PASSWORD_ENV_VAR (run Sync systemd)" >&2; exit 2; fi; export OCPP_STATION_PASSWORD="$${!OCPP_PASSWORD_ENV_VAR}"; fi; exec ./env/bin/python -u ocpp/main.py\'\nRestart=on-failure\nRestartSec=3\nNoNewPrivileges=true\nPrivateTmp=true\n\n[Install]\nWantedBy=multi-user.target\n'
 
 
 def _write_root_file(path: str, content: str) -> Dict[str, Any]:
@@ -246,11 +199,7 @@ def _write_root_file(path: str, content: str) -> Dict[str, Any]:
     else:
         cmd = ["sudo", "-n", "tee", path]
     res = subprocess.run(
-        cmd,
-        input=content,
-        text=True,
-        capture_output=True,
-        check=False,
+        cmd, input=content, text=True, capture_output=True, check=False
     )
     return {
         "ok": res.returncode == 0,
@@ -295,9 +244,8 @@ def _profile_override_content(profile: Dict[str, Any]) -> str:
         # v16 metadata is read from env in adapter; safe to set for both versions.
         _env_line("OCPP_V16_SERIAL_NUMBER", profile.get("serial_number") or ""),
         _env_line("OCPP_V16_FIRMWARE_VERSION", profile.get("firmware_version") or ""),
-        "",
     ]
-    return "\n".join(lines)
+    return "\n".join(lines) + "\n"
 
 
 @admin_router.post("/admin/api/profiles/{profile_key}/sync_systemd")
@@ -331,7 +279,6 @@ async def admin_sync_systemd(profile_key: str, _admin: str = Depends(_require_ad
 
 
 def _svc_name(profile_key: str) -> str:
-    # profile_key is validated on write; still sanitize for service calls.
     get_database().validate_profile_key(profile_key)
     return f"ocpp-station@{profile_key}.service"
 
@@ -399,25 +346,13 @@ async def admin_service_logs(
 
 @admin_router.get("/USB", response_class=HTMLResponse)
 async def serial_usb_page(_admin: str = Depends(_require_admin)):
-    return HTMLResponse(
-        serial_test_manager.page_html("usb"),
-        headers={
-            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-            "Pragma": "no-cache",
-            "Expires": "0",
-        },
-    )
+    return HTMLResponse(serial_test_manager.page_html("usb"), headers=_NO_CACHE_HEADERS)
 
 
 @admin_router.get("/GPIO", response_class=HTMLResponse)
 async def serial_gpio_page(_admin: str = Depends(_require_admin)):
     return HTMLResponse(
-        serial_test_manager.page_html("gpio"),
-        headers={
-            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-            "Pragma": "no-cache",
-            "Expires": "0",
-        },
+        serial_test_manager.page_html("gpio"), headers=_NO_CACHE_HEADERS
     )
 
 
