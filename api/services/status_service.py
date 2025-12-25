@@ -1,8 +1,8 @@
 """
 Status Service
 Created: 2025-12-10 15:30:00
-Last Modified: 2025-12-25 09:58:00
-Version: 1.2.1
+Last Modified: 2025-12-25 03:12:00
+Version: 1.2.2
 Description: Status business logic service layer + Serial test manager (USB/GPIO)
 """
 
@@ -195,6 +195,21 @@ def _best_effort_disconnect_esp32_bridge() -> None:
 
 
 def _guess_usb_port() -> Optional[str]:
+    return _guess_usb_port_from_ports(_list_usb_ports())
+
+
+_GPIO_PORT = "/dev/ttyS0"
+
+
+def _list_usb_ports() -> list[str]:
+    dev = Path("/dev")
+    ports: list[str] = []
+    for pat in ("ttyUSB*", "ttyACM*"):
+        ports.extend(str(p) for p in sorted(dev.glob(pat)))
+    return ports
+
+
+def _guess_usb_port_from_ports(usb_ports: list[str]) -> Optional[str]:
     # Önce config içinden USB görünümlü bir port varsa onu kullan.
     try:
         port = (getattr(config, "ESP32_PORT", None) or "").strip()
@@ -202,13 +217,7 @@ def _guess_usb_port() -> Optional[str]:
             return port
     except Exception:
         pass
-
-    # Fallback: /dev/ttyUSB* veya /dev/ttyACM* ilk adayı seç (deterministic: sorted).
-    dev = Path("/dev")
-    for pat in ("ttyUSB*", "ttyACM*"):
-        for p in sorted(dev.glob(pat)):
-            return str(p)
-    return None
+    return usb_ports[0] if usb_ports else None
 
 
 class SerialTestManager:
@@ -221,10 +230,30 @@ class SerialTestManager:
         self._worker: Optional[_SerialTestWorker] = None
 
     def status(self) -> Dict[str, Any]:
+        usb_ports = _list_usb_ports()
+        usb_candidate = _guess_usb_port_from_ports(usb_ports)
+        gpio_exists = Path(_GPIO_PORT).exists()
+
         with self._lock:
             if self._worker is None:
-                return {"running": False, "mode": "off", "port": None, "baudrate": None}
-            return self._worker.snapshot()
+                base: Dict[str, Any] = {
+                    "running": False,
+                    "mode": "off",
+                    "port": None,
+                    "baudrate": None,
+                }
+            else:
+                base = self._worker.snapshot()
+
+        base.update(
+            {
+                "usb_ports": usb_ports,
+                "usb_candidate": usb_candidate,
+                "gpio_port": _GPIO_PORT,
+                "gpio_exists": gpio_exists,
+            }
+        )
+        return base
 
     def stop(self) -> Dict[str, Any]:
         with self._lock:
@@ -238,17 +267,30 @@ class SerialTestManager:
         if mode not in ("usb", "gpio"):
             raise ValueError("mode must be 'usb' or 'gpio'")
 
+        usb_ports = _list_usb_ports()
+        usb_candidate = _guess_usb_port_from_ports(usb_ports)
+
         if mode == "usb":
-            port = _guess_usb_port()
+            port = usb_candidate
             baudrate = 115200
             if not port:
                 raise RuntimeError("USB port not found (/dev/ttyUSB*|ttyACM*)")
         else:
-            port = "/dev/ttyS0"
+            port = _GPIO_PORT
             baudrate = 9600
 
         with self._lock:
             if self._worker is not None:
+                # Idempotent start: aynı mode/port/baud aktifse yeniden başlatma.
+                snap = self._worker.snapshot()
+                if (
+                    snap.get("running") is True
+                    and self._worker.mode == mode
+                    and self._worker.port == port
+                    and self._worker.baudrate == baudrate
+                ):
+                    return {"ok": True, "note": "already running", **snap}
+
                 self._worker.stop()
                 self._worker = None
 
@@ -272,7 +314,7 @@ class SerialTestManager:
         title = "USB" if mode == "usb" else "GPIO"
         subtitle = "115200 baud (USB)" if mode == "usb" else "9600 baud (/dev/ttyS0)"
         # Single-file HTML (no new workspace files). Auth: HTTP Basic (same as /admin).
-        return f"""<!doctype html><html lang="tr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Serial Test - {title}</title><style>body{{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:24px;color:#111}}.muted{{color:#666;font-size:13px}}.card{{border:1px solid #ddd;border-radius:10px;padding:16px;margin-top:16px;max-width:1100px}}.row{{display:flex;gap:12px;flex-wrap:wrap;align-items:center}}.btn{{padding:8px 12px;border:1px solid #999;border-radius:8px;background:#fafafa;cursor:pointer;font-size:13px}}.btn.primary{{background:#1f6feb;border-color:#1f6feb;color:#fff}}.btn.danger{{background:#b42318;border-color:#b42318;color:#fff}}input{{padding:8px 10px;border:1px solid #ccc;border-radius:8px;font-size:14px;min-width:280px}}pre{{background:#0b1020;color:#d6e2ff;padding:12px;border-radius:10px;overflow:auto;white-space:pre-wrap}}</style></head><body><h1 style="margin:0 0 6px 0;">{title} in/out</h1><div class="muted">{subtitle} — default OFF. Bu sayfa test amaçlı ham seri dinleme/gönderim yapar.</div><div class="card"><div class="row"><button class="btn primary" onclick="start()">ON</button><button class="btn danger" onclick="stop()">OFF</button><span class="muted" id="state">loading…</span></div><div class="row" style="margin-top:12px;"><input id="hex" placeholder="HEX gönder (örn: 41 01 2C 00 10)"/><button class="btn" onclick="sendHex()">Send HEX</button></div><div class="muted" style="margin-top:10px;">RX son chunk: (hex/ascii) — UI 1sn polling.</div><pre id="out">loading…</pre></div><script>const MODE={mode!r};const $=id=>document.getElementById(id);const api=async(p,o)=>{{const r=await fetch(location.origin+p,Object.assign({{headers:{{\"Content-Type\":\"application/json\"}}}},o||{{}}));const t=await r.text();let d=null;try{{d=t?JSON.parse(t):null}}catch(e){{d={{raw:t}}}}if(!r.ok){{throw new Error(r.status+\" \"+(d&&(d.detail||d.raw)||t))}}return d}};function fmtTs(ts){{if(!ts)return \"-\";try{{return new Date(ts*1000).toISOString()}}catch(e){{return String(ts)}}}}async function refresh(){{try{{const s=await api(\"/admin/api/serial_test/status\");$(\"state\").textContent=`mode=${{s.mode||\"-\"}} running=${{s.running}} port=${{s.port||\"-\"}} baud=${{s.baudrate||\"-\"}} rx_total=${{s.rx_total||0}} tx_total=${{s.tx_total||0}} last_rx=${{fmtTs(s.last_rx_at_ts)}} err=${{s.last_error||\"-\"}}`;const hex=s.last_rx_hex||\"\";const asc=(s.last_rx_ascii||\"\").replace(/\\u0000/g,\"\");$(\"out\").textContent=`HEX: ${{hex}}\\nASCII: ${{asc}}`}}catch(e){{$(\"state\").textContent=\"error: \"+e.message;}}}}async function start(){{await api(\"/admin/api/serial_test/start\",{{method:\"POST\",body:JSON.stringify({{mode:MODE}})}});await refresh();}}async function stop(){{await api(\"/admin/api/serial_test/stop\",{{method:\"POST\"}});await refresh();}}async function sendHex(){{const h=$(\"hex\").value||\"\";await api(\"/admin/api/serial_test/send_hex\",{{method:\"POST\",body:JSON.stringify({{hex:h}})}});await refresh();}}refresh();setInterval(refresh,1000);</script></body></html>"""
+        return f"""<!doctype html><html lang="tr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Serial Test - {title}</title><style>body{{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:24px;color:#111}}.muted{{color:#666;font-size:13px}}.card{{border:1px solid #ddd;border-radius:10px;padding:16px;margin-top:16px;max-width:1100px}}.row{{display:flex;gap:12px;flex-wrap:wrap;align-items:center}}.btn{{padding:8px 12px;border:1px solid #999;border-radius:8px;background:#fafafa;cursor:pointer;font-size:13px}}.btn.primary{{background:#1f6feb;border-color:#1f6feb;color:#fff}}.btn.danger{{background:#b42318;border-color:#b42318;color:#fff}}.pill{{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;border:1px solid #ddd}}.pill.ok{{border-color:#2e7d32;color:#2e7d32}}.pill.warn{{border-color:#b42318;color:#b42318}}.pill.info{{border-color:#999;color:#555}}input{{padding:8px 10px;border:1px solid #ccc;border-radius:8px;font-size:14px;min-width:280px}}pre{{background:#0b1020;color:#d6e2ff;padding:12px;border-radius:10px;overflow:auto;white-space:pre-wrap}}</style></head><body><h1 style="margin:0 0 6px 0;">{title} in/out</h1><div class="muted">{subtitle} — default OFF. Bu sayfa test amaçlı ham seri dinleme/gönderim yapar.</div><div class="card"><div class="row"><button id="btn_on" class="btn primary" onclick="start()">ON</button><button id="btn_off" class="btn danger" onclick="stop()">OFF</button><span id="badge" class="pill info">OFF</span><span class="muted" id="state">loading…</span></div><div class="muted" id="hint" style="margin-top:8px;"></div><div class="muted" id="dev" style="margin-top:6px;"></div><div class="row" style="margin-top:12px;"><input id="hex" placeholder="HEX gönder (örn: 41 01 2C 00 10)"/><button class="btn" onclick="sendHex()">Send HEX</button></div><div class="muted" style="margin-top:10px;">RX son chunk: (hex/ascii) — UI 1sn polling.</div><pre id="out">loading…</pre></div><script>const MODE={mode!r};const $=id=>document.getElementById(id);const api=async(p,o)=>{{const r=await fetch(location.origin+p,Object.assign({{headers:{{\"Content-Type\":\"application/json\"}}}},o||{{}}));const t=await r.text();let d=null;try{{d=t?JSON.parse(t):null}}catch(e){{d={{raw:t}}}}if(!r.ok){{throw new Error(r.status+\" \"+(d&&(d.detail||d.raw)||t))}}return d}};function fmtTs(ts){{if(!ts)return \"-\";try{{return new Date(ts*1000).toISOString()}}catch(e){{return String(ts)}}}}function setBadge(kind,text){{const b=$(\"badge\");b.className=\"pill \"+kind;b.textContent=text;}}async function refresh(){{try{{const s=await api(\"/admin/api/serial_test/status\");const running=!!s.running;const activeMode=(s.mode||\"off\");const port=(s.port||\"-\");const baud=(s.baudrate||\"-\");const matches=running && activeMode===MODE;const other=running && activeMode!==\"off\" && activeMode!==MODE;if(!running || activeMode===\"off\"){{setBadge(\"info\",\"OFF\");$(\"hint\").textContent=\"\";}}else if(matches){{setBadge(\"ok\",\"ON\");$(\"hint\").textContent=\"Aktif kanal: \"+activeMode+\" (bu sayfa)\";}}else{{setBadge(\"warn\",\"OTHER\");$(\"hint\").textContent=\"Şu an '\"+activeMode+\"' aktif. ON tıklarsan '\"+MODE+\"' aktif olur ve '\"+activeMode+\"' durur.\";}}const usbCandidate=(s.usb_candidate||\"\");const usbPorts=(Array.isArray(s.usb_ports)?s.usb_ports.join(\", \"):\"\");if(MODE===\"usb\"){{if(usbCandidate){{$(\"dev\").textContent=\"USB cihaz: \"+usbCandidate;}}else{{$(\"dev\").textContent=\"USB cihaz bulunamadı. Mevcut USB portlar: \"+(usbPorts||\"-\");}}}}else{{const gp=(s.gpio_port||\"/dev/ttyS0\");$(\"dev\").textContent=gp+\" (\"+(s.gpio_exists?\"present\":\"missing\")+\")\";}}$(\"btn_on\").disabled=matches || (MODE===\"usb\" && !usbCandidate);$(\"btn_off\").disabled=!running;$(\"state\").textContent=\"active_mode=\"+activeMode+\" running=\"+running+\" port=\"+port+\" baud=\"+baud+\" rx_total=\"+(s.rx_total||0)+\" tx_total=\"+(s.tx_total||0)+\" last_rx=\"+fmtTs(s.last_rx_at_ts)+\" err=\"+(s.last_error||\"-\");const hex=(s.last_rx_hex||\"\");const asc=(s.last_rx_ascii||\"\").replace(/\\u0000/g,\"\");$(\"out\").textContent=\"HEX: \"+hex+\"\\nASCII: \"+asc;}}catch(e){{setBadge(\"warn\",\"ERR\");$(\"state\").textContent=\"error: \"+e.message;}}}}async function start(){{await api(\"/admin/api/serial_test/start\",{{method:\"POST\",body:JSON.stringify({{mode:MODE}})}});await refresh();}}async function stop(){{await api(\"/admin/api/serial_test/stop\",{{method:\"POST\"}});await refresh();}}async function sendHex(){{const h=$(\"hex\").value||\"\";await api(\"/admin/api/serial_test/send_hex\",{{method:\"POST\",body:JSON.stringify({{hex:h}})}});await refresh();}}refresh();setInterval(refresh,1000);</script></body></html>"""
 
 
 # Global singleton
