@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-25 05:13:00
+**Son Güncelleme:** 2025-12-25 05:19:00
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -14,7 +14,7 @@
   - Açıklama: USB (`/dev/ttyUSB0`) yanında UART0 (`/dev/serial0` → şu sistemde `/dev/ttyS0`) fiziksel hat var; USB koparsa GPIO UART üzerinden devam etmek isteniyor.
   - Öncelik: 1 (Yüksek)
   - Tahmini Süre: 2-4 saat
-  - Durum: 🟡 İnceleme/Implementasyon bekliyor
+  - Durum: ⏸️ Ertelendi (kullanıcı tetiklediğinde devam)
   - Bulgular:
     - RPi tarafında `/dev/serial0 -> /dev/ttyS0` mevcut ve dialout erişimi var (boş görünüyor).
     - Mevcut sahada `/dev/serial0` üzerinden 115200 ile okuma + `41 00 2C 00 10` status komutu denemesinde yanıt alınamadı (0 byte).
