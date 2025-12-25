@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-25 05:30:00
+**Son Güncelleme:** 2025-12-25 05:45:00
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -18,7 +18,8 @@
   - Bulgular:
     - RPi tarafında `/dev/serial0 -> /dev/ttyS0` mevcut ve dialout erişimi var (boş görünüyor).
     - Mevcut sahada `/dev/serial0` üzerinden 115200 ile okuma + `41 00 2C 00 10` status komutu denemesinde yanıt alınamadı (0 byte).
-    - Repo’daki `esp32/Commercial_08122025.ino` içinde `USE_DUAL_UART` açık olsa da GPIO UART command handler blokları yorum satırında; `sendStat()` sadece `SerialUSB`’a yazıyor. Bu nedenle GPIO UART’ın pratikte “aktif” olmaması beklenir.
+    - **Aktif firmware (saha):** `esp32/Commercial_V3.ino` (ESP32 üzerinde yüklü). `Commercial_V4.ino` geldiğinde SSOT güncellenecek.
+    - Legacy not: `esp32/Commercial_08122025.ino` içinde `USE_DUAL_UART` açık olsa da GPIO UART command handler blokları yorum satırında; `sendStat()` sadece `SerialUSB`’a yazıyor. Bu nedenle o sürümde GPIO UART’ın pratikte “aktif” olmaması beklenir.
   - Aksiyon Planı:
     - ESP32 firmware: SerialGPIO üzerinden komut okuma + ACK/STAT yanıtı gönderme (gerekirse status broadcast’ını iki arayüze de verme).
     - RPi bridge: USB primary + `/dev/serial0` fallback port seçimi ve reconnect failover.
@@ -36,12 +37,16 @@
 
 ### Öncelik 3: Firmware SSOT / Workspace Hijyeni (2025-12-24)
 
-- [ ] **Görev:** ESP32 firmware için tek SSOT belirle ve kopya `.ino` dosyalarını temizle/isim standardına uydur
-  - Açıklama: Workspace’te birden fazla “Commercial” `.ino` kopyası var; bazıları git’te untracked ve dosya adı standardına uymuyor (örn. boşluk/paren içeriyor). Bu durum yanlış dosyanın flash edilmesi riskini artırıyor.
+- [x] **Görev:** ESP32 firmware için tek SSOT belirle ve kopya `.ino` dosyalarını temizle/isim standardına uydur
+  - Açıklama: Workspace’te birden fazla “Commercial” `.ino` kopyası var. SSOT netleştirildi ve `.ino` dosyalarının git’te track edilmemesi için hijyen uygulandı.
   - Öncelik: 3 (Orta/Düşük)
   - Tahmini Süre: 30-60 dk
-  - Durum: 📋 Bekliyor
-  - Aksiyon: Hangi `.ino` dosyasının prod SSOT olduğu netleştirilecek; diğerleri ya silinecek ya da doğru isimle archive/track edilecek (repo kurallarıyla uyumlu şekilde).
+  - Durum: ✅ Tamamlandı (2025-12-25)
+  - SSOT (şu an): `esp32/Commercial_V3.ino` (ESP32 üzerinde yüklü)
+  - Not: `Commercial_V4.ino` geldiğinde SSOT güncellenecek.
+  - Git hijyeni:
+    - `esp32/*.ino` `.gitignore` içine eklendi (firmware dosyaları cihazda “doküman” olarak kalsın ama repo’da track edilmesin).
+    - Daha önce track edilen `esp32/Commercial_08122025.ino` git index’ten çıkarıldı (dosya cihazda kalır, repo’da görünmez).
 
 ### Öncelik 2: Test Coverage Boşlukları (2025-12-16) - Meter/OCPP/DB
 
