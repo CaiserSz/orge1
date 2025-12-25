@@ -1,13 +1,10 @@
 """
 Maintenance Queries Module
 Created: 2025-12-10 21:09:49
-Last Modified: 2025-12-25 06:02:00
-Version: 1.2.2
+Last Modified: 2025-12-25 06:09:00
+Version: 1.2.3
 Description: Database bakım ve temizlik operasyonları mixin'i.
-Notes:
-  - Admin UI (HTTP Basic): admin kullanıcı doğrulama + OCPP station profile CRUD query'leri.
-  - Admin parolası DB'de PBKDF2-SHA256 ile hash+salt olarak saklanır.
-  - Station profilleri: auth_type (basic/mtls/none) + mTLS cert/key/ca path alanları eklendi.
+Notes: Admin UI (HTTP Basic) + OCPP profile CRUD; admin parolası PBKDF2-SHA256 hash+salt; profiller auth_type (basic/mtls/none) + mTLS cert/key/ca path.
 """
 
 from __future__ import annotations
@@ -29,7 +26,6 @@ class MaintenanceQueryMixin:
     _ADMIN_DEFAULT_USERNAME = "admin"
     _ADMIN_DEFAULT_PASSWORD = "admin123"
     _ADMIN_PBKDF2_ITERATIONS = 150_000
-
     _PROFILE_KEY_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 
     @staticmethod
@@ -182,7 +178,10 @@ class MaintenanceQueryMixin:
         cursor.execute("PRAGMA table_info(ocpp_station_profiles)")
         cols = {row[1] for row in cursor.fetchall()}
         for col, sql in (
-            ("auth_type", "ALTER TABLE ocpp_station_profiles ADD COLUMN auth_type TEXT"),
+            (
+                "auth_type",
+                "ALTER TABLE ocpp_station_profiles ADD COLUMN auth_type TEXT",
+            ),
             (
                 "mtls_cert_path",
                 "ALTER TABLE ocpp_station_profiles ADD COLUMN mtls_cert_path TEXT",
@@ -191,7 +190,10 @@ class MaintenanceQueryMixin:
                 "mtls_key_path",
                 "ALTER TABLE ocpp_station_profiles ADD COLUMN mtls_key_path TEXT",
             ),
-            ("mtls_ca_path", "ALTER TABLE ocpp_station_profiles ADD COLUMN mtls_ca_path TEXT"),
+            (
+                "mtls_ca_path",
+                "ALTER TABLE ocpp_station_profiles ADD COLUMN mtls_ca_path TEXT",
+            ),
         ):
             if col not in cols:
                 cursor.execute(sql)
