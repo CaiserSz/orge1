@@ -1,6 +1,6 @@
 # Sonraki Yapılacaklar
 
-**Son Güncelleme:** 2025-12-25 02:39:00
+**Son Güncelleme:** 2025-12-25 05:13:00
 
 **Not:** Detaylı kıdemli uzman önerileri için `expert_recommendations.md` dosyasına bakınız.
 
@@ -87,6 +87,12 @@
   - Öncelik: 0 (Acil)
   - Tahmini Süre: 30-60 dk
   - Durum: ⏸️ Ertelendi (test aşaması; risk kabul edildi)
+
+- [ ] **Görev:** Admin UI (HTTP Basic) parolasını güçlü bir parolayla değiştir
+  - Açıklama: Erişim/test amacıyla station-side Admin UI için prod DB’de admin parolası geçici olarak default’a çekildi. Güvenlik için güçlü, benzersiz bir parola ile `/admin` üzerinden değiştirilmelidir.
+  - Öncelik: 0 (Acil)
+  - Tahmini Süre: 5-10 dk
+  - Durum: 📋 Bekliyor
 
 ### Öncelik 0: Sistem Sağlık Tespitleri (2025-12-15) - Güç Beslemesi ve Servis Tutarlılığı
 
