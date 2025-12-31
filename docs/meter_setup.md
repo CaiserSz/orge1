@@ -10,13 +10,13 @@
 
 Bu doküman, **Acrel T317/ADL400 MID** üç-faz enerji sayacının Raspberry Pi ile **RS485 / Modbus RTU** üzerinden okunması için gerekli ayarları ve proje içi entegrasyon noktalarını tek yerde toplar. (ABB B23 notları da “legacy” olarak içeride tutulur.)
 
-- **Saha (bu RPi) çalışır konfig:**
-  - Port: `/dev/ttyAMA5` (UART5 + MAX13487)
+- **Saha (çalışan) seri ayarları:**
+  - Port: `/dev/ttyAMA5` (örnek: UART5 + MAX13487)
   - Baudrate: **9600**
   - Parity: **EVEN** (8E1)
   - Slave ID: **111**
   - Function Code: **0x03** (Holding Registers)
-- **Proje config (bu RPi `.env`):**
+- **Eğer config/env kullanıyorsanız, örnek eşleme:**
 
 ```bash
 METER_TYPE=acrel
@@ -28,6 +28,119 @@ METER_AUTO_CONNECT=true
 ```
 
 - **Önemli not (Modbus RTU):** Sayaç **kendiliğinden** sürekli veri akıtmaz; iletişim **request/response**’dur. Bu nedenle `cat /dev/ttyAMA5` ile “hiç veri yok” görmeniz normal olabilir. Doğrulama için master olarak sorgu göndermek gerekir (aşağıdaki test adımlarına bakın).
+
+## 🧩 Repo‑Bağımsız (Her RPi) Kopyala‑Çalıştır Testi
+
+Bu bölüm **dosya yolu / repo yapısı bağımsızdır**. ORGE2 AI’nin farklı bir projede aynı sayaç ayarlarıyla neden çalışmadığını anlaması için tasarlanmıştır.
+
+### 1) Seri portu ve cihazı doğrula
+
+```bash
+# Portları listele (USB-RS485 ve UART adayları)
+ls -la /dev/serial/by-id /dev/serial0 /dev/ttyUSB* /dev/ttyAMA* /dev/ttyS* 2>/dev/null || true
+
+# Tak-çıkar sonrası kernel loglarından port ismi yakala
+dmesg | grep -iE 'tty(USB|AMA|S)' | tail -n 50
+```
+
+> İpucu: USB-RS485 adaptör ile genelde `/dev/ttyUSB0` gelir. UART ile genelde `/dev/ttyAMA*` veya `/dev/serial0` gelir.
+
+### 2) Python bağımlılıklarını kur
+
+```bash
+python3 -m pip install --upgrade pip
+python3 -m pip install pymodbus==3.6.7 pyserial==3.5
+```
+
+> Not: Farklı pymodbus sürümlerinde parametre adı `device_id` yerine `unit` olabilir. Aşağıdaki örnek pymodbus 3.x içindir.
+
+### 3) Minimal register okuma script’i (Acrel ADL400/T317)
+
+Aşağıdaki script’i **herhangi bir klasörde** çalıştırabilirsiniz (repo gerektirmez). Tek yapmanız gereken `PORT` ve `SLAVE_ID` değerlerini kendi ortamınıza göre set etmektir.
+
+```python
+import struct
+
+from pymodbus.client import ModbusSerialClient
+
+
+def _to_float(regs: list[int]) -> float:
+    return struct.unpack(">f", struct.pack(">HH", regs[0], regs[1]))[0]
+
+
+def _to_u32(regs: list[int]) -> int:
+    return struct.unpack(">I", struct.pack(">HH", regs[0], regs[1]))[0]
+
+
+def _read_holding(client: ModbusSerialClient, unit: int, address: int, count: int) -> list[int]:
+    rr = client.read_holding_registers(address, count=count, device_id=unit)
+    if rr.isError():
+        raise RuntimeError(f"modbus_error: {rr}")
+    return list(rr.registers)
+
+
+def main() -> None:
+    # SAHADA ÇALIŞAN AYARLAR (gerekiyorsa değiştirin)
+    port = "/dev/ttyUSB0"  # örn: /dev/ttyUSB0 veya /dev/ttyAMA5 veya /dev/serial0
+    slave_id = 111
+
+    client = ModbusSerialClient(
+        port=port,
+        baudrate=9600,
+        parity="E",
+        stopbits=1,
+        bytesize=8,
+        timeout=1.0,
+    )
+    if not client.connect():
+        raise SystemExit(f"connect_failed: {port}")
+
+    try:
+        # Voltajlar (float32, V)
+        va = _to_float(_read_holding(client, slave_id, 0x0800, 2))
+        vb = _to_float(_read_holding(client, slave_id, 0x0802, 2))
+        vc = _to_float(_read_holding(client, slave_id, 0x0804, 2))
+
+        # Akımlar (float32, A)
+        ia = _to_float(_read_holding(client, slave_id, 0x080C, 2))
+        ib = _to_float(_read_holding(client, slave_id, 0x080E, 2))
+        ic = _to_float(_read_holding(client, slave_id, 0x0810, 2))
+
+        # Güç (float32, kW)
+        p_l1 = _to_float(_read_holding(client, slave_id, 0x0814, 2))
+        p_l2 = _to_float(_read_holding(client, slave_id, 0x0816, 2))
+        p_0818 = _to_float(_read_holding(client, slave_id, 0x0818, 2))
+
+        # PF ve Hz (float32)
+        pf_total = _to_float(_read_holding(client, slave_id, 0x0832, 2))
+        freq_hz = _to_float(_read_holding(client, slave_id, 0x0834, 2))
+
+        # Enerji (uint32, scale=0.1 kWh)
+        e_total_kwh = _to_u32(_read_holding(client, slave_id, 0x0842, 2)) * 0.1
+        e_import_kwh = _to_u32(_read_holding(client, slave_id, 0x084C, 2)) * 0.1
+        e_export_kwh = _to_u32(_read_holding(client, slave_id, 0x0856, 2)) * 0.1
+
+        print("OK")
+        print(f"V: L1={va:.2f} L2={vb:.2f} L3={vc:.2f}")
+        print(f"I: L1={ia:.3f} L2={ib:.3f} L3={ic:.3f}")
+        print(f"P(kW): L1={p_l1:.3f} L2={p_l2:.3f} 0x0818={p_0818:.3f}")
+        print(f"PF={pf_total:.3f} Hz={freq_hz:.2f}")
+        print(f"E(kWh): total={e_total_kwh:.1f} import={e_import_kwh:.1f} export={e_export_kwh:.1f}")
+    finally:
+        client.close()
+
+
+if __name__ == "__main__":
+    main()
+```
+
+### 4) Bu test çalışmıyorsa en sık 5 sebep
+
+- **Slave ID yanlış:** Sahada 1 değil **111**.
+- **Parity yanlış:** EVEN yerine NONE/ODD set edilmiş olabilir.
+- **Port yanlış:** `/dev/ttyUSB0` vs `/dev/ttyAMA5` karışır.
+- **A/B ters:** RS485 A↔B swap ile düzelebilir.
+- **Port “busy”:** Başka bir proses seri portu açık tutuyor olabilir.
 
 ### ✅ Canlı Okuma Örneği (2025-12-31 13:56:56 +03)
 
@@ -250,44 +363,25 @@ ls -la /dev/ttyAMA5
 dmesg | grep ttyAMA5
 ```
 
-### 2. Meter Okuma Testi
+### 2. Meter Okuma Testi (Repo bağımsız öneri)
+
+Öncelikle bu dokümanın üst kısmındaki **“Repo‑Bağımsız Kopyala‑Çalıştır Testi”** script’i ile register okumasını doğrulayın.
+
+### 3. (Opsiyonel) HTTP Endpoint ile Okuma Testi
+
+Eğer kendi sisteminizde meter okumasını servis eden bir HTTP endpoint varsa, benzer şekilde test edin:
 
 ```bash
-# Acrel (önerilen): charger-api üzerinden oku (seri portu ikinci prosesle açmaz)
 curl -sS --max-time 5 http://localhost:8000/api/meter/reading
 curl -sS --max-time 5 http://localhost:8000/api/meter/status
 ```
 
 **Beklenen:** `success=true` ve `data.totals.energy_import_kwh` gibi alanların dolu gelmesi.
 
-### 3. Doğrudan Driver Testi (Acrel — `charger-api` kapalıyken)
-
-> ÖNEMLİ: `charger-api` çalışıyorsa `/dev/ttyAMA5` portu zaten açık olabilir. Portu hangi prosesin kullandığını kontrol edin:
->
-> `sudo fuser -v /dev/ttyAMA5`
-
-```bash
-cd /home/basar/charger
-
-# Tek seferlik okuma (Acrel T317/ADL400 MID - saha ayarları)
-./env/bin/python - <<'PY'
-from api.meter.acrel import AcrelModbusMeter
-
-m = AcrelModbusMeter(port="/dev/ttyAMA5", baudrate=9600, slave_id=111, timeout=1.0)
-print("connect=", m.connect())
-reading = m.read_all()
-print("reading=", reading)
-if reading is not None:
-    print("totals=", getattr(reading, "totals", None))
-m.disconnect()
-PY
-```
-
 ### 4. Legacy: ABB Reader Script (ABB B23 için)
 
 ```bash
-cd /home/basar/charger
-./env/bin/python meter/read_meter.py
+python3 meter/read_meter.py
 ```
 
 ### 5. “Pasif Dinleme” Notu (Modbus RTU)
@@ -364,8 +458,9 @@ Modbus RTU iletişimi **request/response**’dur. Sayaç, master sorgusu olmadan
 ### 1) Sahada çalışan ayarlar birebir mi?
 
 ```bash
-cd /home/basar/charger
-grep -nE '^METER_' .env
+# Eğer config/env kullanıyorsanız ilgili anahtarları arayın (isimler projeye göre değişebilir)
+# Örn (charger repo): grep -nE '^METER_' .env
+grep -RIn --line-number 'METER_(TYPE|PORT|BAUDRATE|SLAVE_ID|TIMEOUT)' . 2>/dev/null | head -n 50
 ```
 
 **Acrel için beklenen minimum set:**
@@ -422,24 +517,13 @@ systemctl is-active charger-api.service || true
 > Bu test için portun başka proses tarafından kullanılmadığından emin olun (bkz. adım 4).
 
 ```bash
-cd /home/basar/charger
-./env/bin/python - <<'PY'
-from api.meter.acrel import AcrelModbusMeter
-
-m = AcrelModbusMeter(port="/dev/ttyAMA5", baudrate=9600, slave_id=111, timeout=1.0)
-print("connect=", m.connect())
-reading = m.read_all()
-print("reading=", reading)
-if reading is not None:
-    print("totals=", getattr(reading, "totals", None))
-m.disconnect()
-PY
+# Repo bağımsız driver testi için üstteki "Kopyala-Çalıştır Testi" script'ini kullanın.
+true
 ```
 
 ### 7) Loglardan ipucu al
 
 ```bash
-cd /home/basar/charger
 tail -n 200 logs/system.log | grep -iE 'meter|acrel' || true
 ```
 
