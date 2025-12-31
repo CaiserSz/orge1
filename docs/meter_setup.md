@@ -1,30 +1,112 @@
-# ABB Meter RS485 Kurulumu ve Yapılandırması
+# Acrel ADL400/T317 ↔ Raspberry Pi (RPi) Meter Entegrasyonu (RS485 / Modbus RTU)
 
 **Oluşturulma Tarihi:** 2025-12-09 02:50:00
-**Son Güncelleme:** 2025-12-12 08:50:00
-**Version:** 1.1.0
+**Son Güncelleme:** 2025-12-31 13:57:00 +03
+**Version:** 1.2.0
 
 ---
+
+## 🎯 Hızlı Özet (Acrel T317/ADL400 MID — Saha Doğrulandı)
+
+Bu doküman, **Acrel T317/ADL400 MID** üç-faz enerji sayacının Raspberry Pi ile **RS485 / Modbus RTU** üzerinden okunması için gerekli ayarları ve proje içi entegrasyon noktalarını tek yerde toplar. (ABB B23 notları da “legacy” olarak içeride tutulur.)
+
+- **Saha (bu RPi) çalışır konfig:**
+  - Port: `/dev/ttyAMA5` (UART5 + MAX13487)
+  - Baudrate: **9600**
+  - Parity: **EVEN** (8E1)
+  - Slave ID: **111**
+  - Function Code: **0x03** (Holding Registers)
+- **Proje config (bu RPi `.env`):**
+
+```bash
+METER_TYPE=acrel
+METER_PORT=/dev/ttyAMA5
+METER_BAUDRATE=9600
+METER_SLAVE_ID=111
+METER_TIMEOUT=1.0
+METER_AUTO_CONNECT=true
+```
+
+- **Önemli not (Modbus RTU):** Sayaç **kendiliğinden** sürekli veri akıtmaz; iletişim **request/response**’dur. Bu nedenle `cat /dev/ttyAMA5` ile “hiç veri yok” görmeniz normal olabilir. Doğrulama için master olarak sorgu göndermek gerekir (aşağıdaki test adımlarına bakın).
+
+### ✅ Canlı Okuma Örneği (2025-12-31 13:56:56 +03)
+
+Bu örnek çıktı, bu RPi’de çalışan `charger-api` üzerinden `GET /api/meter/reading` çağrısından alınmıştır:
+
+```json
+{
+  "success": true,
+  "message": "Meter okuması başarıyla alındı",
+  "data": {
+    "voltage_v": 223.65185546875,
+    "current_a": 0.13836954534053802,
+    "power_w": 28.41185801342855,
+    "power_kw": 0.028411858013428548,
+    "energy_kwh": 106.9,
+    "frequency_hz": 50.0,
+    "power_factor": 0.9424657821655273,
+    "timestamp": 1767178616.0200868,
+    "phase_values": {
+      "voltage_v": {
+        "l1": 223.65185546875,
+        "l2": 217.8680419921875,
+        "l3": 218.396728515625
+      },
+      "current_a": {
+        "l1": 0.0,
+        "l2": 0.13836954534053802,
+        "l3": 0.0
+      },
+      "power_kw": {
+        "l1": 0.0,
+        "l2": 0.014144806191325188,
+        "l3": 0.0,
+        "total": 0.028411858013428548
+      }
+    },
+    "totals": {
+      "power_kw": 0.028411858013428548,
+      "energy_kwh": 106.9,
+      "energy_total_kwh": 106.9,
+      "energy_import_kwh": 106.60000000000001,
+      "energy_export_kwh": 0.30000000000000004,
+      "registers": {
+        "power_kw_l1": "0x0814 (float32 kW)",
+        "power_kw_l2": "0x0816 (float32 kW)",
+        "power_kw_total_or_l3": "0x0818 (float32 kW, sahada total/L3 değişebiliyor)",
+        "energy_total_kwh": "0x0842 (uint32, scale=0.1 kWh)",
+        "energy_import_kwh": "0x084C (uint32, scale=0.1 kWh)",
+        "energy_export_kwh": "0x0856 (uint32, scale=0.1 kWh)",
+        "pf_total": "0x0832 (float32)",
+        "frequency_hz": "0x0834 (float32)"
+      }
+    }
+  }
+}
+```
 
 ## 🔌 Donanım Bağlantıları
 
 ### RS485 Çevirici (MAX13487) Bağlantıları
 
 **Raspberry Pi GPIO Pinleri:**
+
 - **GPIO 12 (Pin 32)** → UART5_TXD (ALT3) → MAX13487 Pin 4 (DI) - TX
 - **GPIO 13 (Pin 33)** → UART5_RXD (ALT3) ← MAX13487 Pin 1 (RO) - RX
 - **GND** → MAX13487 GND
 
 **Pin Mapping:**
-| Pin No | BCM GPIO | Fonksiyon | ALT Fonksiyon |
-|--------|----------|-----------|---------------|
-| 32 | GPIO12 | PWM0 | ALT3 → UART5_TXD ✔ |
-| 33 | GPIO13 | PWM1 | ALT3 → UART5_RXD ✔ |
 
-**MAX13487 → ABB Meter:**
-- **MAX13487 Pin 6 (A)** → ABB Meter A
-- **MAX13487 Pin 7 (B)** → ABB Meter B
-- **GND** → ABB Meter GND
+| Pin No | BCM GPIO | Fonksiyon | ALT Fonksiyon        |
+| ------ | -------- | --------- | -------------------- |
+| 32     | GPIO12   | PWM0      | ALT3 → UART5_TXD ✔   |
+| 33     | GPIO13   | PWM1      | ALT3 → UART5_RXD ✔   |
+
+**MAX13487 → Meter (ABB/Acrel):**
+
+- **MAX13487 Pin 6 (A)** → Meter A
+- **MAX13487 Pin 7 (B)** → Meter B
+- **GND** → Meter GND
 
 **NOT:** RS485 A/B bağlantıları doğrulanmalı. Eğer veri okunamazsa A/B yer değişimi denenmeli.
 
@@ -42,7 +124,7 @@ sudo nano /boot/firmware/config.txt
 
 Dosyanın sonuna şu satırı ekleyin:
 
-```
+```text
 dtoverlay=uart5,txd5_pin=12,rxd5_pin=13
 ```
 
@@ -67,7 +149,8 @@ ls -la /dev/ttyAMA*
 ```
 
 Beklenen çıktı:
-```
+
+```text
 crw-rw---- 1 root dialout ... /dev/ttyAMA5
 ```
 
@@ -80,6 +163,7 @@ sudo usermod -aG dialout $USER
 ```
 
 Yeni oturum açmak veya:
+
 ```bash
 newgrp dialout
 ```
@@ -88,10 +172,39 @@ newgrp dialout
 
 ## 📡 Modbus RTU Protokol Bilgileri
 
-### ABB Meter Model Bilgileri
+### Acrel T317/ADL400 MID Ayarları (Aktif)
+
+**Saha (çalışan) Modbus RTU ayarları:**
+
+- **Port:** `/dev/ttyAMA5`
+- **Baudrate:** **9600**
+- **Parity:** **EVEN** (8E1)
+- **Stop Bits:** 1
+- **Slave ID:** **111**
+- **Function Code:** **0x03 (Read Holding Registers)**
+
+**Proje içi driver:** `api/meter/acrel.py` (`AcrelModbusMeter`)
+
+#### Acrel Register Referansı (Projede Kullanılan)
+
+> Not: Register semantiklerinin (total/import/export) üretici register-map dokümanı ile %100 teyidi ayrıca yapılmalıdır. Proje içinde debug kolaylığı için register referansları response içine de eklenir (`totals.registers`).
+
+- **Voltaj (float32, V):** `0x0800`, `0x0802`, `0x0804`
+- **Akım (float32, A):** `0x080C`, `0x080E`, `0x0810`
+- **Güç (float32, kW):** `0x0814`, `0x0816`, `0x0818`
+  - Not: `0x0818` sahada **total** veya **L3** olabildiği gözlemlendi; driver total gücü faz toplamı/V-I türetimi ile normalize eder.
+- **Power factor (float32):** `0x0832`
+- **Frekans (float32, Hz):** `0x0834`
+- **Enerji (uint32, scale=0.1 kWh):**
+  - **Total:** `0x0842`
+  - **Import:** `0x084C`
+  - **Export:** `0x0856`
+
+### ABB Meter Model Bilgileri (Legacy)
 
 **Model:** ABB B23 112-100
 **Özellikler:**
+
 - **Voltaj:** 3x220/380V veya 3x240/415V
 - **Akım Aralığı:** 0.25-5(65)A
 - **Frekans:** 50 or 60 Hz
@@ -103,6 +216,7 @@ newgrp dialout
 ### ABB Meter Ayarları
 
 **Genel Modbus RTU Ayarları:**
+
 - **Baudrate:** **2400** (sahada doğrulandı)
 - **Parity:** EVEN (sahada doğrulandı)
 - **Data Bits:** 8
@@ -112,9 +226,11 @@ newgrp dialout
 
 ### Register Adresleri
 
-`meter/read_meter.py` içindeki `ABB_REGISTERS` artık ABB B23 112-100 için sahada çalışan adresleri içerir.
+**ABB:** `meter/read_meter.py` içindeki `ABB_REGISTERS` ABB B23 112-100 için sahada çalışan adresleri içerir.  
+**Acrel:** `api/meter/acrel.py` içinde kullanılan register’lar yukarıda listelenmiştir.
 
 **Kritik Register'lar (holding registers):**
+
 - Voltaj L1/L2/L3: `0x1002`, `0x1004`, `0x1006` (2 register)
 - Akım L1/L2/L3: `0x1010`, `0x1012`, `0x1014` (2 register)
 - Aktif güç total: `0x102E` (2 register, signed)
@@ -137,37 +253,57 @@ dmesg | grep ttyAMA5
 ### 2. Meter Okuma Testi
 
 ```bash
-cd /home/basar/charger
-source env/bin/activate
-python3 meter/read_meter.py
+# Acrel (önerilen): charger-api üzerinden oku (seri portu ikinci prosesle açmaz)
+curl -sS --max-time 5 http://localhost:8000/api/meter/reading
+curl -sS --max-time 5 http://localhost:8000/api/meter/status
 ```
 
-**Beklenen Çıktı:**
-```
-meter_ok=True
-{ ... "device": "/dev/ttyAMA5", "voltage_l1": 225.0, "energy_active_kwh": 737.26, ... }
-```
+**Beklenen:** `success=true` ve `data.totals.energy_import_kwh` gibi alanların dolu gelmesi.
 
-### 3. Manuel Serial Port Testi
+### 3. Doğrudan Driver Testi (Acrel — `charger-api` kapalıyken)
+
+> ÖNEMLİ: `charger-api` çalışıyorsa `/dev/ttyAMA5` portu zaten açık olabilir. Portu hangi prosesin kullandığını kontrol edin:
+>
+> `sudo fuser -v /dev/ttyAMA5`
 
 ```bash
-# Serial port'u dinle (hex dump)
-sudo cat /dev/ttyAMA5 | hexdump -C
+cd /home/basar/charger
 
-# Veya minicom ile
-sudo minicom -D /dev/ttyAMA5 -b 2400
+# Tek seferlik okuma (Acrel T317/ADL400 MID - saha ayarları)
+./env/bin/python - <<'PY'
+from api.meter.acrel import AcrelModbusMeter
+
+m = AcrelModbusMeter(port="/dev/ttyAMA5", baudrate=9600, slave_id=111, timeout=1.0)
+print("connect=", m.connect())
+reading = m.read_all()
+print("reading=", reading)
+if reading is not None:
+    print("totals=", getattr(reading, "totals", None))
+m.disconnect()
+PY
 ```
+
+### 4. Legacy: ABB Reader Script (ABB B23 için)
+
+```bash
+cd /home/basar/charger
+./env/bin/python meter/read_meter.py
+```
+
+### 5. “Pasif Dinleme” Notu (Modbus RTU)
+
+Modbus RTU iletişimi **request/response**’dur. Sayaç, master sorgusu olmadan “stream” etmez. Bu nedenle `cat /dev/ttyAMA5` ile veri beklemek çoğu durumda yanıltıcıdır. Doğrulama için yukarıdaki **API** veya **driver test** adımlarını kullanın.
 
 ---
 
-## 🔍 Araştırma Bulguları (2025-12-09)
+## 🗂️ Tarihçe (ABB bring‑up notları — 2025-12-09)
 
 ### Önemli Tespitler
 
-1. **GPIO Pin Fonksiyonu:**
+1. **GPIO Pin Fonksiyonu (o günkü gözlem):**
    - GPIO12 ve GPIO13 pinlerinin **ALT3** fonksiyonunda olması gerekiyor
-   - Şu anki durum: Pinler "alt4" görünüyor ve "UNCLAIMED" durumunda
-   - Bu durum UART5'in tam olarak aktif olmadığını gösterebilir
+   - O günkü gözlem: Pinler "alt4" görünüyor ve "UNCLAIMED" durumundaydı
+   - Bu durum UART5 overlay/config'in tam aktif olmadığını gösterebilir
 
 2. **RS485 Sonlandırma Dirençleri:**
    - RS485 hattının her iki ucunda **120Ω** sonlandırma dirençleri kullanılmalı
@@ -218,127 +354,115 @@ sudo minicom -D /dev/ttyAMA5 -b 2400
 
 ---
 
-## 🔧 Sorun Giderme
+## 🔧 Sorun Giderme (Acrel ADL400/T317 — Diğer RPi’de Çalışmıyorsa)
 
-### Sorun 1: `/dev/ttyAMA4` görünmüyor
+### 0) Modbus RTU “sessiz” görünebilir (normal)
 
-**Çözüm:**
-1. `/boot/firmware/config.txt` dosyasında `dtoverlay=uart5` olduğundan emin olun
-2. Sistem reboot edildi mi kontrol edin
-3. `dmesg | grep uart5` ile kernel mesajlarını kontrol edin
+- Modbus RTU **request/response**’dur. Sayaç, master sorgusu olmadan “push” etmez.
+- Bu yüzden “dinleyerek” (`cat`) veri beklemek yerine **register okuma** ile test edin.
 
-### Sorun 2: Permission denied hatası
+### 1) Sahada çalışan ayarlar birebir mi?
 
-**Çözüm:**
 ```bash
+cd /home/basar/charger
+grep -nE '^METER_' .env
+```
+
+**Acrel için beklenen minimum set:**
+
+- `METER_TYPE=acrel`
+- `METER_PORT=/dev/ttyAMA5` (veya sizdeki doğru port)
+- `METER_BAUDRATE=9600`
+- `METER_SLAVE_ID=111`
+- `METER_TIMEOUT=1.0`
+
+> En sık hata: `METER_SLAVE_ID`’yi 1 bırakmak (Acrel sahada 111).
+
+### 2) Port var mı? (UART5 overlay)
+
+```bash
+ls -la /dev/ttyAMA* /dev/serial* /dev/ttyUSB* 2>/dev/null || true
+grep -n 'dtoverlay=uart5' /boot/firmware/config.txt 2>/dev/null || true
+```
+
+Bu projede UART5 için sahada kullanılan satır:
+
+```text
+dtoverlay=uart5,txd5_pin=12,rxd5_pin=13
+```
+
+### 3) Permission denied
+
+```bash
+groups
 sudo usermod -aG dialout $USER
 newgrp dialout
 ```
 
-### Sorun 3: Veri okunamıyor
+### 4) Port “busy” mi? (tek proses kuralı)
 
-**Kontrol Listesi:**
-- ✅ UART5 aktif mi? (`dtoverlay=uart5`) → `/dev/ttyAMA5` mevcut
-- ✅ Cihaz dosyası mevcut mu? (`/dev/ttyAMA5`) → Mevcut
-- ✅ RS485 bağlantıları doğru mu? (TX-RX çapraz kontrol) → **TEST EDİLMELİ**
-- ✅ Baudrate doğru mu? (9600, 19200, 4800) → **TEST EDİLDİ, HİÇBİRİNDE ÇALIŞMADI**
-- ✅ Parity doğru mu? (EVEN) → **EVEN kullanılıyor, NO/NONE denemeli**
-- ✅ Slave ID doğru mu? (meter yapılandırmasına göre) → **1, 2, 3, 247 test edildi**
-- ✅ Register adresleri doğru mu? (ABB meter dokümantasyonu) → **0x0000 test edildi**
-- ✅ RTS kontrolü aktif mi? (MAX13487 için) → **Eklendi**
-- ✅ Meter açık ve çalışıyor mu? → **KONTROL EDİLMELİ**
-- ✅ MAX13487 çevirici doğru çalışıyor mu? → **KONTROL EDİLMELİ**
+`/dev/ttyAMA5` aynı anda iki farklı proses tarafından açılmamalıdır.
 
-**Test Sonuçları (2025-12-09):**
-- Tüm baudrate kombinasyonları test edildi: ❌ Response yok
-- Tüm slave ID kombinasyonları test edildi: ❌ Response yok
-- RTS kontrolü eklendi: ✅ Kod güncellendi
-- `/dev/ttyAMA5` aktif: ✅ Mevcut ve erişilebilir
-
-**Sonraki Adımlar:**
-1. Meter'in açık ve çalışır durumda olduğunu doğrula
-2. RS485 TX-RX bağlantılarını ters çevir ve tekrar test et
-3. Parity ayarını NO/NONE olarak değiştir ve test et
-4. MAX13487 çeviricinin doğru çalıştığını kontrol et (LED'ler, voltaj seviyeleri)
-5. GPIO12/13 pinlerinin fiziksel bağlantılarını kontrol et
-6. Meter dokümantasyonundan gerçek Modbus ayarlarını al
-
-### Sorun 4: TX-RX Bağlantısı Belirsiz
-
-**Test:**
-1. TX ve RX bağlantılarını ters çevirin
-2. Tekrar test edin
-3. Hangi bağlantıda veri alınıyorsa o doğrudur
-
----
-
-## 📝 Kod Kullanımı
-
-### Python'da Kullanım
-
-```python
-from meter.read_meter import ABBMeterReader
-
-# Meter reader oluştur
-reader = ABBMeterReader(
-    device="/dev/ttyAMA4",
-    baudrate=9600,
-    slave_id=1,
-    timeout=1.0
-)
-
-# Bağlan
-if reader.connect():
-    # Meter verilerini oku
-    data = reader.read_meter_data()
-    if data:
-        print(f"Voltaj L1: {data['voltage_l1']}V")
-        print(f"Akım L1: {data['current_l1']}A")
-        print(f"Aktif Güç: {data['power_active_w']}W")
-        print(f"Aktif Enerji: {data['energy_active_kwh']}kWh")
-
-    # Bağlantıyı kapat
-    reader.disconnect()
+```bash
+sudo fuser -v /dev/ttyAMA5 2>/dev/null || true
+systemctl is-active charger-api.service || true
 ```
 
-### API Entegrasyonu
+- Eğer `charger-api` çalışıyorsa, test için **önce API üzerinden** (`/api/meter/reading`) doğrulayın.
+- Direkt driver testi yapacaksanız `charger-api`’yi durdurmanız gerekebilir (operasyon planına göre).
 
-`api/main.py` dosyasına meter endpoint'leri eklenebilir:
+### 5) Fiziksel katman (RS485) kontrolleri
 
-```python
-from meter.read_meter import get_meter_reader
+- **A/B tersliği:** Veri gelmiyorsa A ↔ B swap deneyin.
+- **Ortak GND:** RPi ↔ transceiver ↔ meter arasında ortak referans olmalı.
+- **Sonlandırma (opsiyonel):** Uzun hatlarda 120Ω terminasyon gerekebilir.
 
-@app.get("/api/meter/status")
-async def get_meter_status():
-    reader = get_meter_reader()
-    data = reader.read_meter_data()
-    return APIResponse(success=True, data=data)
+### 6) Tek seferlik driver testi (Acrel)
+
+> Bu test için portun başka proses tarafından kullanılmadığından emin olun (bkz. adım 4).
+
+```bash
+cd /home/basar/charger
+./env/bin/python - <<'PY'
+from api.meter.acrel import AcrelModbusMeter
+
+m = AcrelModbusMeter(port="/dev/ttyAMA5", baudrate=9600, slave_id=111, timeout=1.0)
+print("connect=", m.connect())
+reading = m.read_all()
+print("reading=", reading)
+if reading is not None:
+    print("totals=", getattr(reading, "totals", None))
+m.disconnect()
+PY
+```
+
+### 7) Loglardan ipucu al
+
+```bash
+cd /home/basar/charger
+tail -n 200 logs/system.log | grep -iE 'meter|acrel' || true
 ```
 
 ---
 
-## 📚 Kaynaklar ve Referanslar
+## 📝 Proje İçindeki Entegrasyon Noktaları (SSOT)
 
-- **Modbus RTU Protokol:** Modbus.org dokümantasyonu
-- **ABB Meter Dokümantasyonu:** Meter modeline özel dokümantasyon
-- **Raspberry Pi UART:** Raspberry Pi Foundation dokümantasyonu
-- **MAX13487 Datasheet:** RS485 çevirici teknik dokümantasyonu
-
----
-
-## ✅ Kurulum Kontrol Listesi
-
-- [ ] `/boot/firmware/config.txt` dosyasına `dtoverlay=uart5` eklendi
-- [ ] Sistem reboot edildi
-- [ ] `/dev/ttyAMA4` cihaz dosyası mevcut
-- [ ] Kullanıcı `dialout` grubuna eklendi
-- [ ] RS485 bağlantıları doğrulandı
-- [ ] Meter baudrate ve slave ID ayarlandı
-- [ ] Register adresleri ABB meter dokümantasyonundan alındı
-- [ ] Test okuma başarılı
+- **Config/env:** `api/config.py` + `.env` içindeki `METER_*` değişkenleri
+- **Driver seçimi:** `api/meter/interface.py:get_meter()` → `METER_TYPE=acrel` ise `AcrelModbusMeter`
+- **Acrel driver:** `api/meter/acrel.py` (register/scale mantığı burada)
+- **API endpoint:** `api/routers/meter.py`
+  - `GET /api/meter/status`
+  - `GET /api/meter/reading`
+- **Bağımlılıklar:** `requirements.txt` → `pymodbus==3.6.7`, `pyserial>=3.5`
 
 ---
 
-**Son Güncelleme:** 2025-12-09 02:50:00
-**Sonraki Adım:** Meter dokümantasyonundan gerçek register adreslerini al ve `meter/read_meter.py` dosyasını güncelle
+## ✅ Kurulum Kontrol Listesi (Acrel)
 
+- [ ] Meter cihaz ayarları: **9600**, **EVEN**, **Slave ID=111** (sahadaki Acrel)
+- [ ] RS485 hat: A/B doğru (gerekirse swap), ortak GND var
+- [ ] RPi: `/boot/firmware/config.txt` içinde `dtoverlay=uart5,txd5_pin=12,rxd5_pin=13`
+- [ ] Reboot sonrası `/dev/ttyAMA5` mevcut
+- [ ] Kullanıcı `dialout` grubunda
+- [ ] `.env` içinde `METER_TYPE=acrel` ve doğru `METER_*` set edildi
+- [ ] `charger-api` restart sonrası `curl http://localhost:8000/api/meter/reading` okuma veriyor
